@@ -7,8 +7,15 @@ const defaultAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF
 export function resolveSupabaseUrl(): string {
   // CRÍTICO: En app nativa Capacitor (Android/iOS), conectar siempre al dominio público oficial por túnel Cloudflare
   // (En Android WebView el hostname es 'localhost', por lo que esta comprobación debe ir PRIMERO)
+  // Si está definido por variable de entorno (Producción Cloud o .env), siempre tiene prioridad
+  if (import.meta.env.VITE_SUPABASE_URL) {
+    return import.meta.env.VITE_SUPABASE_URL;
+  }
+
+  // CRÍTICO: En app nativa Capacitor (Android/iOS) sin .env explícito
   if (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios') {
     return 'https://supabase.recargasjuegospro.cloud';
+    return 'https://pemkocaufntsbicnzziz.supabase.co';
   }
 
   if (typeof window !== 'undefined') {
@@ -28,6 +35,7 @@ export function resolveSupabaseUrl(): string {
   }
 
   return import.meta.env.VITE_SUPABASE_URL || defaultUrl;
+  return defaultUrl;
 }
 
 const supabaseUrl = resolveSupabaseUrl();
