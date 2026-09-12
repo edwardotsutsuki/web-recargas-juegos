@@ -1,4 +1,5 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { UserRole } from '../../../types';
 import { NotFoundPage } from '../../../components/pages/NotFoundPage';
@@ -19,8 +20,16 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ requiredRole, children }) 
     );
   }
 
-  // Si no está autenticado o su rol no coincide, responder con 404 discreto (evita enumeración de rutas)
-  if (!isAuthenticated || role !== requiredRole) {
+  // Si no está autenticado, redirigir al login correspondiente
+  if (!isAuthenticated) {
+    if (requiredRole === 'admin') {
+      return <Navigate to="/sys-admin-auth/login" replace />;
+    }
+    return <Navigate to="/login" replace />;
+  }
+
+  // Si está autenticado pero no tiene el rol requerido, mostrar 404 discreto
+  if (role !== requiredRole) {
     return <NotFoundPage />;
   }
 

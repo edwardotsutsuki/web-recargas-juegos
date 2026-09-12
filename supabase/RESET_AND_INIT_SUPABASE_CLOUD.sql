@@ -7,8 +7,11 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ------------------------------------------------------------------------------
--- 1. LIMPIEZA COMPLETA DE OBJETOS PREVIOS (Evita errores de "already exists")
+-- 1. LIMPIEZA TOTAL Y REINICIO DE AUTENTICACIÓN
 -- ------------------------------------------------------------------------------
+-- Limpia usuarios previos corruptos por inserción manual para restablecer el motor de autenticación
+TRUNCATE auth.users CASCADE;
+
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP TRIGGER IF EXISTS set_referral_code ON public.profiles;
 DROP TRIGGER IF EXISTS wallets_updated ON public.wallets;
@@ -785,133 +788,7 @@ ON CONFLICT (id) DO UPDATE SET
   notification_sender_email = 'notificaciones@recargasjuegospro.cloud';
 
 -- ------------------------------------------------------------------------------
--- 7. CREACIÓN Y ACTIVACIÓN DE USUARIOS OFICIALES EN AUTH Y PROFILES
--- Contraseña para todos: #RyuuDragon9595
--- ------------------------------------------------------------------------------
-DO $$
-DECLARE
-  v_admin_id uuid := '00000000-0000-0000-0000-000000000001';
-  v_client1_id uuid := '00000000-0000-0000-0000-000000000002';
-  v_client2_id uuid := '00000000-0000-0000-0000-000000000003';
-  v_pwd_hash text;
-BEGIN
-  v_pwd_hash := crypt('#RyuuDragon9595', gen_salt('bf'));
-
-  -- Limpiar cualquier usuario anterior con estos emails o IDs para evitar conflictos
-  DELETE FROM auth.users WHERE email IN ('b.edumalta@gmail.com', 'edward.otsutsuki@gmail.com', 'salvatierragenesis73@gmail.com', 'admin@xtremeplay.me', 'reseller@xtremeplay.me');
-  DELETE FROM auth.users WHERE id IN (v_admin_id, v_client1_id, v_client2_id);
-
-  -- 1. Super Admin: b.edumalta@gmail.com
-  INSERT INTO auth.users (
-    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-    raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token
-  ) VALUES (
-    '00000000-0000-0000-0000-000000000000',
-    v_admin_id,
-    'authenticated',
-    'authenticated',
-    'b.edumalta@gmail.com',
-    v_pwd_hash,
-    now(),
-    '{"provider": "email", "providers": ["email"]}',
-    '{"full_name": "Super Admin (Edward Malta)"}',
-    now(),
-    now(),
-    '',
-    ''
-  );
-
-  INSERT INTO public.profiles (id, role, full_name, referral_code, two_factor_enabled)
-  VALUES (v_admin_id, 'admin', 'Super Admin (Edward Malta)', 'XP-ADMIN01', false)
-  ON CONFLICT (id) DO UPDATE SET
-    role = 'admin',
-    full_name = 'Super Admin (Edward Malta)',
-    two_factor_enabled = false,
-    two_factor_secret = null;
-
-  INSERT INTO public.wallets (user_id, currency, balance_minor)
-  VALUES (v_admin_id, 'USD', 500000)
-  ON CONFLICT (user_id, currency) DO NOTHING;
-
-  -- 2. Cliente Reseller: edward.otsutsuki@gmail.com
-  INSERT INTO auth.users (
-    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-    raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token
-  ) VALUES (
-    '00000000-0000-0000-0000-000000000000',
-    v_client1_id,
-    'authenticated',
-    'authenticated',
-    'edward.otsutsuki@gmail.com',
-    v_pwd_hash,
-    now(),
-    '{"provider": "email", "providers": ["email"]}',
-    '{"full_name": "Edward Otsutsuki"}',
-    now(),
-    now(),
-    '',
-    ''
-  );
-
-  INSERT INTO public.profiles (id, role, full_name, referral_code, two_factor_enabled)
-  VALUES (v_client1_id, 'client', 'Edward Otsutsuki', 'XP-D91B06', false)
-  ON CONFLICT (id) DO UPDATE SET
-    role = 'client',
-    full_name = 'Edward Otsutsuki',
-    two_factor_enabled = false,
-    two_factor_secret = null;
-
-  INSERT INTO public.wallets (user_id, currency, balance_minor)
-  VALUES (v_client1_id, 'USD', 25000)
-  ON CONFLICT (user_id, currency) DO NOTHING;
-
-  -- 3. Cliente Reseller 2: salvatierragenesis73@gmail.com
-  INSERT INTO auth.users (
-    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-    raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token
-  ) VALUES (
-    '00000000-0000-0000-0000-000000000000',
-    v_client2_id,
-    'authenticated',
-    'authenticated',
-    'salvatierragenesis73@gmail.com',
-    v_pwd_hash,
-    now(),
-    '{"provider": "email", "providers": ["email"]}',
-    '{"full_name": "Genesis Salvatierra"}',
-    now(),
-    now(),
-    '',
-    ''
-  );
-
-  INSERT INTO public.profiles (id, role, full_name, referral_code, two_factor_enabled)
-  VALUES (v_client2_id, 'client', 'Genesis Salvatierra', 'XP-E2BBD8', false)
-  ON CONFLICT (id) DO UPDATE SET
-    role = 'client',
-    full_name = 'Genesis Salvatierra',
-    two_factor_enabled = false,
-    two_factor_secret = null;
-
-  INSERT INTO public.wallets (user_id, currency, balance_minor)
-  VALUES (v_client2_id, 'USD', 10000)
-  ON CONFLICT (user_id, currency) DO NOTHING;
-
-  -- 4. Registrar en auth.identities para compatibilidad total con GoTrue
-  BEGIN
-    INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-    VALUES
-      (v_admin_id, v_admin_id, jsonb_build_object('sub', v_admin_id, 'email', 'b.edumalta@gmail.com'), 'email', now(), now(), now()),
-      (v_client1_id, v_client1_id, jsonb_build_object('sub', v_client1_id, 'email', 'edward.otsutsuki@gmail.com'), 'email', now(), now(), now()),
-      (v_client2_id, v_client2_id, jsonb_build_object('sub', v_client2_id, 'email', 'salvatierragenesis73@gmail.com'), 'email', now(), now(), now())
-    ON CONFLICT DO NOTHING;
-  EXCEPTION WHEN OTHERS THEN
-    NULL;
-  END;
-END $$;
-
--- ------------------------------------------------------------------------------
--- 8. PERMISOS Y ROLES DE ACCESO EN SUPABASE CLOUD
+-- 7. PERMISOS Y ROLES DE ACCESO EN SUPABASE CLOUD
 -- ------------------------------------------------------------------------------
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, service_role;
