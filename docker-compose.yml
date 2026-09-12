@@ -1,0 +1,40 @@
+services:
+  api:
+    build:
+      context: ./backend
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:?Set NODE_IMAGE in .env}
+    init: true
+    env_file:
+      - .env
+    ports:
+      - "${BIND_ADDRESS:?Set BIND_ADDRESS}:${HOST_PORT:?Set HOST_PORT}:${PORT:?Set PORT}"
+    volumes:
+      - ./backend/src:/app/src:ro
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "src/healthcheck.js"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+

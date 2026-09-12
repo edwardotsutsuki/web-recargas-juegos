@@ -1,0 +1,68 @@
+name: Compilar APKs Android (Clientes y Administrador)
+
+on:
+  workflow_dispatch: # Permite ejecutar la compilación manualmente con un clic en GitHub
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+
+jobs:
+  build-apks:
+    name: Compilar APKs con Capacitor
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar Código del Repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package.json
+
+      - name: Configurar Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar Dependencias de Frontend
+        working-directory: ./frontend
+        run: npm ci || npm install
+
+      - name: Compilar Frontend Web y Sincronizar Proyectos Android
+        working-directory: ./frontend
+        run: npm run cap:build:all
+
+      - name: Compilar APK de Clientes (Recargas Juegos Online)
+        working-directory: ./frontend/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Compilar APK de Super Administrador (Recargas Admin Pro)
+        working-directory: ./frontend/android-admin
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Renombrar APKs para Descarga Directa
+        run: |
+          mkdir -p apks-dist
+          cp frontend/android/app/build/outputs/apk/debug/app-debug.apk apks-dist/RecargasJuegos-Clientes.apk
+          cp frontend/android-admin/app/build/outputs/apk/debug/app-debug.apk apks-dist/RecargasAdmin-Pro.apk
+
+      - name: Publicar APKs como Artefactos Descargables
+        uses: actions/upload-artifact@v4
+        with:
+          name: APKs-Android-RecargasJuegos
+          path: apks-dist/*.apk
+          retention-days: 30
+

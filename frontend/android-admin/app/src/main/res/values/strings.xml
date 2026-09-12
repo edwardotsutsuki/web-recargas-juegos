@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Recargas Admin Pro</string>
+    <string name="title_activity_main">Recargas Admin Pro</string>
+    <string name="package_name">com.recargasjuegos.admin</string>
+    <string name="custom_url_scheme">com.recargasjuegos.admin</string>
+</resources>
