@@ -42,7 +42,7 @@ export async function handleRequest(req, res) {
   // 1. Rutas Públicas (Catálogo, ID Jugador, Estado del Sistema y Métodos de Pago)
   // ---------------------------------------------------------------------------
   try {
-    if (method === 'GET' && pathname === '/health') {
+    if (method === 'GET' && (pathname === '/health' || pathname === '/healthz')) {
       return sendJson(res, 200, { status: 'ok', scope: 'process' });
     }
 
