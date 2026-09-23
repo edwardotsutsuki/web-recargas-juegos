@@ -458,7 +458,109 @@ export const GAME_DIRECTORY = {
     can_verify_player: false,
     badge: 'Pin Digital',
   },
+  // --- Nuevos Juegos y Pines Canjea 2026 ---
+  ffpin: {
+    id: 'ffpin',
+    name: 'Free Fire · Pines y Códigos',
+    category: 'gift_card',
+    category_label: 'Código Digital',
+    image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=700&auto=format&fit=crop&q=75',
+    banner: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&auto=format&fit=crop&q=80',
+    description: 'Pines digitales canjeables en PagoStore / redeem.canjea.me. Entrega inmediata sin ID.',
+    requires_player_id: false,
+    can_verify_player: false,
+    badge: 'Pin Inmediato',
+    redeem_instructions: '1. Entra a redeem.canjea.me o pagostore.com\n2. Ingresa el código recibido\n3. Escribe tu ID de Free Fire y los diamantes se acreditarán al instante.',
+  },
+  hsr: {
+    id: 'hsr',
+    name: 'Honkai: Star Rail',
+    category: 'direct_topup',
+    category_label: 'Recarga Directa',
+    image: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=700&auto=format&fit=crop&q=75',
+    banner: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80',
+    description: 'Esquirlas Oníricas y Pase de Suministro Expreso directos a tu cuenta HoYoverse.',
+    player_id_label: 'UID de Jugador',
+    player_id_placeholder: 'Ej: 601234567',
+    player_id_hint: 'Tu UID se encuentra en la esquina inferior izquierda o en tu teléfono dentro del juego.',
+    requires_server: true,
+    server_label: 'Servidor',
+    server_options: ['America', 'Europe', 'Asia', 'TW, HK, MO'],
+    requires_player_id: true,
+    can_verify_player: false,
+    badge: 'HoYoverse Oficial',
+  },
+  zzz: {
+    id: 'zzz',
+    name: 'Zenless Zone Zero',
+    category: 'direct_topup',
+    category_label: 'Recarga Directa',
+    image: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=700&auto=format&fit=crop&q=75',
+    banner: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=1200&auto=format&fit=crop&q=80',
+    description: 'Fotogramas y Suscripción Proxy con recarga oficial directa para Zenless Zone Zero.',
+    player_id_label: 'UID de Jugador',
+    player_id_placeholder: 'Ej: 100234567',
+    player_id_hint: 'Encuentra tu UID en la esquina inferior izquierda de tu pantalla de juego.',
+    requires_server: true,
+    server_label: 'Servidor',
+    server_options: ['America', 'Europe', 'Asia', 'TW, HK, MO'],
+    requires_player_id: true,
+    can_verify_player: false,
+    badge: 'HoYoverse Oficial',
+  },
 };
+
+// Catálogo temático de imágenes gamer HD para juegos nuevos no registrados en el diccionario
+export const GAMER_THEME_IMAGE_POOLS = {
+  shooter: [
+    'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=700&auto=format&fit=crop&q=75',
+    'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=700&auto=format&fit=crop&q=75',
+    'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=700&auto=format&fit=crop&q=75',
+  ],
+  anime_rpg: [
+    'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=700&auto=format&fit=crop&q=75',
+    'https://images.unsplash.com/photo-1563089145-599997674d42?w=700&auto=format&fit=crop&q=75',
+    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=700&auto=format&fit=crop&q=75',
+  ],
+  sports: [
+    'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=700&auto=format&fit=crop&q=75',
+    'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=700&auto=format&fit=crop&q=75',
+  ],
+  cards_pines: [
+    'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=700&auto=format&fit=crop&q=75',
+    'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=700&auto=format&fit=crop&q=75',
+    'https://images.unsplash.com/photo-1612287233215-68045f448651?w=700&auto=format&fit=crop&q=75',
+  ],
+  general_gamer: [
+    'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=700&auto=format&fit=crop&q=75',
+    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=700&auto=format&fit=crop&q=75',
+    'https://images.unsplash.com/photo-1552824722-ddab1374e622?w=700&auto=format&fit=crop&q=75',
+  ],
+};
+
+export function getThemedGamerImage(gameId = '', gameName = '', requiresPlayerId = false) {
+  const text = `${gameId} ${gameName}`.toLowerCase();
+
+  let pool = GAMER_THEME_IMAGE_POOLS.general_gamer;
+  if (/fire|strike|cod|duty|pubg|war|gun|shoot|arena|delta|apex|val/i.test(text)) {
+    pool = GAMER_THEME_IMAGE_POOLS.shooter;
+  } else if (/honkai|star|genshin|zero|zone|anime|fate|rpg|fantasy|dragon|blade/i.test(text)) {
+    pool = GAMER_THEME_IMAGE_POOLS.anime_rpg;
+  } else if (/fifa|fc|soccer|fut|ball|sport|nba|speed|race/i.test(text)) {
+    pool = GAMER_THEME_IMAGE_POOLS.sports;
+  } else if (!requiresPlayerId || /pin|card|code|gift|steam|xbox|apple|google|play/i.test(text)) {
+    pool = GAMER_THEME_IMAGE_POOLS.cards_pines;
+  }
+
+  // Hash consistente para que la misma franquicia siempre mantenga la misma imagen
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = (hash << 5) - hash + text.charCodeAt(i);
+    hash |= 0;
+  }
+  const index = Math.abs(hash) % pool.length;
+  return pool[index];
+}
 
 /**
  * Calcula el precio minorista aplicando margen y/o suggested_retail_price
@@ -510,7 +612,8 @@ export const catalogService = {
         name: p.game_name || p.game,
         category: p.requires_player_id ? 'direct_topup' : 'gift_card',
         category_label: p.requires_player_id ? 'Recarga Directa' : 'Tarjeta de Regalo',
-        image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=700&auto=format&fit=crop&q=75',
+        image: getThemedGamerImage(p.game, p.game_name, p.requires_player_id),
+        banner: getThemedGamerImage(p.game, p.game_name, p.requires_player_id),
         requires_player_id: Boolean(p.requires_player_id),
         can_verify_player: Boolean(p.can_verify_player),
         badge: p.can_verify_player ? 'ID Verificable' : !p.requires_player_id ? 'Pin Digital' : 'ID Requerido',
