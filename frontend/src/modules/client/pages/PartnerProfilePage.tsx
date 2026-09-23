@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { Button } from '../../../components/atoms/Button';
 import { Input } from '../../../components/atoms/Input';
 import { Badge } from '../../../components/atoms/Badge';
-import { Upload, CheckCircle2, Lock, Shield, Smartphone, KeyRound, Copy, Check, AlertTriangle, X } from 'lucide-react';
+import { Upload, CheckCircle2, Lock, Shield, Smartphone, KeyRound, Copy, Check, AlertTriangle, X, LogOut } from 'lucide-react';
 import { useUIStore } from '../../../store/useUIStore';
 import { apiClient } from '../../../services/api/client';
 import { supabase, isSupabaseConfigured } from '../../../services/supabase/client';
 
 export const PartnerProfilePage: React.FC = () => {
-  const { user, setUser } = useAuthStore();
+  const navigate = useNavigate();
+  const { user, setUser, logout } = useAuthStore();
   const { showToast } = useUIStore();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [fullName, setFullName] = useState(user?.fullName || 'Edward Malta');
   const [email] = useState(user?.email || 'b.edumalta@gmail.com');
@@ -26,6 +29,19 @@ export const PartnerProfilePage: React.FC = () => {
   const [isVerifying2FA, setIsVerifying2FA] = useState(false);
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      console.error('Error cerrando sesión en perfil:', err);
+      navigate('/login', { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -428,6 +444,29 @@ export const PartnerProfilePage: React.FC = () => {
                 </form>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Sección de Cerrar Sesión (Visible para escritorio y móvil/APK) */}
+        <div className="glass-panel p-6 rounded-3xl border border-red-500/20 bg-red-950/10 space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <LogOut className="w-4 h-4 text-red-400" />
+                Cerrar Sesión de la Cuenta
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Cierra tu sesión en este dispositivo de forma segura. Tu saldo y datos permanecerán protegidos.
+              </p>
+            </div>
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 hover:text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              <LogOut className={`w-4 h-4 ${isLoggingOut ? 'animate-spin' : ''}`} />
+              {isLoggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}
+            </button>
           </div>
         </div>
       </div>

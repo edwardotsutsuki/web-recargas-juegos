@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -26,10 +26,19 @@ interface PartnerSidebarProps {
 export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleSignOut = async () => {
-    await logout();
-    navigate('/login');
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      console.error('Error cerrando sesión de revendedor:', err);
+      navigate('/login', { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const navItemClass = ({ isActive }: { isActive: boolean }) =>
@@ -186,10 +195,11 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({ isOpen, onClose 
 
           <button
             onClick={handleSignOut}
-            className="w-full py-2 px-3 rounded-xl bg-slate-900/40 hover:bg-red-950/40 border border-slate-800/80 hover:border-red-500/30 text-slate-400 hover:text-red-300 text-xs font-bold transition-all flex items-center justify-center gap-2"
+            disabled={isLoggingOut}
+            className="w-full py-2 px-3 rounded-xl bg-slate-900/40 hover:bg-red-950/40 border border-slate-800/80 hover:border-red-500/30 text-slate-400 hover:text-red-300 text-xs font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Salir del Panel</span>
+            <LogOut className={`w-3.5 h-3.5 ${isLoggingOut ? 'animate-spin' : ''}`} />
+            <span>{isLoggingOut ? 'Cerrando sesión...' : 'Salir del Panel'}</span>
           </button>
         </div>
       </aside>

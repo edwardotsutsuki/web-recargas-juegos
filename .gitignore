@@ -8,5 +8,7 @@ deploy_to_hostinger.cjs
 *.bat
 setup_clean_users.js
 *.log
+*.apk
 .DS_Store
 Thumbs.db
+

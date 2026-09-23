@@ -1,7 +1,8 @@
-import React from 'react';
-import { Gamepad2, Wallet, RefreshCw, ShoppingBag, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Gamepad2, Wallet, RefreshCw, ShoppingBag, Plus, LogOut } from 'lucide-react';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { useCartStore } from '../../../store/useCartStore';
+import { useAuthStore } from '../../../store/useAuthStore';
 import { PriceDisplay } from '../../../components/molecules/PriceDisplay';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,12 +14,27 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
   const navigate = useNavigate();
   const { wallet, isLoading: isWalletLoading, fetchWallet } = useWalletStore();
   const { items, toggleCart } = useCartStore();
+  const { logout } = useAuthStore();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const totalCartCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      console.error('Error cerrando sesión en mobile top bar:', err);
+      navigate('/login', { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-30 w-full h-16 bg-[#080d18]/90 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between gap-4">
-      {/* Left: Brand Badge & Platform Title (Menú lateral oculto en móvil/APK al igual que en Admin) */}
+      {/* Left: Brand Badge & Platform Title */}
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-glow-primary sm:hidden">
           <Gamepad2 className="w-4 h-4 text-white" />
@@ -33,8 +49,8 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
         </div>
       </div>
 
-      {/* Right: Balance Widget + Quick Deposit + Cart */}
-      <div className="flex items-center gap-3">
+      {/* Right: Balance Widget + Quick Deposit + Cart + Mobile Logout */}
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* Virtual Balance Widget */}
         <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5">
           <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
@@ -85,8 +101,18 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
             </span>
           )}
         </button>
+
+        {/* Mobile Quick Logout Button */}
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          title="Cerrar sesión"
+          className="p-2.5 rounded-xl bg-red-950/30 border border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-900/40 transition-colors lg:hidden disabled:opacity-50 cursor-pointer"
+          aria-label="Cerrar sesión"
+        >
+          <LogOut className={`w-4 h-4 ${isLoggingOut ? 'animate-spin' : ''}`} />
+        </button>
       </div>
     </header>
   );
 };
-

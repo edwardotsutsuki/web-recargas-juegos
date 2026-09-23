@@ -25,9 +25,14 @@ export const AdminLoginPage: React.FC = () => {
 
     try {
       if (isSupabaseConfigured) {
+        // Limpieza preventiva de sesión local para evitar inicios de sesión montados
+        try {
+          await supabase.auth.signOut({ scope: 'local' });
+        } catch {}
+
         // Step 1: Standard Password Sign In
         const { data, error: authError } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim(),
           password,
         });
 

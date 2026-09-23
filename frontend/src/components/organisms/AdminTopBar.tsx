@@ -12,6 +12,7 @@ export const AdminTopBar: React.FC = () => {
   const [circuitBreaker, setCircuitBreaker] = useState<boolean>(false);
   const [alertLevel, setAlertLevel] = useState<string>('normal');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
 
   const fetchProviderStatus = async (forceRefresh = false) => {
     try {
@@ -38,8 +39,16 @@ export const AdminTopBar: React.FC = () => {
   }, []);
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/sys-admin-auth/login');
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      navigate('/sys-admin-auth/login', { replace: true });
+    } catch (err) {
+      console.error('Error cerrando sesión de admin:', err);
+      navigate('/sys-admin-auth/login', { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const getStatusBadge = () => {
@@ -160,11 +169,12 @@ export const AdminTopBar: React.FC = () => {
 
             <button
               onClick={handleLogout}
+              disabled={isLoggingOut}
               title="Cerrar sesión de Administrador"
-              className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-xs font-semibold text-red-400 hover:text-red-300 transition-colors"
+              className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-xs font-semibold text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 cursor-pointer"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Salir</span>
+              <LogOut className={`w-3.5 h-3.5 ${isLoggingOut ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{isLoggingOut ? 'Saliendo...' : 'Salir'}</span>
             </button>
           </div>
         </div>
