@@ -188,13 +188,13 @@ export const CartDrawer: React.FC = () => {
                     para completar esta orden. Contacta al administrador para recargar tu saldo virtual.
                   </p>
                   <a
-                    href="https://wa.me/"
+                    href="https://wa.me/593999561588?text=Hola%2C%20deseo%20solicitar%20una%20recarga%20de%20saldo%20en%20Recargas%20Juegos%20Online"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center gap-2 w-full py-2 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors"
                   >
                     <MessageCircle className="w-4 h-4" />
-                    Solicitar Recarga por WhatsApp
+                    Solicitar Recarga por WhatsApp (0999561588)
                   </a>
                 </div>
               )}

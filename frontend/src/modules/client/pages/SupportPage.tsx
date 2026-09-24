@@ -114,13 +114,13 @@ export const SupportPage: React.FC = () => {
             </p>
           </div>
           <a
-            href="https://wa.me/593999999999"
+            href="https://wa.me/593999561588"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition-colors shadow-glow-accent"
           >
             <Send className="w-3.5 h-3.5" />
-            Abrir Chat de WhatsApp
+            Abrir Chat de WhatsApp (0999561588)
           </a>
         </div>
 

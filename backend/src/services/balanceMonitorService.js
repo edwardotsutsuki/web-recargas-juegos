@@ -91,14 +91,24 @@ class BalanceMonitorService {
     const now = Date.now();
     let balanceData = this.cachedBalance;
 
-    if (!balanceData || forceRefresh || !this.lastCheckedAt || now - this.lastCheckedAt > this.cacheTtlMs) {
+    if (!balanceData || forceRefresh || !this.lastCheckedAt) {
       try {
         balanceData = await this.canjeaClient.getBalance();
         this.cachedBalance = balanceData;
         this.lastCheckedAt = now;
       } catch (err) {
-        // En caso de fallo transitorio de red, reutiliza el último saldo o default seguro
         balanceData = this.cachedBalance || { ok: false, balance: '0.00', currency: 'USD', error: err.message };
+      }
+    } else if (now - this.lastCheckedAt > this.cacheTtlMs) {
+      // Revalidación asíncrona en segundo plano sin bloquear al cliente (Stale-While-Revalidate)
+      if (!this._isFetching) {
+        this._isFetching = true;
+        this.canjeaClient.getBalance().then((data) => {
+          this.cachedBalance = data;
+          this.lastCheckedAt = Date.now();
+        }).catch(() => {}).finally(() => {
+          this._isFetching = false;
+        });
       }
     }
 

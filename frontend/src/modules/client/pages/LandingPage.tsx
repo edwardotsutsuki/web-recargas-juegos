@@ -532,8 +532,8 @@ export const LandingPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-6 text-slate-400">
-            <a href="https://wa.me/593999999999" target="_blank" rel="noreferrer" className="hover:text-emerald-400 transition-colors flex items-center gap-1">
-              <Headphones className="w-3.5 h-3.5" /> Soporte WhatsApp
+            <a href="https://wa.me/593999561588" target="_blank" rel="noreferrer" className="hover:text-emerald-400 transition-colors flex items-center gap-1">
+              <Headphones className="w-3.5 h-3.5" /> Soporte WhatsApp (0999561588)
             </a>
             <Link to="/login" className="hover:text-white transition-colors">
               Portal Clientes

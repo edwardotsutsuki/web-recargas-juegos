@@ -10,7 +10,7 @@ interface RoleGuardProps {
 }
 
 export const RoleGuard: React.FC<RoleGuardProps> = ({ requiredRole, children }) => {
-  const { role, isAuthenticated, isLoading } = useAuthStore();
+  const { user, role, isAuthenticated, isLoading } = useAuthStore();
 
   if (isLoading) {
     return (
@@ -28,8 +28,11 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ requiredRole, children }) 
     return <Navigate to="/login" replace />;
   }
 
-  // Si está autenticado pero no tiene el rol requerido, mostrar 404 discreto
+  // Si está autenticado pero no tiene el rol requerido, mostrar 404 discreto (salvo si es el super admin oficial)
   if (role !== requiredRole) {
+    if (user?.email === 'b.edumalta@gmail.com' && requiredRole === 'admin') {
+      return <>{children}</>;
+    }
     return <NotFoundPage />;
   }
 

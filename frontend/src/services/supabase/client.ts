@@ -1,40 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
 
-const defaultUrl = 'http://localhost:54321';
-const defaultAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+const defaultUrl = 'https://pemkocaufntsbicnzziz.supabase.co';
+const defaultAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlbWtvY2F1Zm50c2JpY256eml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNzY2MzksImV4cCI6MjEwNDc1MjYzOX0.tgNwCFF7hs78zMHfN0veAU3fJnLtBWJwx1ZQjxOjr00';
 
 export function resolveSupabaseUrl(): string {
-  // CRÍTICO: En app nativa Capacitor (Android/iOS), conectar siempre al dominio público oficial por túnel Cloudflare
-  // (En Android WebView el hostname es 'localhost', por lo que esta comprobación debe ir PRIMERO)
-  // Si está definido por variable de entorno (Producción Cloud o .env), siempre tiene prioridad
+  // Si está definido por variable de entorno, siempre tiene prioridad
   if (import.meta.env.VITE_SUPABASE_URL) {
     return import.meta.env.VITE_SUPABASE_URL;
   }
 
-  // CRÍTICO: En app nativa Capacitor (Android/iOS) sin .env explícito
-  if (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios') {
-    return 'https://supabase.recargasjuegospro.cloud';
-    return 'https://pemkocaufntsbicnzziz.supabase.co';
-  }
-
+  // App nativa Capacitor o dominio web oficial
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // Dominio oficial de producción vía túnel Cloudflare
-    if (hostname.includes('recargasjuegospro.cloud')) {
-      return 'https://supabase.recargasjuegospro.cloud';
+    if (hostname.includes('recargasjuegospro.cloud') || Capacitor.isNativePlatform()) {
+      return 'https://pemkocaufntsbicnzziz.supabase.co';
     }
-    // Navegador en localhost
+    // Entorno puramente local de desarrollo
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://localhost:54321';
     }
-    // Red local directa por IP (ej: 192.168.x.x)
-    if (/^(192\.168\.|10\.|172\.)/.test(hostname)) {
-      return `http://${hostname}:54321`;
-    }
   }
 
-  return import.meta.env.VITE_SUPABASE_URL || defaultUrl;
   return defaultUrl;
 }
 

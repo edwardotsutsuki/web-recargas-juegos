@@ -540,11 +540,6 @@ export const catalogService = {
     cachedCatalog = normalized;
     lastFetchTime = now;
 
-    // Sincronización asíncrona no bloqueante con base de datos y detección de novedades
-    this.syncCatalogWithProvider().catch((err) => {
-      console.error('[CatalogService] Fallo en sincronización automática en segundo plano:', err);
-    });
-
     return normalized;
   },
 
@@ -552,6 +547,11 @@ export const catalogService = {
    * Obtiene las 34 franquicias/juegos agrupados con precio mínimo "desde"
    */
   async getGamesList(includeHidden = false) {
+    const now = Date.now();
+    if (!includeHidden && cachedGames && now - lastFetchTime < CACHE_TTL_MS) {
+      return cachedGames;
+    }
+
     const catalog = await this.getCatalog();
     const gamesMap = new Map();
 
@@ -635,12 +635,18 @@ export const catalogService = {
       resultList.push(g);
     }
 
-    return resultList.sort((a, b) => {
+    const sorted = resultList.sort((a, b) => {
       // Priorizar los juegos verificables populares primero
       if (a.can_verify_player && !b.can_verify_player) return -1;
       if (!a.can_verify_player && b.can_verify_player) return 1;
       return a.name.localeCompare(b.name);
     });
+
+    if (!includeHidden) {
+      cachedGames = sorted;
+    }
+
+    return sorted;
   },
 
   /**
@@ -755,6 +761,7 @@ export const catalogService = {
    * Actualiza la portada, banner, nombre o visibilidad de un juego (Admin)
    */
   async updateGameOverride(gameId, data) {
+    cachedGames = null;
     return catalogOverrideRepository.upsertOverride(gameId, data);
   },
 
@@ -853,10 +860,12 @@ export const catalogService = {
       }
     }
 
-    // 4. Invalidar cachés locales para que los clientes vean de inmediato las novedades
-    cachedCatalog = null;
-    cachedGames = null;
-    lastFetchTime = 0;
+    // 4. Si se encontraron nuevos productos, invalidar cachés para que los clientes los vean de inmediato
+    if (newProducts.length > 0) {
+      cachedCatalog = null;
+      cachedGames = null;
+      lastFetchTime = 0;
+    }
 
     return {
       success: true,
