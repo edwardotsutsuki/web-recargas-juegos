@@ -275,7 +275,7 @@ export async function handleRequest(req, res) {
     // Módulos de Revendedor (Precios PVP, Libro Contable, Recompensas y Referidos)
     // -------------------------------------------------------------------------
     if (method === 'GET' && pathname === '/reseller/prices') {
-      requireOwner();
+      // Los cajeros necesitan leer los precios de venta fijados por el dueño para atender a los clientes
       const prices = await resellerService.getCustomPrices(user.id);
       return sendJson(res, 200, prices);
     }

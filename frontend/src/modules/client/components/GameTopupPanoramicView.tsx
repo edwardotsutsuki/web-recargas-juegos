@@ -301,7 +301,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
 
   const currentPriceCents = selectedPackage ? selectedPackage.price_cents : 0;
   const selectedPvpCents = selectedPackage
-    ? customPricesMap[selectedPackage.sku] || Math.round(selectedPackage.price_cents * 1.2)
+    ? customPricesMap[selectedPackage.sku] || Math.round(selectedPackage.price_cents * 1.15)
     : 0;
   const selectedProfitCents = Math.max(0, selectedPvpCents - currentPriceCents);
   const selectedMarginPercent =
@@ -722,7 +722,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                   {diamondPackages.map((pkg, idx) => {
                     const isSelected = selectedPackage?.id === pkg.id;
                     const platformCostCents = pkg.price_cents;
-                    const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.2);
+                    const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.15);
                     const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
                     const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
                     const isPopular = isPopularPackage(pkg, idx);
@@ -825,7 +825,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                   {subscriptionPackages.map((pkg, idx) => {
                     const isSelected = selectedPackage?.id === pkg.id;
                     const platformCostCents = pkg.price_cents;
-                    const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.2);
+                    const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.15);
                     const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
                     const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
                     const isPopular = isPopularPackage(pkg, idx);

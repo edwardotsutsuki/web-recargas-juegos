@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GameDetail, GamePackage } from '../../../types';
+import { GameDetail, GamePackage, CustomPrice } from '../../../types';
 import { catalogService } from '../../../services/api/catalog.service';
 import { playerService } from '../../../services/api/player.service';
 import { ordersService } from '../../../services/api/orders.service';
+import { resellerService } from '../../../services/api/reseller.service';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { useCartStore } from '../../../store/useCartStore';
 import { useCashierStore } from '../../../store/useCashierStore';
@@ -68,6 +69,28 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
   const [isOrdering, setIsOrdering] = useState(false);
   const [orderSuccessMsg, setOrderSuccessMsg] = useState<string | null>(null);
   const [orderErrorMsg, setOrderErrorMsg] = useState<string | null>(null);
+
+  // Precios personalizados fijados por el revendedor (PVP para mostrador y clientes)
+  const [customPricesMap, setCustomPricesMap] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (isOpen) {
+      resellerService
+        .getCustomPrices()
+        .then((prices: CustomPrice[]) => {
+          if (Array.isArray(prices)) {
+            const map: Record<string, number> = {};
+            for (const cp of prices) {
+              map[cp.sku] = cp.custom_pvp_cents;
+            }
+            setCustomPricesMap(map);
+          }
+        })
+        .catch((err) => {
+          console.warn('No se pudieron cargar precios PVP del revendedor en modal:', err);
+        });
+    }
+  }, [isOpen]);
 
   // Load game details whenever modal opens or gameId changes
   useEffect(() => {
@@ -250,6 +273,10 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
     ? Math.max(0, selectedPackage.price_cents - wallet.available_balance_cents)
     : 0;
   const missingDollars = (missingCents / 100).toFixed(2);
+
+  const selectedPvpCents = selectedPackage
+    ? customPricesMap[selectedPackage.sku] || Math.round(selectedPackage.price_cents * 1.15)
+    : 0;
 
   const isPassOrSubscription = (pkg: GamePackage) => {
     const n = pkg.name.toLowerCase();
@@ -478,7 +505,10 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                       const isSelected = selectedPackage?.sku === pkg.sku;
                       const isAvailable = pkg.is_active !== false;
                       const isPopular = isPopularPackage(pkg, idx);
-                      const profitCents = pkg.wholesale_cents && pkg.wholesale_cents < pkg.price_cents ? pkg.price_cents - pkg.wholesale_cents : 0;
+                      const platformCostCents = pkg.price_cents;
+                      const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.15);
+                      const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
+                      const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
 
                       return (
                         <button
@@ -506,13 +536,31 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                           </div>
 
                           <div className="mt-2">
-                            <span className="text-sm font-black text-slate-900 block">
-                              $ {(pkg.price_cents / 100).toFixed(2)}
-                            </span>
-                            {!isCashierMode && profitCents > 0 && (
-                              <span className="text-[10px] text-slate-500 font-medium block truncate">
-                                Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} · <span className="text-emerald-600 font-bold">+${(profitCents / 100).toFixed(2)}</span>
-                              </span>
+                            {isCashierMode ? (
+                              <div>
+                                <span className="text-[10px] text-slate-500 uppercase font-bold block">
+                                  Precio Cliente
+                                </span>
+                                <span className="text-sm font-black text-indigo-600 block">
+                                  $ {(resellerPvpCents / 100).toFixed(2)}
+                                </span>
+                              </div>
+                            ) : (
+                              <div>
+                                <div className="flex items-baseline justify-between">
+                                  <span className="text-sm font-black text-slate-900 block">
+                                    $ {(resellerPvpCents / 100).toFixed(2)}
+                                  </span>
+                                  {resellerProfitCents > 0 && (
+                                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded">
+                                      +{marginPercent}%
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-500 font-medium block truncate">
+                                  Costo: ${(platformCostCents / 100).toFixed(2)} · <span className="text-emerald-600 font-bold">+${(resellerProfitCents / 100).toFixed(2)}</span>
+                                </span>
+                              </div>
                             )}
                           </div>
                         </button>
@@ -533,7 +581,10 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                       const isSelected = selectedPackage?.sku === pkg.sku;
                       const isAvailable = pkg.is_active !== false;
                       const isPopular = isPopularPackage(pkg, idx);
-                      const profitCents = pkg.wholesale_cents && pkg.wholesale_cents < pkg.price_cents ? pkg.price_cents - pkg.wholesale_cents : 0;
+                      const platformCostCents = pkg.price_cents;
+                      const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.15);
+                      const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
+                      const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
 
                       return (
                         <button
@@ -561,13 +612,31 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                           </div>
 
                           <div className="mt-2">
-                            <span className="text-sm font-black text-slate-900 block">
-                              $ {(pkg.price_cents / 100).toFixed(2)}
-                            </span>
-                            {!isCashierMode && profitCents > 0 && (
-                              <span className="text-[10px] text-slate-500 font-medium block truncate">
-                                Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} · <span className="text-emerald-600 font-bold">+${(profitCents / 100).toFixed(2)}</span>
-                              </span>
+                            {isCashierMode ? (
+                              <div>
+                                <span className="text-[10px] text-slate-500 uppercase font-bold block">
+                                  Precio Cliente
+                                </span>
+                                <span className="text-sm font-black text-indigo-600 block">
+                                  $ {(resellerPvpCents / 100).toFixed(2)}
+                                </span>
+                              </div>
+                            ) : (
+                              <div>
+                                <div className="flex items-baseline justify-between">
+                                  <span className="text-sm font-black text-slate-900 block">
+                                    $ {(resellerPvpCents / 100).toFixed(2)}
+                                  </span>
+                                  {resellerProfitCents > 0 && (
+                                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded">
+                                      +{marginPercent}%
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-500 font-medium block truncate">
+                                  Costo: ${(platformCostCents / 100).toFixed(2)} · <span className="text-emerald-600 font-bold">+${(resellerProfitCents / 100).toFixed(2)}</span>
+                                </span>
+                              </div>
                             )}
                           </div>
                         </button>
@@ -606,13 +675,28 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                   <span>Paquete</span>
                   <span className="font-bold text-slate-900">{selectedPackage.name}</span>
                 </div>
-                <div className="flex items-center justify-between text-slate-500 text-[11px]">
-                  <span>Saldo actual</span>
-                  <span>$ {(wallet.available_balance_cents / 100).toFixed(2)}</span>
-                </div>
+                {isCashierMode ? (
+                  <div className="flex items-center justify-between text-slate-500 text-[11px]">
+                    <span>Estado de Recarga</span>
+                    <span className={`font-bold font-mono ${isSufficientFunds ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {isSufficientFunds ? '✓ Saldo Operativo Disponible' : '⚠ Saldo Insuficiente'}
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between text-slate-500 text-[11px]">
+                      <span>Saldo actual</span>
+                      <span>$ {(wallet.available_balance_cents / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-500 text-[11px]">
+                      <span>Costo Mayorista</span>
+                      <span>$ {(selectedPackage.price_cents / 100).toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex items-center justify-between pt-1 border-t border-slate-200 text-slate-900 font-extrabold text-sm">
                   <span>Cobrar al cliente</span>
-                  <span className="text-indigo-600 font-black">$ {(selectedPackage.price_cents / 100).toFixed(2)}</span>
+                  <span className="text-indigo-600 font-black">$ {(selectedPvpCents / 100).toFixed(2)}</span>
                 </div>
               </div>
             )}
@@ -644,7 +728,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                       ? 'Pausa Preventiva'
                       : isOrdering
                       ? 'Procesando Recarga...'
-                      : `Confirmar Recarga · $${selectedPackage ? (selectedPackage.price_cents / 100).toFixed(2) : '0.00'}`}
+                      : `Confirmar Recarga · $${selectedPackage ? (selectedPvpCents / 100).toFixed(2) : '0.00'}`}
                   </span>
                 </button>
               )}
@@ -935,10 +1019,10 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                         const isSelected = selectedPackage?.sku === pkg.sku;
                         const isAvailable = pkg.is_active !== false;
                         const isPopular = isPopularPackage(pkg, idx);
-                        const profitCents =
-                          pkg.wholesale_cents && pkg.wholesale_cents < pkg.price_cents
-                            ? pkg.price_cents - pkg.wholesale_cents
-                            : 0;
+                        const platformCostCents = pkg.price_cents;
+                        const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.15);
+                        const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
+                        const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
 
                         return (
                           <button
@@ -978,16 +1062,31 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                             </div>
 
                             <div className="mt-2 pt-1.5 border-t border-slate-800/60">
-                              <span className="text-sm font-black text-cyan-300 block">
-                                $ {(pkg.price_cents / 100).toFixed(2)}
-                              </span>
-                              {!isCashierMode && profitCents > 0 && (
-                                <span className="text-[10px] text-slate-400 font-medium block truncate">
-                                  Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} ·{' '}
-                                  <span className="text-emerald-400 font-bold">
-                                    +${(profitCents / 100).toFixed(2)}
+                              {isCashierMode ? (
+                                <div className="text-center">
+                                  <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                                    Precio al Cliente
                                   </span>
-                                </span>
+                                  <span className="text-sm font-black text-cyan-300 block font-mono">
+                                    $ {(resellerPvpCents / 100).toFixed(2)} USD
+                                  </span>
+                                </div>
+                              ) : (
+                                <div>
+                                  <div className="flex items-baseline justify-between">
+                                    <span className="text-sm font-black text-cyan-300 block">
+                                      $ {(resellerPvpCents / 100).toFixed(2)}
+                                    </span>
+                                    {resellerProfitCents > 0 && (
+                                      <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                        +{marginPercent}%
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 font-medium block truncate">
+                                    Costo: ${(platformCostCents / 100).toFixed(2)} · <span className="text-emerald-400 font-bold">+${(resellerProfitCents / 100).toFixed(2)}</span>
+                                  </span>
+                                </div>
                               )}
                             </div>
                           </button>
@@ -1008,10 +1107,10 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                         const isSelected = selectedPackage?.sku === pkg.sku;
                         const isAvailable = pkg.is_active !== false;
                         const isPopular = isPopularPackage(pkg, idx);
-                        const profitCents =
-                          pkg.wholesale_cents && pkg.wholesale_cents < pkg.price_cents
-                            ? pkg.price_cents - pkg.wholesale_cents
-                            : 0;
+                        const platformCostCents = pkg.price_cents;
+                        const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.15);
+                        const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
+                        const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
 
                         return (
                           <button
@@ -1051,16 +1150,31 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                             </div>
 
                             <div className="mt-2 pt-1.5 border-t border-slate-800/60">
-                              <span className="text-sm font-black text-cyan-300 block">
-                                $ {(pkg.price_cents / 100).toFixed(2)}
-                              </span>
-                              {!isCashierMode && profitCents > 0 && (
-                                <span className="text-[10px] text-slate-400 font-medium block truncate">
-                                  Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} ·{' '}
-                                  <span className="text-emerald-400 font-bold">
-                                    +${(profitCents / 100).toFixed(2)}
+                              {isCashierMode ? (
+                                <div className="text-center">
+                                  <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                                    Precio al Cliente
                                   </span>
-                                </span>
+                                  <span className="text-sm font-black text-cyan-300 block font-mono">
+                                    $ {(resellerPvpCents / 100).toFixed(2)} USD
+                                  </span>
+                                </div>
+                              ) : (
+                                <div>
+                                  <div className="flex items-baseline justify-between">
+                                    <span className="text-sm font-black text-cyan-300 block">
+                                      $ {(resellerPvpCents / 100).toFixed(2)}
+                                    </span>
+                                    {resellerProfitCents > 0 && (
+                                      <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                        +{marginPercent}%
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 font-medium block truncate">
+                                    Costo: ${(platformCostCents / 100).toFixed(2)} · <span className="text-emerald-400 font-bold">+${(resellerProfitCents / 100).toFixed(2)}</span>
+                                  </span>
+                                </div>
                               )}
                             </div>
                           </button>
@@ -1080,28 +1194,31 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                        Saldo Virtual Disponible
+                        {isCashierMode ? 'Estado Operativo' : 'Saldo Virtual Disponible'}
                       </span>
-                      <PriceDisplay
-                        cents={wallet.available_balance_cents}
-                        currency={wallet.currency}
-                        size="md"
-                        className="text-white"
-                      />
+                      {isCashierMode ? (
+                        <span className={`text-xs font-bold font-mono ${isSufficientFunds ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {isSufficientFunds ? '✓ Saldo Operativo Disponible' : '⚠ Saldo Insuficiente'}
+                        </span>
+                      ) : (
+                        <PriceDisplay
+                          cents={wallet.available_balance_cents}
+                          currency={wallet.currency}
+                          size="md"
+                          className="text-white"
+                        />
+                      )}
                     </div>
                   </div>
 
                   <div className="text-right">
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                      Total a Pagar
+                      {isCashierMode ? 'Cobro al Cliente' : 'Precio al Cliente (PVP)'}
                     </span>
                     {selectedPackage ? (
-                      <PriceDisplay
-                        cents={selectedPackage.price_cents}
-                        currency={selectedPackage.currency}
-                        size="lg"
-                        className="text-cyan-400 font-black"
-                      />
+                      <span className="text-lg text-cyan-400 font-black font-mono">
+                        ${(selectedPvpCents / 100).toFixed(2)} USD
+                      </span>
                     ) : (
                       <span className="text-slate-500 text-sm">-</span>
                     )}
