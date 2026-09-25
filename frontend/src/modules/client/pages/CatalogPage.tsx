@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { GameSummary } from '../../../types';
 import { catalogService } from '../../../services/api/catalog.service';
 import { GameCard } from '../components/GameCard';
+import { GameCompactCard } from '../components/GameCompactCard';
+import { GameTopupPanoramicView } from '../components/GameTopupPanoramicView';
 import { GameTopupModal } from '../components/GameTopupModal';
 import {
   Search,
-  Sparkles,
-  ShieldCheck,
-  Zap,
   Gamepad2,
   Gift,
   Flame,
@@ -15,21 +15,26 @@ import {
   RefreshCw,
   ChevronRight,
   Star,
-  Wallet,
+  Clock,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { Input } from '../../../components/atoms/Input';
 import { apiClient } from '../../../services/api/client';
-import { useWalletStore } from '../../../store/useWalletStore';
 
 export const CatalogPage: React.FC = () => {
-  const { wallet } = useWalletStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlGameId = searchParams.get('game');
+  const [internalSelectedGameId, setInternalSelectedGameId] = useState<string | null>(null);
+  const selectedGameId = urlGameId || internalSelectedGameId;
+
   const [games, setGames] = useState<GameSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'direct_topup' | 'gift_card'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'direct_topup' | 'gift_card' | 'manual_topup'>('all');
+  const [viewMode, setViewMode] = useState<'compact' | 'grid'>('compact');
 
   // Active topup modal
-  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [circuitBreakerStatus, setCircuitBreakerStatus] = useState<any>(null);
 
@@ -54,13 +59,19 @@ export const CatalogPage: React.FC = () => {
   }, []);
 
   const handleSelectGame = (game: GameSummary) => {
-    setSelectedGameId(game.id);
+    setInternalSelectedGameId(game.id);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('game', game.id);
+    setSearchParams(newParams);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setSelectedGameId(null);
+    setInternalSelectedGameId(null);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('game');
+    setSearchParams(newParams, { replace: true });
   };
 
   const filteredGames = games.filter((game) => {
@@ -77,6 +88,7 @@ export const CatalogPage: React.FC = () => {
 
   const directTopupCount = games.filter((g) => g.category === 'direct_topup').length;
   const giftCardCount = games.filter((g) => g.category === 'gift_card').length;
+  const manualTopupCount = games.filter((g) => g.category === 'manual_topup').length;
 
   // Clasificación para vista móvil compacta
   const isSearching = searchQuery.trim().length > 0;
@@ -109,23 +121,6 @@ export const CatalogPage: React.FC = () => {
           />
         </div>
 
-        {/* Barra de Saldo Rápida (Estilo Proveedor) */}
-        <div className="flex items-center justify-between px-2 py-1 text-xs border-b border-slate-800/40 pb-2">
-          <span className="font-bold text-slate-400 uppercase tracking-wider text-[11px]">Saldo</span>
-          {wallet.available_balance_cents <= 0 ? (
-            <div className="flex items-center gap-1.5">
-              <span className="text-amber-400 font-bold flex items-center gap-1 text-[11px]">
-                <AlertTriangle className="w-3 h-3 text-amber-400" /> Sin saldo
-              </span>
-              <span className="text-slate-400 text-[11px]">$ 0.00 disponibles</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-[11px]">
-              <Wallet className="w-3.5 h-3.5" />
-              <span>$ {(wallet.available_balance_cents / 100).toFixed(2)} USD disponibles</span>
-            </div>
-          )}
-        </div>
 
         {/* Píldoras de Categoría Móviles */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
@@ -161,6 +156,17 @@ export const CatalogPage: React.FC = () => {
           >
             <Gift className="w-3 h-3 text-indigo-400" />
             Pines ({giftCardCount})
+          </button>
+          <button
+            onClick={() => setCategoryFilter('manual_topup')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              categoryFilter === 'manual_topup'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'bg-slate-900 border border-slate-800 text-slate-400'
+            }`}
+          >
+            <Clock className="w-3 h-3 text-amber-400" />
+            Manual ({manualTopupCount})
           </button>
         </div>
 
@@ -261,6 +267,11 @@ export const CatalogPage: React.FC = () => {
                           <span className="font-extrabold text-sm text-slate-900 truncate">
                             {game.name}
                           </span>
+                          {game.category === 'manual_topup' && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[9px] font-bold shrink-0">
+                              Manual
+                            </span>
+                          )}
                           {game.category === 'gift_card' && (
                             <span className="px-1.5 py-0.5 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200 text-[9px] font-bold shrink-0">
                               Código
@@ -295,135 +306,160 @@ export const CatalogPage: React.FC = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* VISTA ESCRITORIO (hidden md:block): Diseño Gamer Original Intacto          */}
+      {/* VISTA ESCRITORIO (hidden md:block): Vista Panorámica Integrada / Catálogo */}
       {/* ========================================================================= */}
-      <div className="hidden md:block space-y-8">
-        {/* Hero Banner Gamer */}
-        <section className="relative rounded-3xl overflow-hidden glass-panel-glow border border-indigo-500/30 p-8 sm:p-12">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              Catálogo Oficial de Recargas en Vivo
-            </div>
-
-            <h1 className="text-3xl sm:text-5xl font-black text-white font-['Rajdhani'] uppercase tracking-wide leading-tight">
-              Recargas de Juegos & <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-300 to-purple-400">
-                Códigos Digitales al Instante
-              </span>
-            </h1>
-
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              Selecciona tu juego favorito, verifica tu Player ID en tiempo real y abona diamantes, monedas o tarjetas de regalo debitadas de tu saldo virtual.
-            </p>
-
-            <div className="flex flex-wrap gap-4 pt-2 text-xs text-slate-300 font-semibold">
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Verificación de ID Oficial en Vivo</span>
+      <div className="hidden md:block space-y-6">
+        {selectedGameId ? (
+          <GameTopupPanoramicView
+            gameId={selectedGameId}
+            onBack={handleCloseModal}
+            circuitBreakerActive={Boolean(circuitBreakerStatus?.circuit_breaker_active)}
+            circuitBreakerMessage={circuitBreakerStatus?.alert_message}
+          />
+        ) : (
+          <div className="space-y-6">
+            {/* Alerta de Freno de Emergencia / Reposición de Inventario */}
+            {circuitBreakerStatus?.circuit_breaker_active && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-amber-950/40 border border-amber-500/40 flex items-start gap-3 shadow-lg">
+                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-white uppercase font-['Rajdhani'] flex items-center gap-2">
+                    Reposición de Inventario de Recargas en Curso
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-sans font-bold">
+                      Pausa Preventiva
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    {circuitBreakerStatus.alert_message ||
+                      'Estamos reponiendo inventario de recargas con el proveedor central. El servicio se reactivará automáticamente en unos momentos.'}
+                  </p>
+                  <span className="text-[11px] text-amber-300/80 font-medium block">
+                    🛡️ Tu saldo en la plataforma está 100% seguro. Las compras directas se reanudarán de inmediato al completar el abastecimiento.
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-cyan-400" />
-                <span>Despacho Automatizado 24/7</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Alerta de Freno de Emergencia / Reposición de Inventario */}
-        {circuitBreakerStatus?.circuit_breaker_active && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-amber-950/40 border border-amber-500/40 flex items-start gap-3 shadow-lg">
-            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <h3 className="text-sm font-bold text-white uppercase font-['Rajdhani'] flex items-center gap-2">
-                Reposición de Inventario de Recargas en Curso
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-sans font-bold">
-                  Pausa Preventiva
-                </span>
-              </h3>
-              <p className="text-xs text-slate-300">
-                {circuitBreakerStatus.alert_message ||
-                  'Estamos reponiendo inventario de recargas con el proveedor central. El servicio se reactivará automáticamente en unos momentos.'}
-              </p>
-              <span className="text-[11px] text-amber-300/80 font-medium block">
-                🛡️ Tu saldo en la plataforma está 100% seguro. Las compras directas se reanudarán de inmediato al completar el abastecimiento.
-              </span>
-            </div>
-          </div>
-        )}
+            )}
 
         {/* Filter and Search Bar */}
-        <section className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          {/* Search */}
-          <div className="w-full md:w-80">
-            <Input
-              placeholder="Buscar Free Fire, Roblox, Steam..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              leftIcon={<Search className="w-4 h-4" />}
-            />
-          </div>
+        <section className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            {/* Search */}
+            <div className="w-full md:w-72">
+              <Input
+                placeholder="Buscar Free Fire, Roblox, Steam..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                leftIcon={<Search className="w-4 h-4" />}
+              />
+            </div>
 
-          {/* Category Tabs */}
-          <div className="w-full md:w-auto flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
-            <button
-              onClick={() => setCategoryFilter('all')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-2 ${
-                categoryFilter === 'all'
-                  ? 'bg-indigo-600 text-white shadow-glow-primary'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-              }`}
-            >
-              <Flame className="w-3.5 h-3.5 text-cyan-400" />
-              Todos ({games.length})
-            </button>
+            {/* Category Tabs & View Switcher */}
+            <div className="w-full md:w-auto flex items-center justify-between md:justify-end gap-3 flex-wrap">
+              {/* Category Pills (Estilo Proveedor: JUEGO + Pills) */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 mr-1 hidden xl:inline">
+                  JUEGO
+                </span>
 
-            <button
-              onClick={() => setCategoryFilter('direct_topup')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-2 ${
-                categoryFilter === 'direct_topup'
-                  ? 'bg-indigo-600 text-white shadow-glow-primary'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-              }`}
-            >
-              <Gamepad2 className="w-3.5 h-3.5 text-emerald-400" />
-              Recargas con ID ({directTopupCount})
-            </button>
+                <button
+                  onClick={() => setCategoryFilter('all')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    categoryFilter === 'all'
+                      ? 'bg-indigo-600 text-white shadow-glow-primary'
+                      : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5 text-cyan-400" />
+                  Todos ({games.length})
+                </button>
 
-            <button
-              onClick={() => setCategoryFilter('gift_card')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-2 ${
-                categoryFilter === 'gift_card'
-                  ? 'bg-indigo-600 text-white shadow-glow-primary'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-              }`}
-            >
-              <Gift className="w-3.5 h-3.5 text-indigo-400" />
-              Pines & Tarjetas ({giftCardCount})
-            </button>
+                <button
+                  onClick={() => setCategoryFilter('direct_topup')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    categoryFilter === 'direct_topup'
+                      ? 'bg-indigo-600 text-white shadow-glow-primary'
+                      : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                  }`}
+                >
+                  <Gamepad2 className="w-3.5 h-3.5 text-emerald-400" />
+                  Recarga directa ({directTopupCount})
+                </button>
 
-            <button
-              onClick={loadData}
-              title="Actualizar catálogo en vivo"
-              disabled={isLoading}
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 active:scale-95 transition-all ml-auto md:ml-0"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-cyan-400' : ''}`} />
-            </button>
+                <button
+                  onClick={() => setCategoryFilter('gift_card')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    categoryFilter === 'gift_card'
+                      ? 'bg-indigo-600 text-white shadow-glow-primary'
+                      : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                  }`}
+                >
+                  <Gift className="w-3.5 h-3.5 text-indigo-400" />
+                  Códigos ({giftCardCount})
+                </button>
+
+                <button
+                  onClick={() => setCategoryFilter('manual_topup')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    categoryFilter === 'manual_topup'
+                      ? 'bg-amber-600 text-white shadow-sm shadow-amber-500/30'
+                      : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                  Recarga manual ({manualTopupCount})
+                </button>
+              </div>
+
+              {/* View Switcher: Compacta vs Tarjetas */}
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800">
+                <button
+                  onClick={() => setViewMode('compact')}
+                  title="Vista Compacta de Alta Densidad (Estilo Proveedor)"
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    viewMode === 'compact'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Compacta</span>
+                </button>
+
+                <button
+                  onClick={() => setViewMode('grid')}
+                  title="Vista Tarjetas Gamer Extendido"
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    viewMode === 'grid'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Tarjetas</span>
+                </button>
+              </div>
+
+              {/* Reload Button */}
+              <button
+                onClick={loadData}
+                title="Actualizar catálogo en vivo"
+                disabled={isLoading}
+                className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 active:scale-95 transition-all"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-cyan-400' : ''}`} />
+              </button>
+            </div>
           </div>
         </section>
 
         {/* Games Catalog Grid */}
         <section>
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div className={viewMode === 'compact' ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"}>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
                 <div
                   key={i}
-                  className="h-80 rounded-2xl bg-slate-900/60 animate-pulse border border-slate-800"
+                  className={viewMode === 'compact' ? "h-16 rounded-2xl bg-slate-900/60 animate-pulse border border-slate-800" : "h-80 rounded-2xl bg-slate-900/60 animate-pulse border border-slate-800"}
                 />
               ))}
             </div>
@@ -459,6 +495,16 @@ export const CatalogPage: React.FC = () => {
                 Intenta con otro término de búsqueda o selecciona otra categoría.
               </p>
             </div>
+          ) : viewMode === 'compact' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {filteredGames.map((game) => (
+                <GameCompactCard
+                  key={game.id}
+                  game={game}
+                  onSelect={handleSelectGame}
+                />
+              ))}
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filteredGames.map((game) => (
@@ -471,16 +517,20 @@ export const CatalogPage: React.FC = () => {
             </div>
           )}
         </section>
+          </div>
+        )}
       </div>
 
-      {/* Interactive Gamer Topup Modal */}
-      <GameTopupModal
-        gameId={selectedGameId}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        circuitBreakerActive={Boolean(circuitBreakerStatus?.circuit_breaker_active)}
-        circuitBreakerMessage={circuitBreakerStatus?.alert_message}
-      />
+      {/* Interactive Gamer Topup Modal (Exclusivo móvil) */}
+      <div className="md:hidden">
+        <GameTopupModal
+          gameId={selectedGameId}
+          isOpen={isModalOpen || Boolean(urlGameId)}
+          onClose={handleCloseModal}
+          circuitBreakerActive={Boolean(circuitBreakerStatus?.circuit_breaker_active)}
+          circuitBreakerMessage={circuitBreakerStatus?.alert_message}
+        />
+      </div>
     </div>
   );
 };

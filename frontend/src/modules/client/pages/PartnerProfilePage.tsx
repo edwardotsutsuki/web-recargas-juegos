@@ -72,10 +72,11 @@ export const PartnerProfilePage: React.FC = () => {
     setIsSaving(true);
     try {
       if (isSupabaseConfigured && user?.id) {
-        await supabase
+        const { error: profileError } = await supabase
           .from('profiles')
           .update({ full_name: fullName })
           .eq('id', user.id);
+        if (profileError) throw profileError;
 
         if (newPassword) {
           const { error: pwdErr } = await supabase.auth.updateUser({ password: newPassword });

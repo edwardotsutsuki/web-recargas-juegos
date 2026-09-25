@@ -298,8 +298,9 @@ export class CanjeaClient {
    * @param {string} params.externalId - Referencia única de la orden en nuestro sistema (1-80 chars)
    * @param {string} [params.expectedPrice] - Precio de protección en formato decimal "4.95"
    * @param {Object} [params.player] - { id, server } si requires_player_id
+   * @param {Object} [params.fields] - { [key]: value } si el producto tiene required_fields / delivery.mode === 'human'
    */
-  async createOrder({ sku, externalId, expectedPrice = null, player = null }) {
+  async createOrder({ sku, externalId, expectedPrice = null, player = null, fields = null }) {
     if (!sku || !externalId) {
       throw new CanjeaError(400, 'INVALID_PARAMETER', 'sku y externalId son obligatorios', true);
     }
@@ -315,7 +316,7 @@ export class CanjeaClient {
           status: 'COMPLETED',
           price: expectedPrice || '4.95',
           currency: 'USD',
-          redeem_code: player ? null : `RA-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
+          redeem_code: (player || fields) ? null : `RA-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
           remaining_balance: '95.05',
         },
         simulated: true,
@@ -326,7 +327,7 @@ export class CanjeaClient {
       sku,
       external_id: externalId,
       ...(expectedPrice ? { expected_price: String(expectedPrice) } : {}),
-      ...(player ? { player } : {}),
+      ...(fields ? { fields } : player ? { player } : {}),
     };
 
     return this._fetch('/orders', {

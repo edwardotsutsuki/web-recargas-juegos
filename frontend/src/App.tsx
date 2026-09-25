@@ -10,17 +10,17 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     initialize();
-    fetchWallet();
-  }, [initialize, fetchWallet]);
+  }, [initialize]);
 
   useEffect(() => {
     if (user?.id) {
+      fetchWallet();
       subscribeRealtime(user.id);
     }
     return () => {
       unsubscribeRealtime();
     };
-  }, [user?.id, subscribeRealtime, unsubscribeRealtime]);
+  }, [user?.id, fetchWallet, subscribeRealtime, unsubscribeRealtime]);
 
   return (
     <BrowserRouter>
@@ -30,4 +30,3 @@ export const App: React.FC = () => {
 };
 
 export default App;
-

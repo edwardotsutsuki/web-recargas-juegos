@@ -170,19 +170,44 @@ class BalanceMonitorService {
 
   /**
    * Consulta rápida para validar si se permite procesar una orden
+   * @param {number} [productWholesaleCents=0] - Costo mayorista que se pagará a Canjea por este producto
    */
-  async checkOrderPermission() {
+  async checkOrderPermission(productWholesaleCents = 0) {
     const status = await this.getStatus(false);
-    if (status.circuit_breaker_active) {
-      const err = new Error(status.alert_message);
+    const override = status.settings?.circuit_breaker_override || 'auto';
+
+    // 1. Si el administrador forzó apertura manual (modo pruebas o contingencia)
+    if (override === 'force_open') {
+      return true;
+    }
+
+    // 2. Si el administrador forzó pausa preventiva de la tienda
+    if (override === 'force_pause') {
+      const err = new Error('La tienda se encuentra temporalmente en pausa preventiva administrativa.');
       err.status = 503;
-      err.code = 'INVENTORY_RESTOCKING';
+      err.code = 'STORE_PAUSED';
       err.detail = {
         circuit_breaker_active: true,
-        reason: 'LOW_PROVIDER_BALANCE',
-        customer_notice: status.alert_message,
+        reason: 'ADMIN_PAUSED',
+        customer_notice: 'Tienda en pausa preventiva. Vuelve a intentar en unos minutos.',
       };
       throw err;
+    }
+
+    // 3. Modo automático: Validar si el proveedor tiene fondos para despachar este producto
+    if (status.circuit_breaker_active) {
+      // Bloquear si el saldo en Canjea es menor que el costo del producto que se intenta comprar
+      if (status.canjea_balance_cents < productWholesaleCents || status.canjea_balance_cents <= 0) {
+        const err = new Error(status.alert_message);
+        err.status = 503;
+        err.code = 'INVENTORY_RESTOCKING';
+        err.detail = {
+          circuit_breaker_active: true,
+          reason: 'LOW_PROVIDER_BALANCE',
+          customer_notice: status.alert_message,
+        };
+        throw err;
+      }
     }
     return true;
   }

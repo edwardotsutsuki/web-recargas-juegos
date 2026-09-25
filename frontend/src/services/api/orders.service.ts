@@ -14,8 +14,12 @@ export const ordersService = {
         idempotencyKey,
         body: JSON.stringify(data),
       });
-    } catch {
-      // Local development fallback: simulate successful order placement
+    } catch (error: any) {
+      // Si el backend respondió con un código de error de negocio (400, 422, 503, etc.), propagar siempre
+      if (error?.status || import.meta.env.PROD) {
+        throw error;
+      }
+      // Solo en caso de corte total de conexión de red sin respuesta del servidor
       await new Promise((res) => setTimeout(res, 800));
 
       const newOrder: Order = {

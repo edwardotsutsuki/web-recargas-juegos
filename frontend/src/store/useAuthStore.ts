@@ -47,14 +47,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, role, full_name, phone, referral_code, two_factor_enabled, created_at')
           .eq('id', session.user.id)
           .single();
 
-        let role: UserRole = (profile?.role as UserRole) || 'client';
-        if (session.user.email === 'b.edumalta@gmail.com') {
-          role = 'admin';
-        }
+        const role: UserRole = (profile?.role as UserRole) || 'client';
 
         set({
           user: {
@@ -90,14 +87,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, role, full_name, phone, referral_code, two_factor_enabled, created_at')
           .eq('id', session.user.id)
           .single();
 
-        let role: UserRole = (profile?.role as UserRole) || 'client';
-        if (session.user.email === 'b.edumalta@gmail.com') {
-          role = 'admin';
-        }
+        const role: UserRole = (profile?.role as UserRole) || 'client';
 
         set({
           user: {

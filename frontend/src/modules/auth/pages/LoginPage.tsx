@@ -54,7 +54,7 @@ export const LoginPage: React.FC = () => {
           // Read profile
           const { data: profile } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, role, full_name, phone, referral_code, two_factor_enabled, created_at')
             .eq('id', data.user.id)
             .single();
 

@@ -3,13 +3,14 @@ import { Order } from '../../../types';
 import { ordersService } from '../../../services/api/orders.service';
 import { Badge } from '../../../components/atoms/Badge';
 import { PriceDisplay } from '../../../components/molecules/PriceDisplay';
-import { Copy, Check, Gamepad2, Key, Clock, ShieldCheck } from 'lucide-react';
+import { Copy, Check, Gamepad2, Key, Clock, ShieldCheck, BookOpen } from 'lucide-react';
 import { useUIStore } from '../../../store/useUIStore';
 
 export const OrdersHistoryPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
+  const [expandedInstructions, setExpandedInstructions] = useState<Record<string, boolean>>({});
   const { showToast } = useUIStore();
 
   useEffect(() => {
@@ -73,72 +74,105 @@ export const OrdersHistoryPage: React.FC = () => {
           {orders.map((order) => (
             <div
               key={order.id}
-              className="glass-panel p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+              className="glass-panel p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 transition-all flex flex-col gap-4"
             >
-              {/* Left Details */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="text-xs font-mono text-slate-500 font-medium">
-                    ID: {order.id}
-                  </span>
-                  {getStatusBadge(order.status)}
-                  <span className="text-xs text-slate-500 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {new Date(order.created_at).toLocaleString('es-ES', {
-                      dateStyle: 'short',
-                      timeStyle: 'short',
-                    })}
-                  </span>
-                </div>
-
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">
-                    {order.game}
-                  </span>
-                  <h3 className="text-base font-bold text-white">{order.product_name}</h3>
-                </div>
-
-                {/* Player details if direct recharge */}
-                {order.player_id && (
-                  <div className="flex items-center gap-2 text-xs text-slate-300">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>
-                      Cuenta: <strong className="text-white">{order.player_id}</strong>
-                      {order.player_name && ` (${order.player_name})`}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* Left Details */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="text-xs font-mono text-slate-500 font-medium">
+                      ID: {order.id}
+                    </span>
+                    {getStatusBadge(order.status)}
+                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {new Date(order.created_at).toLocaleString('es-ES', {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      })}
                     </span>
                   </div>
-                )}
-              </div>
 
-              {/* Right: Code Reveal / Amount */}
-              <div className="flex flex-col md:items-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-800">
-                <PriceDisplay
-                  cents={order.amount_cents}
-                  currency={order.currency}
-                  size="lg"
-                  className="text-white"
-                />
-
-                {/* Digital code box if delivered */}
-                {order.digital_code && (
-                  <div className="flex items-center gap-2 bg-slate-950/90 border border-cyan-500/30 px-3 py-1.5 rounded-xl">
-                    <code className="text-xs font-mono font-bold text-cyan-300 select-all">
-                      {order.digital_code}
-                    </code>
-                    <button
-                      onClick={() => handleCopyCode(order.digital_code!, order.id)}
-                      className="p-1 rounded-md text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors"
-                      title="Copiar código"
-                    >
-                      {copiedCodeId === order.id ? (
-                        <Check className="w-4 h-4 text-emerald-400" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </button>
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">
+                      {order.game}
+                    </span>
+                    <h3 className="text-base font-bold text-white">{order.product_name}</h3>
                   </div>
-                )}
+
+                  {/* Player details if direct recharge */}
+                  {order.player_id && (
+                    <div className="flex items-center gap-2 text-xs text-slate-300">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>
+                        Cuenta: <strong className="text-white">{order.player_id}</strong>
+                        {order.player_name && ` (${order.player_name})`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: Code Reveal / Amount */}
+                <div className="flex flex-col md:items-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-800">
+                  <PriceDisplay
+                    cents={order.amount_cents}
+                    currency={order.currency}
+                    size="lg"
+                    className="text-white"
+                  />
+
+                  {/* Digital code box if delivered */}
+                  {order.digital_code && (
+                    <div className="flex items-center gap-2 bg-slate-950/90 border border-cyan-500/30 px-3 py-1.5 rounded-xl">
+                      <code className="text-xs font-mono font-bold text-cyan-300 select-all">
+                        {order.digital_code}
+                      </code>
+                      <button
+                        onClick={() => handleCopyCode(order.digital_code!, order.id)}
+                        className="p-1 rounded-md text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors"
+                        title="Copiar código"
+                      >
+                        {copiedCodeId === order.id ? (
+                          <Check className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Instrucciones Oficiales de Canje si aplican */}
+              {order.redeem_instructions && (
+                <div className="pt-3 border-t border-slate-800/80">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedInstructions((prev) => ({
+                        ...prev,
+                        [order.id]: !prev[order.id],
+                      }))
+                    }
+                    className="flex items-center gap-1.5 text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>
+                      {expandedInstructions[order.id]
+                        ? 'Ocultar instrucciones de canje'
+                        : '📖 ¿Cómo canjear este código? Ver instrucciones oficiales'}
+                    </span>
+                  </button>
+                  {expandedInstructions[order.id] && (
+                    <div className="mt-2.5 p-3.5 rounded-xl bg-slate-950/90 border border-cyan-500/20 text-xs text-slate-300 whitespace-pre-line leading-relaxed font-sans animate-fade-in shadow-inner">
+                      <span className="text-[11px] font-bold text-cyan-300 block mb-1 uppercase tracking-wider">
+                        Instrucciones de Canje Oficiales:
+                      </span>
+                      {order.redeem_instructions}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

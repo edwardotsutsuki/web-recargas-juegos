@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
+    "pg": "^8.23.0",
     "ssh2": "^1.17.0"
   },
   "engines": {

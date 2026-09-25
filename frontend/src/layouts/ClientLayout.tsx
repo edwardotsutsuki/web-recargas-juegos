@@ -54,7 +54,7 @@ export const ClientLayout: React.FC = () => {
         <PartnerTopBar onOpenSidebar={() => setIsSidebarOpen(true)} />
 
         {/* Dynamic Page Content */}
-        <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-28 lg:pb-8 overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-[1800px] w-full mx-auto pb-28 lg:pb-8 overflow-x-hidden">
           <Outlet />
         </main>
 
@@ -83,7 +83,7 @@ export const ClientLayout: React.FC = () => {
 
         {/* Footer */}
         <footer className="border-t border-slate-800/60 py-6 bg-[#060a12] text-center text-xs text-slate-400">
-          <div className="max-w-7xl mx-auto px-4 space-y-1">
+          <div className="max-w-[1800px] mx-auto px-4 space-y-1">
             <p className="font-bold text-slate-300 font-['Rajdhani'] tracking-wider uppercase">
               Recargas Juegos Online &bull; Partner Panel para Revendedores de Juegos
             </p>

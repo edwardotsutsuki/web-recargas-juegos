@@ -43,31 +43,19 @@ export const AdminLoginPage: React.FC = () => {
         }
 
         // Step 2: Check role in profiles
-        let { data: profile, error: profileError } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, role, full_name, phone, referral_code, two_factor_enabled, created_at')
           .eq('id', data.user.id)
           .single();
 
         if (profileError || !profile) {
-          console.warn('Perfil no encontrado directamente por RLS, verificando metadatos...', profileError);
-          if (data.user.email === 'b.edumalta@gmail.com') {
-            profile = {
-              id: data.user.id,
-              role: 'admin',
-              full_name: data.user.user_metadata?.full_name || 'Super Admin (Edward Malta)',
-              two_factor_enabled: false,
-              created_at: new Date().toISOString(),
-            } as any;
-          } else {
-            await supabase.auth.signOut();
-            throw new Error('Perfil de usuario no encontrado en la base de datos.');
-          }
+          await supabase.auth.signOut({ scope: 'local' });
+          throw new Error('No se pudo verificar el perfil de administrador.');
         }
-
-        if (profile.role !== 'admin' && data.user.email !== 'b.edumalta@gmail.com') {
-          await supabase.auth.signOut();
-          throw new Error('Acceso denegado: Esta cuenta no posee privilegios de administrador del sistema.');
+        if (profile.role !== 'admin') {
+          await supabase.auth.signOut({ scope: 'local' });
+          throw new Error('Esta cuenta no tiene permisos de administrador.');
         }
 
         // Step 3: Check 2FA requirement

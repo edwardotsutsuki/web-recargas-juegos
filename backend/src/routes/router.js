@@ -335,19 +335,29 @@ export async function handleRequest(req, res) {
     // Rutas de Órdenes (Con protección de Circuit Breaker)
     // -------------------------------------------------------------------------
     if (method === 'POST' && pathname === '/orders') {
-      // Verificar si el Circuit Breaker está activo antes de aceptar la orden
-      await balanceMonitorService.checkOrderPermission();
-
       const body = await parseBody(req);
+      const sku = body.productId || body.sku;
+
+      // Obtener costo mayorista para validación inteligente del Circuit Breaker
+      let wholesaleCents = 0;
+      try {
+        const prod = await catalogService.getProductBySku(sku);
+        if (prod) wholesaleCents = prod.wholesale_cents || 0;
+      } catch {}
+
+      // Verificar si el Circuit Breaker permite procesar esta orden
+      await balanceMonitorService.checkOrderPermission(wholesaleCents);
+
       const idempotencyKey = req.headers['idempotency-key'];
 
       const order = await orderService.createOrder({
         userId: user.id,
-        sku: body.productId || body.sku,
+        sku,
         playerPayload: {
           id: body.playerId,
           name: body.playerName,
           server: body.serverZone || body.server,
+          fields: body.fields || null,
         },
         currency: body.currency || 'USD',
         idempotencyKey,

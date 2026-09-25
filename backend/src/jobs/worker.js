@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { jobRepository } from '../repositories/jobRepository.js';
 import { orderRepository } from '../repositories/orderRepository.js';
 import { canjeaClient, CanjeaError } from '../providers/canjea/client.js';
+import { catalogService } from '../services/catalogService.js';
 
 let isRunning = false;
 
@@ -16,27 +17,44 @@ export async function processNextJob() {
     const orderId = job.job_order_id;
     const sku = job.order_product_id;
     const player = job.order_player_payload;
-    const priceDollars = (Number(job.order_price_minor) / 100).toFixed(2);
 
     console.log(`[Worker] Procesando orden ${orderId} (${sku}) para jugador:`, player?.id || 'PIN');
 
     try {
-      // 1. Llamar al proveedor Canjea con la referencia única (orderId)
+      // 1. Obtener costo mayorista real de Canjea para protección de precio
+      let wholesalePrice = null;
+      try {
+        const prod = await catalogService.getProductBySku(sku);
+        if (prod?.wholesale_decimal) {
+          wholesalePrice = prod.wholesale_decimal;
+        }
+      } catch {}
+
+      // 2. Llamar al proveedor Canjea con la referencia única (orderId)
+      const hasFields = Boolean(player?.fields && Object.keys(player.fields).length > 0);
       const res = await canjeaClient.createOrder({
         sku,
         externalId: orderId,
-        expectedPrice: priceDollars,
-        player: player?.id ? { id: player.id, server: player.server } : null,
+        expectedPrice: wholesalePrice,
+        player: hasFields ? null : (player?.id ? { id: player.id, server: player.server } : null),
+        fields: hasFields ? player.fields : null,
       });
 
-      // 2. Éxito confirmado por Canjea
+      // 3. Éxito confirmado por Canjea
       const digitalCode = res.order?.redeem_code || null;
+      let redeemInstructions = null;
+      try {
+        const prod = await catalogService.getProductBySku(sku);
+        redeemInstructions = prod?.redeem_instructions || null;
+      } catch {}
+
       await orderRepository.settlePurchase({
         orderId,
         leaseToken,
         outcome: 'succeeded',
         providerReference: res.order?.external_id || orderId,
         digitalCode,
+        redeemInstructions,
       });
 
       console.log(`[Worker] Orden ${orderId} liquidada con ÉXITO. Código:`, digitalCode || 'Acreditación Directa');

@@ -25,6 +25,7 @@ import {
   Globe,
   AlertTriangle,
   ChevronLeft,
+  Clock,
 } from 'lucide-react';
 
 interface GameTopupModalProps {
@@ -42,7 +43,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
   circuitBreakerActive = false,
   circuitBreakerMessage,
 }) => {
-  const { wallet } = useWalletStore();
+  const { wallet, fetchWallet } = useWalletStore();
   const { addItem } = useCartStore();
   const navigate = useNavigate();
 
@@ -52,8 +53,10 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
   const [selectedPackage, setSelectedPackage] = useState<GamePackage | null>(null);
 
   // Player fields
+  // Player fields
   const [playerId, setPlayerId] = useState('');
   const [serverZone, setServerZone] = useState('');
+  const [customFields, setCustomFields] = useState<Record<string, string>>({});
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifiedName, setVerifiedName] = useState<string | null>(null);
   const [verifiedRegion, setVerifiedRegion] = useState<string | null>(null);
@@ -70,6 +73,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
       setIsLoadingGame(true);
       setPlayerId('');
       setServerZone('');
+      setCustomFields({});
       setVerifiedName(null);
       setVerifiedRegion(null);
       setVerifyError(null);
@@ -134,7 +138,12 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
       });
 
       if (res.valid) {
-        setVerifiedName(res.playerName || `Jugador #${playerId}`);
+        const nameToDisplay =
+          res.playerName ||
+          (res.message && res.message.includes('juego no expone')
+            ? 'Cuenta Verificada (Nombre Oculto)'
+            : `Jugador #${playerId}`);
+        setVerifiedName(nameToDisplay);
         setVerifiedRegion(res.detectedRegion || selectedRegion);
 
         // Si se detectó una región diferente (ej: el usuario tenía Brasil pero su cuenta es LATAM), auto-ajustamos la región
@@ -155,6 +164,16 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
     }
   };
 
+  const hasRequiredFields = Boolean(
+    selectedPackage?.required_fields && selectedPackage.required_fields.length > 0
+  );
+
+  const areCustomFieldsValid = hasRequiredFields
+    ? selectedPackage!.required_fields!.every(
+        (f) => !f.required || (customFields[f.key] && customFields[f.key].trim().length > 0)
+      )
+    : true;
+
   const handleAddToCart = () => {
     if (!game || !selectedPackage) return;
 
@@ -172,8 +191,11 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
 
     addItem(
       productItem,
-      playerId.trim() || undefined,
-      verifiedName || (playerId ? `ID: ${playerId.trim()}` : undefined)
+      hasRequiredFields ? undefined : playerId.trim() || undefined,
+      hasRequiredFields
+        ? undefined
+        : verifiedName || (playerId ? `ID: ${playerId.trim()}` : undefined),
+      hasRequiredFields ? customFields : undefined
     );
     onClose();
   };
@@ -188,10 +210,14 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
     try {
       const res = await ordersService.createOrder({
         productId: selectedPackage.sku,
-        playerId: playerId.trim() || undefined,
-        playerName: verifiedName || undefined,
+        playerId: hasRequiredFields ? undefined : playerId.trim() || undefined,
+        playerName: hasRequiredFields ? undefined : verifiedName || undefined,
+        fields: hasRequiredFields ? customFields : undefined,
         currency: selectedPackage.currency,
       });
+
+      // Refrescar inmediatamente el saldo de la billetera en la interfaz
+      await fetchWallet();
 
       setOrderSuccessMsg(
         `¡Orden #${res.orderId.slice(0, 8)} aceptada! Se ha enviado a la cola de despacho.`
@@ -213,9 +239,10 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
   const isSufficientFunds =
     selectedPackage ? wallet.available_balance_cents >= selectedPackage.price_cents : false;
 
-  const isPlayerValid =
-    !game?.requires_player_id ||
-    (game.can_verify_player ? Boolean(verifiedName) : Boolean(playerId.trim()));
+  const isPlayerValid = hasRequiredFields
+    ? areCustomFieldsValid
+    : !game?.requires_player_id ||
+      (game.can_verify_player ? Boolean(verifiedName) : Boolean(playerId.trim()));
 
   const missingCents = selectedPackage
     ? Math.max(0, selectedPackage.price_cents - wallet.available_balance_cents)
@@ -225,6 +252,17 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
   const isPassOrSubscription = (pkg: GamePackage) => {
     const n = pkg.name.toLowerCase();
     return n.includes('pase') || n.includes('semanal') || n.includes('mensual') || n.includes('suscrip');
+  };
+
+  const isPopularPackage = (pkg: GamePackage, index: number) => {
+    const n = pkg.name.toLowerCase();
+    return (
+      n.includes('341') ||
+      n.includes('310') ||
+      n.includes('170 gemas') ||
+      n.includes('semanal') ||
+      (index === 1 && !n.includes('pase') && !n.includes('mensual'))
+    );
   };
 
   const diamondPackages = visiblePackages.filter((p) => !isPassOrSubscription(p));
@@ -319,8 +357,45 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                 </div>
               )}
 
-              {/* Formulario de Player ID Móvil */}
-              {game.requires_player_id ? (
+              {/* Formulario Dinámico o Player ID Móvil */}
+              {hasRequiredFields && selectedPackage?.required_fields ? (
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      Datos para Entrega Directa
+                    </span>
+                    {selectedPackage.delivery?.mode === 'human' && (
+                      <span className="text-[10px] font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-cyan-600" />
+                        Operador: {selectedPackage.delivery.hours || '10:00-22:00'}
+                      </span>
+                    )}
+                  </div>
+
+                  {selectedPackage.required_fields.map((field) => (
+                    <div key={field.key} className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                        <span>{field.label}</span>
+                        {field.required && (
+                          <span className="text-red-500 text-[10px] font-bold">*Requerido</span>
+                        )}
+                      </label>
+                      <input
+                        type={field.type === 'email' ? 'email' : field.type === 'tel' ? 'tel' : 'text'}
+                        value={customFields[field.key] || ''}
+                        onChange={(e) =>
+                          setCustomFields((prev) => ({ ...prev, [field.key]: e.target.value }))
+                        }
+                        placeholder={field.label}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium focus:outline-none focus:border-indigo-500"
+                      />
+                      {field.help && (
+                        <p className="text-[10px] text-slate-500 leading-tight">{field.help}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : game.requires_player_id ? (
                 <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
@@ -370,6 +445,15 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                       />
                     </div>
                   )}
+                  {!game.can_verify_player && (
+                    <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2 text-[11px] text-amber-800">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold block text-amber-900">Verificación de nombre no disponible</span>
+                        Asegúrate de escribir tu ID de forma 100% exacta. En este juego no se puede verificar el nombre y las entregas a cuentas equivocadas no son reembolsables.
+                      </div>
+                    </div>
+                  )}
                   {verifyError && (
                     <p className="text-[11px] text-red-600 font-medium">{verifyError}</p>
                   )}
@@ -381,16 +465,18 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                 </div>
               )}
 
-              {/* Categoría: DIAMANTES (Cuadrícula 2 Columnas) */}
+              {/* Categoría: DIAMANTES / MONEDAS (Cuadrícula 2 Columnas Móvil) */}
               {diamondPackages.length > 0 && (
                 <div className="space-y-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block px-1">
-                    {subscriptionPackages.length > 0 ? 'Diamantes' : 'Paquetes Disponibles'}
+                    {subscriptionPackages.length > 0 ? (game.id === 'bs' ? 'Gemas' : game.id === 'fn' ? 'Pavos' : 'Diamantes y Monedas') : 'Paquetes Disponibles'}
                   </span>
                   <div className="grid grid-cols-2 gap-2.5">
-                    {diamondPackages.map((pkg) => {
+                    {diamondPackages.map((pkg, idx) => {
                       const isSelected = selectedPackage?.sku === pkg.sku;
                       const isAvailable = pkg.is_active !== false;
+                      const isPopular = isPopularPackage(pkg, idx);
+                      const profitCents = pkg.wholesale_cents && pkg.wholesale_cents < pkg.price_cents ? pkg.price_cents - pkg.wholesale_cents : 0;
 
                       return (
                         <button
@@ -398,7 +484,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                           type="button"
                           disabled={!isAvailable}
                           onClick={() => isAvailable && setSelectedPackage(pkg)}
-                          className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all min-h-[76px] active:scale-[0.98] ${
+                          className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all min-h-[82px] active:scale-[0.98] ${
                             !isAvailable
                               ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed'
                               : isSelected
@@ -406,12 +492,27 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                               : 'border-slate-200 bg-white hover:border-slate-300 shadow-2xs'
                           }`}
                         >
-                          <span className="text-xs font-extrabold text-slate-900 line-clamp-2">
-                            {pkg.name} {pkg.name.toLowerCase().includes('diamante') ? '💎' : ''}
-                          </span>
-                          <span className="text-sm font-black text-slate-900 mt-2">
-                            $ {(pkg.price_cents / 100).toFixed(2)}
-                          </span>
+                          <div className="space-y-1">
+                            {isPopular && (
+                              <span className="inline-block px-1.5 py-0.2 rounded bg-amber-400 text-slate-900 text-[9px] font-black uppercase tracking-tight">
+                                Más pedido
+                              </span>
+                            )}
+                            <span className="text-xs font-extrabold text-slate-900 line-clamp-1 block">
+                              {pkg.name}
+                            </span>
+                          </div>
+
+                          <div className="mt-2">
+                            <span className="text-sm font-black text-slate-900 block">
+                              $ {(pkg.price_cents / 100).toFixed(2)}
+                            </span>
+                            {profitCents > 0 && (
+                              <span className="text-[10px] text-slate-500 font-medium block truncate">
+                                Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} · <span className="text-emerald-600 font-bold">+${(profitCents / 100).toFixed(2)}</span>
+                              </span>
+                            )}
+                          </div>
                         </button>
                       );
                     })}
@@ -419,16 +520,18 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                 </div>
               )}
 
-              {/* Categoría: PASES Y SUSCRIPCIONES (Cuadrícula 2 Columnas) */}
+              {/* Categoría: PASES Y SUSCRIPCIONES (Cuadrícula 2 Columnas Móvil) */}
               {subscriptionPackages.length > 0 && (
                 <div className="space-y-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block px-1">
                     Pases y Suscripciones
                   </span>
                   <div className="grid grid-cols-2 gap-2.5">
-                    {subscriptionPackages.map((pkg) => {
+                    {subscriptionPackages.map((pkg, idx) => {
                       const isSelected = selectedPackage?.sku === pkg.sku;
                       const isAvailable = pkg.is_active !== false;
+                      const isPopular = isPopularPackage(pkg, idx);
+                      const profitCents = pkg.wholesale_cents && pkg.wholesale_cents < pkg.price_cents ? pkg.price_cents - pkg.wholesale_cents : 0;
 
                       return (
                         <button
@@ -436,7 +539,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                           type="button"
                           disabled={!isAvailable}
                           onClick={() => isAvailable && setSelectedPackage(pkg)}
-                          className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all min-h-[76px] active:scale-[0.98] ${
+                          className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all min-h-[82px] active:scale-[0.98] ${
                             !isAvailable
                               ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed'
                               : isSelected
@@ -444,12 +547,27 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                               : 'border-slate-200 bg-white hover:border-slate-300 shadow-2xs'
                           }`}
                         >
-                          <span className="text-xs font-extrabold text-slate-900 line-clamp-2">
-                            {pkg.name} 💎
-                          </span>
-                          <span className="text-sm font-black text-slate-900 mt-2">
-                            $ {(pkg.price_cents / 100).toFixed(2)}
-                          </span>
+                          <div className="space-y-1">
+                            {isPopular && (
+                              <span className="inline-block px-1.5 py-0.2 rounded bg-amber-400 text-slate-900 text-[9px] font-black uppercase tracking-tight">
+                                Más pedido
+                              </span>
+                            )}
+                            <span className="text-xs font-extrabold text-slate-900 line-clamp-1 block">
+                              {pkg.name} 💎
+                            </span>
+                          </div>
+
+                          <div className="mt-2">
+                            <span className="text-sm font-black text-slate-900 block">
+                              $ {(pkg.price_cents / 100).toFixed(2)}
+                            </span>
+                            {profitCents > 0 && (
+                              <span className="text-[10px] text-slate-500 font-medium block truncate">
+                                Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} · <span className="text-emerald-600 font-bold">+${(profitCents / 100).toFixed(2)}</span>
+                              </span>
+                            )}
+                          </div>
                         </button>
                       );
                     })}
@@ -636,7 +754,35 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                   </h3>
                 </div>
 
-                {game.requires_player_id ? (
+                {hasRequiredFields && selectedPackage?.required_fields ? (
+                  <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
+                    {selectedPackage.delivery?.mode === 'human' && (
+                      <div className="p-3 rounded-xl bg-cyan-950/50 border border-cyan-500/40 flex items-center justify-between text-xs text-cyan-300">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-cyan-400 shrink-0" />
+                          <span>Entrega Manual por Operador ({selectedPackage.delivery.hours || '10:00 - 22:00 Lima'})</span>
+                        </div>
+                        <span className="text-[10px] bg-cyan-900/80 px-2 py-0.5 rounded text-cyan-200 font-semibold">Supercell ID</span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {selectedPackage.required_fields.map((field) => (
+                        <div key={field.key} className={field.type === 'email' ? 'sm:col-span-2' : ''}>
+                          <Input
+                            label={field.label + (field.required ? ' *' : '')}
+                            type={field.type === 'email' ? 'email' : field.type === 'tel' ? 'tel' : 'text'}
+                            value={customFields[field.key] || ''}
+                            onChange={(e) =>
+                              setCustomFields((prev) => ({ ...prev, [field.key]: e.target.value }))
+                            }
+                            placeholder={field.label}
+                            helperText={field.help || undefined}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : game.requires_player_id ? (
                   <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Player ID Input */}
@@ -674,6 +820,16 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                         </div>
                       )}
                     </div>
+
+                    {!game.can_verify_player && (
+                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-300">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold block text-amber-200">Verificación de nombre no disponible</span>
+                          Revisa con atención que tu ID sea exacto antes de continuar. Este juego no permite comprobar el nombre y las recargas enviadas a cuentas equivocadas no son reembolsables.
+                        </div>
+                      </div>
+                    )}
 
                     {/* Verification Button for verifiable games */}
                     {game.can_verify_player && (
@@ -723,16 +879,19 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                 )}
               </section>
 
-              {/* PASO 2: Selecciona la Recarga (Denominaciones) */}
-              <section className="space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              {/* PASO 2: Selecciona la Recarga (Denominaciones en Cuadrícula 4 Columnas) */}
+              <section className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">
                       2
                     </div>
                     <h3 className="text-sm font-bold uppercase tracking-wider text-white">
-                      Selecciona la Recarga ({visiblePackages.length} disponibles)
+                      Paquete · {game.name}
                     </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold">
+                      {visiblePackages.length} disponibles
+                    </span>
                   </div>
 
                   {/* Selector de Región / Servidor cuando aplica */}
@@ -757,58 +916,157 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {visiblePackages.map((pkg) => {
-                    const isSelected = selectedPackage?.sku === pkg.sku;
-                    const isAvailable = pkg.is_active !== false;
+                {/* Subsección: DIAMANTES / MONEDAS (Cuadrícula 4 Columnas Estilo Proveedor) */}
+                {diamondPackages.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block px-1">
+                      {subscriptionPackages.length > 0
+                        ? game.id === 'bs'
+                          ? 'Gemas'
+                          : game.id === 'fn'
+                          ? 'Pavos'
+                          : 'Diamantes y Monedas'
+                        : 'Paquetes Disponibles'}
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {diamondPackages.map((pkg, idx) => {
+                        const isSelected = selectedPackage?.sku === pkg.sku;
+                        const isAvailable = pkg.is_active !== false;
+                        const isPopular = isPopularPackage(pkg, idx);
+                        const profitCents =
+                          pkg.wholesale_cents && pkg.wholesale_cents < pkg.price_cents
+                            ? pkg.price_cents - pkg.wholesale_cents
+                            : 0;
 
-                    return (
-                      <button
-                        key={pkg.sku}
-                        type="button"
-                        disabled={!isAvailable}
-                        onClick={() => isAvailable && setSelectedPackage(pkg)}
-                        className={`relative text-left p-3.5 rounded-xl border transition-all duration-200 flex flex-col justify-between ${
-                          !isAvailable
-                            ? 'opacity-40 bg-slate-950/80 border-slate-900 cursor-not-allowed'
-                            : isSelected
-                            ? 'bg-indigo-600/20 border-cyan-400 shadow-glow-primary scale-[1.02]'
-                            : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'
-                        }`}
-                      >
-                        {isSelected && isAvailable && (
-                          <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center">
-                            <Check className="w-3 h-3 stroke-[3]" />
-                          </span>
-                        )}
+                        return (
+                          <button
+                            key={pkg.sku}
+                            type="button"
+                            disabled={!isAvailable}
+                            onClick={() => isAvailable && setSelectedPackage(pkg)}
+                            className={`relative text-left p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between min-h-[92px] ${
+                              !isAvailable
+                                ? 'opacity-40 bg-slate-950/80 border-slate-900 cursor-not-allowed'
+                                : isSelected
+                                ? 'bg-indigo-600/20 border-cyan-400 shadow-glow-primary ring-2 ring-cyan-400/40 scale-[1.02]'
+                                : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'
+                            }`}
+                          >
+                            {isSelected && isAvailable && (
+                              <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </span>
+                            )}
 
-                        {!isAvailable && (
-                          <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 text-[9px] font-black uppercase">
-                            Agotado
-                          </span>
-                        )}
+                            {!isAvailable && (
+                              <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 text-[9px] font-black uppercase">
+                                Agotado
+                              </span>
+                            )}
 
-                        <div>
-                          <span className="text-xs font-bold text-white line-clamp-2 pr-4">
-                            {pkg.name}
-                          </span>
-                        </div>
+                            <div className="space-y-1 pr-4">
+                              {isPopular && (
+                                <span className="inline-block px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-tight">
+                                  Más pedido
+                                </span>
+                              )}
+                              <span className="text-xs font-bold text-white line-clamp-1 block">
+                                {pkg.name}
+                              </span>
+                            </div>
 
-                        <div className="mt-3 pt-2 border-t border-slate-800/60 flex items-baseline justify-between">
-                          <span className="text-[10px] text-slate-400 font-semibold uppercase">
-                            {isAvailable ? 'Precio' : 'No disponible'}
-                          </span>
-                          <PriceDisplay
-                            cents={pkg.price_cents}
-                            currency={pkg.currency}
-                            size="sm"
-                            className={!isAvailable ? 'text-slate-500 line-through' : isSelected ? 'text-cyan-300 font-bold' : 'text-white'}
-                          />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                            <div className="mt-2 pt-1.5 border-t border-slate-800/60">
+                              <span className="text-sm font-black text-cyan-300 block">
+                                $ {(pkg.price_cents / 100).toFixed(2)}
+                              </span>
+                              {profitCents > 0 && (
+                                <span className="text-[10px] text-slate-400 font-medium block truncate">
+                                  Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} ·{' '}
+                                  <span className="text-emerald-400 font-bold">
+                                    +${(profitCents / 100).toFixed(2)}
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Subsección: PASES Y SUSCRIPCIONES (Cuadrícula 4 Columnas) */}
+                {subscriptionPackages.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block px-1">
+                      Pases y Suscripciones
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {subscriptionPackages.map((pkg, idx) => {
+                        const isSelected = selectedPackage?.sku === pkg.sku;
+                        const isAvailable = pkg.is_active !== false;
+                        const isPopular = isPopularPackage(pkg, idx);
+                        const profitCents =
+                          pkg.wholesale_cents && pkg.wholesale_cents < pkg.price_cents
+                            ? pkg.price_cents - pkg.wholesale_cents
+                            : 0;
+
+                        return (
+                          <button
+                            key={pkg.sku}
+                            type="button"
+                            disabled={!isAvailable}
+                            onClick={() => isAvailable && setSelectedPackage(pkg)}
+                            className={`relative text-left p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between min-h-[92px] ${
+                              !isAvailable
+                                ? 'opacity-40 bg-slate-950/80 border-slate-900 cursor-not-allowed'
+                                : isSelected
+                                ? 'bg-indigo-600/20 border-cyan-400 shadow-glow-primary ring-2 ring-cyan-400/40 scale-[1.02]'
+                                : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'
+                            }`}
+                          >
+                            {isSelected && isAvailable && (
+                              <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </span>
+                            )}
+
+                            {!isAvailable && (
+                              <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 text-[9px] font-black uppercase">
+                                Agotado
+                              </span>
+                            )}
+
+                            <div className="space-y-1 pr-4">
+                              {isPopular && (
+                                <span className="inline-block px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-tight">
+                                  Más pedido
+                                </span>
+                              )}
+                              <span className="text-xs font-bold text-white line-clamp-1 block">
+                                {pkg.name} 💎
+                              </span>
+                            </div>
+
+                            <div className="mt-2 pt-1.5 border-t border-slate-800/60">
+                              <span className="text-sm font-black text-cyan-300 block">
+                                $ {(pkg.price_cents / 100).toFixed(2)}
+                              </span>
+                              {profitCents > 0 && (
+                                <span className="text-[10px] text-slate-400 font-medium block truncate">
+                                  Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} ·{' '}
+                                  <span className="text-emerald-400 font-bold">
+                                    +${(profitCents / 100).toFixed(2)}
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </section>
 
               {/* PASO 3: Saldo y Confirmación */}

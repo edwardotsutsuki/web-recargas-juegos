@@ -20,9 +20,9 @@ interface WalletStore {
 export const useWalletStore = create<WalletStore>((set, get) => ({
   wallet: {
     currency: 'USD',
-    total_balance_cents: 2500, // Default $25.00 USD for instant testing
+    total_balance_cents: 0,
     held_balance_cents: 0,
-    available_balance_cents: 2500,
+    available_balance_cents: 0,
   },
   isLoading: false,
   channel: null,
@@ -33,6 +33,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       const wallet = await walletService.getWallet();
       set({ wallet, isLoading: false });
     } catch {
+      get().updateBalances(0, 0);
       set({ isLoading: false });
     }
   },
@@ -66,8 +67,8 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
 
     const channel = subscribeToUserWallet(userId, (payload) => {
       if (payload.new) {
-        const total = Number(payload.new.total_balance_cents || payload.new.total || 0);
-        const held = Number(payload.new.held_balance_cents || payload.new.held || 0);
+        const total = Number(payload.new.balance_minor ?? 0);
+        const held = Number(payload.new.held_minor ?? 0);
         get().updateBalances(total, held);
       }
     });

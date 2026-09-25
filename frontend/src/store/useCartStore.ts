@@ -7,12 +7,13 @@ export interface CartItem {
   quantity: number;
   playerId?: string;
   playerName?: string;
+  fields?: Record<string, string>;
 }
 
 interface CartStore {
   items: CartItem[];
   isOpen: boolean;
-  addItem: (product: Product, playerId?: string, playerName?: string) => void;
+  addItem: (product: Product, playerId?: string, playerName?: string, fields?: Record<string, string>) => void;
   removeItem: (cartItemId: string) => void;
   updateItemPlayer: (cartItemId: string, playerId: string, playerName: string) => void;
   clearCart: () => void;
@@ -26,14 +27,14 @@ export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
   isOpen: false,
 
-  addItem: (product, playerId, playerName) => {
+  addItem: (product, playerId, playerName, fields) => {
     set((state) => {
-      // If product requires player id, each purchase can be distinct
+      // If product requires player id or fields, each purchase can be distinct
       const existingIndex = state.items.findIndex(
-        (i) => i.product.id === product.id && i.playerId === playerId
+        (i) => i.product.id === product.id && i.playerId === playerId && !fields
       );
 
-      if (existingIndex > -1 && !product.requires_player_id) {
+      if (existingIndex > -1 && !product.requires_player_id && !fields) {
         const updated = [...state.items];
         updated[existingIndex].quantity += 1;
         return { items: updated, isOpen: true };
@@ -45,6 +46,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
         quantity: 1,
         playerId,
         playerName,
+        fields,
       };
 
       return { items: [...state.items, newItem], isOpen: true };

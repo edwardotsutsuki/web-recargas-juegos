@@ -40,7 +40,57 @@ export const catalogOverrideRepository = {
       .single();
 
     if (error) throw error;
+
+    // Si el payload contiene personalizaciones de paquetes (precios de venta o estado activo)
+    if (Array.isArray(payload.packages_override) && payload.packages_override.length > 0) {
+      await this.upsertPackageOverrides(payload.packages_override);
+    }
+
     return data;
+  },
+
+  /**
+   * Actualiza los precios minoristas de venta y el estado activo configurados por el Administrador
+   */
+  async upsertPackageOverrides(packagesOverride = []) {
+    if (!isSupabaseConfigured || packagesOverride.length === 0) return;
+
+    for (const pkg of packagesOverride) {
+      if (!pkg.sku) continue;
+      const updateFields = {
+        last_seen_at: new Date().toISOString(),
+      };
+      if (pkg.price_decimal !== undefined) {
+        updateFields.suggested_price = String(pkg.price_decimal);
+      } else if (pkg.price_cents !== undefined) {
+        updateFields.suggested_price = (Number(pkg.price_cents) / 100).toFixed(2);
+      }
+      if (pkg.is_active !== undefined) {
+        updateFields.is_active = Boolean(pkg.is_active);
+      }
+
+      await supabaseAdmin
+        .from('provider_synced_products')
+        .update(updateFields)
+        .eq('sku', pkg.sku);
+    }
+  },
+
+  /**
+   * Obtiene todos los productos con precios personalizados o estados desde la BD
+   */
+  async getPackageOverrides() {
+    if (!isSupabaseConfigured) return [];
+
+    const { data, error } = await supabaseAdmin
+      .from('provider_synced_products')
+      .select('sku, game_id, suggested_price, wholesale_price, is_active');
+
+    if (error) {
+      console.warn('[catalogOverrideRepository] Error obteniendo package overrides:', error.message);
+      return [];
+    }
+    return data || [];
   },
 };
 

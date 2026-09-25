@@ -3,24 +3,7 @@ import { WalletState } from '../../types';
 
 export const walletService = {
   async getWallet(): Promise<WalletState> {
-    try {
-      return await apiClient<WalletState>('/wallet');
-    } catch {
-      // Local development fallback: load simulated wallet or default to 5000 cents ($50.00 USD)
-      const cached = localStorage.getItem('nexuspay_simulated_wallet');
-      if (cached) {
-        return JSON.parse(cached);
-      }
-      const initialWallet: WalletState = {
-        currency: 'USD',
-        total_balance_cents: 5000, // $50.00 USD
-        held_balance_cents: 0,
-        available_balance_cents: 5000,
-        updated_at: new Date().toISOString(),
-      };
-      localStorage.setItem('nexuspay_simulated_wallet', JSON.stringify(initialWallet));
-      return initialWallet;
-    }
+    return apiClient<WalletState>('/wallet');
   },
 
   /**

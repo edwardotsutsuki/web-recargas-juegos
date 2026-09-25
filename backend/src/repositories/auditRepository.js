@@ -12,6 +12,8 @@ export const auditRepository = {
         .from('admin_audit_logs')
         .insert({
           admin_id: adminId,
+          actor_id: adminId,
+          target_entity: action.includes('deposit') ? 'deposit_requests' : 'wallets',
           action,
           target_id: targetId ? String(targetId) : null,
           details,

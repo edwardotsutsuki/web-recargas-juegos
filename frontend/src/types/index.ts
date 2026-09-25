@@ -30,6 +30,21 @@ export interface Product {
   badge?: string;
 }
 
+export interface PackageField {
+  key: string;
+  label: string;
+  type: string;
+  required: boolean;
+  sensitive?: boolean;
+  help?: string;
+}
+
+export interface PackageDelivery {
+  mode: string;
+  hours?: string;
+  eta_minutes?: number | null;
+}
+
 export interface GamePackage {
   id: string;
   sku: string;
@@ -45,13 +60,18 @@ export interface GamePackage {
   can_verify_player: boolean;
   price_is_estimated?: boolean;
   is_active?: boolean;
+  delivery?: PackageDelivery | null;
+  required_fields?: PackageField[] | null;
+  redeem_instructions?: string | null;
 }
 
 export interface GameSummary {
   id: string;
   name: string;
-  category: 'direct_topup' | 'gift_card';
+  category: 'direct_topup' | 'gift_card' | 'manual_topup';
   category_label: string;
+  subtitle?: string;
+  is_featured?: boolean;
   image_url: string;
   banner_url?: string;
   description: string;
@@ -91,6 +111,7 @@ export interface Order {
   player_name?: string;
   status: OrderStatus;
   digital_code?: string;
+  redeem_instructions?: string | null;
   created_at: string;
 }
 
@@ -112,6 +133,7 @@ export interface CreateOrderRequest {
   productId: string;
   playerId?: string;
   playerName?: string;
+  fields?: Record<string, string>;
   currency: string;
 }
 

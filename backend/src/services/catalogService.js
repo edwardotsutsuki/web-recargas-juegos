@@ -329,19 +329,21 @@ export const GAME_DIRECTORY = {
   bs: {
     id: 'bs',
     name: 'Brawl Stars',
-    category: 'gift_card',
-    category_label: 'Pin Digital',
+    category: 'manual_topup',
+    category_label: 'Recarga Manual',
+    subtitle: 'Gemas · Correo Supercell',
     image: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=700&auto=format&fit=crop&q=75',
-    description: 'Gemas y Pase Brawl en código digital seguro de Supercell.',
+    description: 'Gemas y Pase Brawl en recarga manual de Supercell ID.',
     requires_player_id: false,
     can_verify_player: false,
-    badge: 'Pin Digital',
+    badge: 'Supercell ID',
   },
   exitlag: {
     id: 'exitlag',
     name: 'Exitlag',
     category: 'gift_card',
     category_label: 'Suscripción Digital',
+    subtitle: 'Suscripción · Código digital',
     image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=700&auto=format&fit=crop&q=75',
     description: 'Licencia para reducir el ping y optimizar tus conexiones gamer.',
     requires_player_id: false,
@@ -350,14 +352,15 @@ export const GAME_DIRECTORY = {
   },
   fn: {
     id: 'fn',
-    name: 'Fortnite (V-Bucks)',
-    category: 'gift_card',
-    category_label: 'Pin Digital',
+    name: 'Fortnite',
+    category: 'manual_topup',
+    category_label: 'Recarga Manual',
+    subtitle: 'Pavos · Credenciales',
     image: 'https://images.unsplash.com/photo-1589241062272-c0a000072dfa?w=700&auto=format&fit=crop&q=75',
-    description: 'Pavorreales (V-Bucks) en tarjetas canjeables en Epic Games.',
+    description: 'Pavos directos a tu cuenta de Epic Games mediante entrega asistida.',
     requires_player_id: false,
     can_verify_player: false,
-    badge: 'Pin Digital',
+    badge: 'Entrega Manual',
   },
   he: {
     id: 'he',
@@ -563,9 +566,9 @@ export function getThemedGamerImage(gameId = '', gameName = '', requiresPlayerId
 }
 
 /**
- * Calcula el precio minorista aplicando margen y/o suggested_retail_price
+ * Calcula el precio minorista aplicando margen, suggested_retail_price o precio personalizado del Admin
  */
-function calculatePricing(wholesalePriceStr, suggestedRetailPriceStr, markupPercent = 0.10) {
+function calculatePricing(wholesalePriceStr, suggestedRetailPriceStr, markupPercent = 0.10, isCustomAdminPrice = false) {
   const wholesaleDollars = parseFloat(wholesalePriceStr || '0');
   const wholesaleCents = Math.round(wholesaleDollars * 100);
 
@@ -573,15 +576,18 @@ function calculatePricing(wholesalePriceStr, suggestedRetailPriceStr, markupPerc
   const suggestedCents = Math.round(suggestedDollars * 100);
 
   let retailCents;
-  if (suggestedCents > wholesaleCents) {
+  if (isCustomAdminPrice && suggestedCents > 0) {
+    // Precio de venta fijado explícitamente por el Administrador para sus clientes
+    retailCents = suggestedCents;
+  } else if (suggestedCents > wholesaleCents) {
     retailCents = suggestedCents;
   } else {
     retailCents = Math.round(wholesaleCents * (1 + markupPercent));
   }
 
-  // Margen mínimo de $0.05
-  if (retailCents <= wholesaleCents) {
-    retailCents = wholesaleCents + 5;
+  // Margen de seguridad: nunca vender por debajo del costo mayorista a menos que sea igual
+  if (retailCents < wholesaleCents) {
+    retailCents = wholesaleCents;
   }
 
   return {
@@ -594,7 +600,7 @@ function calculatePricing(wholesalePriceStr, suggestedRetailPriceStr, markupPerc
 
 export const catalogService = {
   /**
-   * Obtiene la lista completa de productos normalizados
+   * Obtiene la lista completa de productos normalizados con precios del Admin aplicados
    */
   async getCatalog() {
     const now = Date.now();
@@ -605,8 +611,21 @@ export const catalogService = {
     const canjeaData = await canjeaClient.getCatalog();
     const rawProducts = canjeaData?.products || [];
 
+    // Cargar personalizaciones de precios y estados guardadas por el Administrador
+    let packageOverrides = [];
+    try {
+      packageOverrides = await catalogOverrideRepository.getPackageOverrides();
+    } catch {
+      packageOverrides = [];
+    }
+    const overrideBySku = new Map(packageOverrides.map((po) => [po.sku, po]));
+
     const normalized = rawProducts.map((p) => {
-      const pricing = calculatePricing(p.price, p.suggested_retail_price);
+      const customPkg = overrideBySku.get(p.sku);
+      const isCustomPrice = Boolean(customPkg?.suggested_price && customPkg.suggested_price !== p.suggested_retail_price);
+      const priceToUse = customPkg?.suggested_price || p.suggested_retail_price;
+
+      const pricing = calculatePricing(p.price, priceToUse, 0.10, isCustomPrice);
       const meta = GAME_DIRECTORY[p.game] || {
         id: p.game,
         name: p.game_name || p.game,
@@ -619,14 +638,18 @@ export const catalogService = {
         badge: p.can_verify_player ? 'ID Verificable' : !p.requires_player_id ? 'Pin Digital' : 'ID Requerido',
       };
 
+      const isManual = meta.category === 'manual_topup' || p.delivery?.mode === 'human' || Boolean(p.required_fields && p.required_fields.length > 0);
+      const category = isManual ? 'manual_topup' : meta.category;
+      const category_label = isManual ? 'Recarga Manual' : meta.category_label;
+
       return {
         id: p.sku,
         sku: p.sku,
         name: p.name,
         game_id: p.game,
         game: p.game_name || meta.name,
-        category: meta.category,
-        category_label: meta.category_label,
+        category,
+        category_label,
         price_cents: pricing.price_cents,
         price_decimal: pricing.price_decimal,
         wholesale_cents: pricing.wholesale_cents,
@@ -636,7 +659,11 @@ export const catalogService = {
         can_verify_player: Boolean(p.can_verify_player),
         price_is_estimated: Boolean(p.price_is_estimated),
         image_url: meta.image,
-        badge: meta.badge,
+        badge: isManual ? 'Recarga Manual' : meta.badge,
+        is_active: customPkg ? customPkg.is_active !== false : true,
+        delivery: p.delivery || null,
+        required_fields: p.required_fields || null,
+        redeem_instructions: p.redeem_instructions || null,
       };
     });
 
@@ -647,7 +674,7 @@ export const catalogService = {
   },
 
   /**
-   * Obtiene las 34 franquicias/juegos agrupados con precio mínimo "desde"
+   * Obtiene las franquicias/juegos agrupados con precio mínimo "desde"
    */
   async getGamesList(includeHidden = false) {
     const now = Date.now();
@@ -672,12 +699,31 @@ export const catalogService = {
         badge: prod.badge,
       };
 
+      const isManual = prod.category === 'manual_topup' || meta.category === 'manual_topup' || prod.delivery?.mode === 'human' || Boolean(prod.required_fields && prod.required_fields.length > 0);
+      const resolvedCategory = isManual ? 'manual_topup' : (prod.category || meta.category);
+      const resolvedCategoryLabel = isManual ? 'Recarga Manual' : (prod.category_label || meta.category_label);
+
+      let subtitle = meta.subtitle;
+      if (!subtitle) {
+        if (isManual) {
+          subtitle = gameKey === 'bs' ? 'Gemas · Correo Supercell' : gameKey === 'fn' ? 'Pavos · Credenciales' : 'Recarga Manual · Soporte';
+        } else if (resolvedCategory === 'gift_card') {
+          subtitle = gameKey === 'rb' ? 'Robux y Saldo · Códigos' : 'Gift Card · Código digital';
+        } else {
+          subtitle = meta.can_verify_player ? 'Diamantes · Solo ID' : 'Recarga Directa · con ID';
+        }
+      }
+
+      const isFeatured = Boolean(meta.is_featured || gameKey === 'ff' || gameKey === 'rb');
+
       if (!gamesMap.has(gameKey)) {
         gamesMap.set(gameKey, {
           id: gameKey,
           name: meta.name,
-          category: meta.category,
-          category_label: meta.category_label,
+          category: resolvedCategory,
+          category_label: resolvedCategoryLabel,
+          subtitle,
+          is_featured: isFeatured,
           image_url: meta.image,
           banner_url: meta.banner || meta.image,
           description: meta.description,
@@ -691,7 +737,7 @@ export const catalogService = {
           server_options: meta.server_options || null,
           requires_player_id: Boolean(prod.requires_player_id),
           can_verify_player: Boolean(prod.can_verify_player),
-          badge: meta.badge,
+          badge: isManual ? 'Recarga Manual' : meta.badge,
           min_price_cents: prod.price_cents,
           min_price_decimal: prod.price_decimal,
           currency: prod.currency,
@@ -700,6 +746,10 @@ export const catalogService = {
       } else {
         const existing = gamesMap.get(gameKey);
         existing.packages_count += 1;
+        if (isManual) {
+          existing.category = 'manual_topup';
+          existing.category_label = 'Recarga Manual';
+        }
         if (prod.price_cents < existing.min_price_cents) {
           existing.min_price_cents = prod.price_cents;
           existing.min_price_decimal = prod.price_decimal;
@@ -817,11 +867,33 @@ export const catalogService = {
       }
     } catch {}
 
+    const hasManualDelivery = gamePackages.some(
+      (p) => p.category === 'manual_topup' || p.delivery?.mode === 'human' || Boolean(p.required_fields && p.required_fields.length > 0)
+    );
+    const isManual = meta.category === 'manual_topup' || hasManualDelivery;
+    const resolvedCategory = isManual ? 'manual_topup' : (meta.category || first.category);
+    const resolvedCategoryLabel = isManual ? 'Recarga Manual' : (meta.category_label || first.category_label);
+
+    let subtitle = meta.subtitle;
+    if (!subtitle) {
+      if (isManual) {
+        subtitle = gameId === 'bs' ? 'Gemas · Correo Supercell' : gameId === 'fn' ? 'Pavos · Credenciales' : 'Recarga Manual · Soporte';
+      } else if (resolvedCategory === 'gift_card') {
+        subtitle = gameId === 'rb' ? 'Robux y Saldo · Códigos' : 'Gift Card · Código digital';
+      } else {
+        subtitle = meta.can_verify_player ? 'Diamantes · Solo ID' : 'Recarga Directa · con ID';
+      }
+    }
+
+    const isFeatured = Boolean(meta.is_featured || gameId === 'ff' || gameId === 'rb');
+
     return {
       id: gameId,
       name: meta.name,
-      category: meta.category,
-      category_label: meta.category_label,
+      category: resolvedCategory,
+      category_label: resolvedCategoryLabel,
+      subtitle,
+      is_featured: isFeatured,
       image_url: meta.image,
       banner_url: meta.banner || meta.image,
       description: meta.description,
@@ -836,7 +908,7 @@ export const catalogService = {
       regions,
       requires_player_id: Boolean(first.requires_player_id),
       can_verify_player: Boolean(first.can_verify_player),
-      badge: meta.badge,
+      badge: isManual ? 'Recarga Manual' : meta.badge,
       min_price_cents: first.price_cents,
       min_price_decimal: first.price_decimal,
       currency: first.currency,
@@ -856,6 +928,9 @@ export const catalogService = {
         can_verify_player: p.can_verify_player,
         price_is_estimated: p.price_is_estimated,
         is_active: p.is_active !== false,
+        delivery: p.delivery || null,
+        required_fields: p.required_fields || null,
+        redeem_instructions: p.redeem_instructions || null,
       })),
     };
   },
@@ -864,7 +939,9 @@ export const catalogService = {
    * Actualiza la portada, banner, nombre o visibilidad de un juego (Admin)
    */
   async updateGameOverride(gameId, data) {
+    cachedCatalog = null;
     cachedGames = null;
+    lastFetchTime = 0;
     return catalogOverrideRepository.upsertOverride(gameId, data);
   },
 

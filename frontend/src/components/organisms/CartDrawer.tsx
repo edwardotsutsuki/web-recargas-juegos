@@ -5,12 +5,12 @@ import { useWalletStore } from '../../store/useWalletStore';
 import { PriceDisplay } from '../molecules/PriceDisplay';
 import { Button } from '../atoms/Button';
 import { ordersService } from '../../services/api/orders.service';
-import { walletService } from '../../services/api/wallet.service';
+
 import { useUIStore } from '../../store/useUIStore';
 
 export const CartDrawer: React.FC = () => {
   const { items, isOpen, closeCart, removeItem, clearCart, getTotalCents } = useCartStore();
-  const { wallet, updateBalances } = useWalletStore();
+  const { wallet, fetchWallet } = useWalletStore();
   const { showToast } = useUIStore();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -32,16 +32,13 @@ export const CartDrawer: React.FC = () => {
           productId: item.product.id,
           playerId: item.playerId,
           playerName: item.playerName,
+          fields: item.fields,
           currency: item.product.currency,
         });
       }
 
-      // Deduct local balance
-      const updatedWallet = walletService.deductLocalBalance(totalCents);
-      updateBalances(
-        updatedWallet.total_balance_cents,
-        updatedWallet.held_balance_cents
-      );
+      // Refresh the authoritative balance after the backend accepts the orders.
+      await fetchWallet();
 
       clearCart();
       closeCart();
@@ -220,4 +217,3 @@ export const CartDrawer: React.FC = () => {
     </div>
   );
 };
-

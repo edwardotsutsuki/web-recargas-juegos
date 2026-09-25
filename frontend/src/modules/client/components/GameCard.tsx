@@ -36,7 +36,12 @@ export const GameCard: React.FC<GameCardProps> = ({ game, onSelect }) => {
             {game.category_label}
           </Badge>
 
-          {game.can_verify_player ? (
+          {game.category === 'manual_topup' ? (
+            <span className="inline-flex items-center gap-1 bg-amber-950/90 border border-amber-500/50 px-2 py-0.5 rounded-full text-[10px] font-bold text-amber-300 backdrop-blur-md">
+              <Sparkles className="w-3 h-3 text-amber-400" />
+              Recarga Manual
+            </span>
+          ) : game.can_verify_player ? (
             <span className="inline-flex items-center gap-1 bg-emerald-950/90 border border-emerald-500/50 px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-300 backdrop-blur-md">
               <ShieldCheck className="w-3 h-3 text-emerald-400" />
               ID Verificable

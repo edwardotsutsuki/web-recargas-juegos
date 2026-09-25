@@ -33,6 +33,18 @@ export const orderService = {
       throw err;
     }
 
+    if (product.required_fields && product.required_fields.length > 0) {
+      const fields = playerPayload?.fields || {};
+      for (const field of product.required_fields) {
+        if (field.required && !fields[field.key]) {
+          const err = new Error(`El campo "${field.label || field.key}" es obligatorio.`);
+          err.status = 400;
+          err.code = 'REQUIRED_FIELD_MISSING';
+          throw err;
+        }
+      }
+    }
+
     const priceMinor = product.price_cents;
 
     // 2. Calcular fingerprint SHA-256 canónico del payload
@@ -77,11 +89,86 @@ export const orderService = {
   },
 
   async getMyOrders(userId) {
-    return orderRepository.getUserOrders(userId);
+    const rawOrders = await orderRepository.getUserOrders(userId);
+    let catalog = [];
+    try {
+      catalog = await catalogService.getCatalog();
+    } catch {
+      catalog = [];
+    }
+    const productBySku = new Map(catalog.map((p) => [p.sku, p]));
+
+    return rawOrders.map((o) => {
+      const prod = productBySku.get(o.product_id);
+      let playerPayload = {};
+      try {
+        playerPayload = typeof o.player_payload === 'string' ? JSON.parse(o.player_payload) : (o.player_payload || {});
+      } catch {
+        playerPayload = {};
+      }
+
+      let status = 'processing';
+      if (o.status === 'succeeded') status = 'completed';
+      else if (o.status === 'failed') status = 'failed';
+      else if (o.status === 'cancelled') status = 'cancelled';
+      else if (o.status === 'held') status = 'processing';
+
+      return {
+        id: o.id,
+        user_id: o.user_id,
+        product_id: o.product_id,
+        product_name: prod ? prod.name : (o.product_id || 'Recarga Gamer'),
+        game: prod ? prod.game : 'Juegos Online',
+        amount_cents: Number(o.price_minor || 0),
+        currency: o.currency || 'USD',
+        player_id: playerPayload.id || null,
+        player_name: playerPayload.name || null,
+        status,
+        digital_code: o.digital_code || null,
+        redeem_instructions: o.redeem_instructions || prod?.redeem_instructions || null,
+        created_at: o.created_at,
+      };
+    });
   },
 
   async getOrderById(orderId, userId) {
-    return orderRepository.getOrderById(orderId, userId);
+    const o = await orderRepository.getOrderById(orderId, userId);
+    if (!o) return null;
+    let catalog = [];
+    try {
+      catalog = await catalogService.getCatalog();
+    } catch {
+      catalog = [];
+    }
+    const prod = catalog.find((p) => p.sku === o.product_id);
+    let playerPayload = {};
+    try {
+      playerPayload = typeof o.player_payload === 'string' ? JSON.parse(o.player_payload) : (o.player_payload || {});
+    } catch {
+      playerPayload = {};
+    }
+
+    let status = 'processing';
+    if (o.status === 'succeeded') status = 'completed';
+    else if (o.status === 'failed') status = 'failed';
+    else if (o.status === 'cancelled') status = 'cancelled';
+    else if (o.status === 'held') status = 'processing';
+
+    return {
+      id: o.id,
+      user_id: o.user_id,
+      product_id: o.product_id,
+      product_name: prod ? prod.name : (o.product_id || 'Recarga Gamer'),
+      game: prod ? prod.game : 'Juegos Online',
+      amount_cents: Number(o.price_minor || 0),
+      currency: o.currency || 'USD',
+      player_id: playerPayload.id || null,
+      player_name: playerPayload.name || null,
+      status,
+      digital_code: o.digital_code || null,
+      redeem_instructions: o.redeem_instructions || prod?.redeem_instructions || null,
+      created_at: o.created_at,
+    };
   },
 
   async getGlobalOrders() {

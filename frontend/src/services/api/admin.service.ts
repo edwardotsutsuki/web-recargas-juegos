@@ -19,7 +19,8 @@ export const adminService = {
           }),
         }
       );
-    } catch {
+    } catch (error) {
+      if (import.meta.env.PROD) throw error;
       // Local development fallback
       await new Promise((res) => setTimeout(res, 600));
       return {

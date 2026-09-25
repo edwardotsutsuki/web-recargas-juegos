@@ -77,7 +77,7 @@ export async function apiClient<T>(
 
   if (token) {
     requestHeaders['Authorization'] = `Bearer ${token}`;
-  } else {
+  } else if (import.meta.env.DEV) {
     // En entorno de desarrollo o prueba local sin sesión persistida de Supabase:
     const currentRole = useAuthStore.getState().role;
     requestHeaders['Authorization'] = currentRole === 'admin' ? 'Bearer dev-admin-token' : 'Bearer dev-client-token';
@@ -126,4 +126,3 @@ export async function apiClient<T>(
     );
   }
 }
-
