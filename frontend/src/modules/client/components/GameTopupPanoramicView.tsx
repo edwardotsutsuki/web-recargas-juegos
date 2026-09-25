@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { GameDetail, GamePackage, Product } from '../../../types';
+import { GameDetail, GamePackage, Product, CustomPrice } from '../../../types';
 import { catalogService } from '../../../services/api/catalog.service';
 import { playerService } from '../../../services/api/player.service';
 import { ordersService } from '../../../services/api/orders.service';
+import { resellerService } from '../../../services/api/reseller.service';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { useCartStore } from '../../../store/useCartStore';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -22,6 +23,12 @@ import {
   AlertTriangle,
   Clock,
   Star,
+  Tag,
+  TrendingUp,
+  Edit3,
+  Share2,
+  Save,
+  X,
 } from 'lucide-react';
 
 interface GameTopupPanoramicViewProps {
@@ -37,7 +44,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   circuitBreakerActive = false,
   circuitBreakerMessage,
 }) => {
-  const { role } = useAuthStore();
+  const { role, user } = useAuthStore();
   const { wallet, fetchWallet } = useWalletStore();
   const { addItem } = useCartStore();
 
@@ -45,6 +52,12 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   const [isLoadingGame, setIsLoadingGame] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<GamePackage | null>(null);
+
+  // Precios personalizados de reventa (PVP fijado por el revendedor)
+  const [customPricesMap, setCustomPricesMap] = useState<Record<string, number>>({});
+  const [editingPvpSku, setEditingPvpSku] = useState<string | null>(null);
+  const [tempPvpInput, setTempPvpInput] = useState<string>('');
+  const [isSavingPvp, setIsSavingPvp] = useState<boolean>(false);
 
   // Player fields
   const [playerId, setPlayerId] = useState('');
@@ -59,6 +72,41 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccessMsg, setOrderSuccessMsg] = useState<string | null>(null);
   const [orderErrorMsg, setOrderErrorMsg] = useState<string | null>(null);
+
+  // Cargar precios personalizados del revendedor
+  useEffect(() => {
+    if (user?.id) {
+      resellerService
+        .getCustomPrices()
+        .then((prices: CustomPrice[]) => {
+          if (Array.isArray(prices)) {
+            const map: Record<string, number> = {};
+            for (const cp of prices) {
+              map[cp.sku] = cp.custom_pvp_cents;
+            }
+            setCustomPricesMap(map);
+          }
+        })
+        .catch((err) => {
+          console.warn('No se pudieron cargar precios PVP del revendedor:', err);
+        });
+    }
+  }, [user?.id]);
+
+  const handleSaveCustomPvp = async (sku: string, pvpDecimalStr: string) => {
+    const num = parseFloat(pvpDecimalStr);
+    if (isNaN(num) || num <= 0) return;
+    setIsSavingPvp(true);
+    try {
+      await resellerService.setCustomPrice(sku, num);
+      setCustomPricesMap((prev) => ({ ...prev, [sku]: Math.round(num * 100) }));
+      setEditingPvpSku(null);
+    } catch (err) {
+      console.error('Error guardando PVP:', err);
+    } finally {
+      setIsSavingPvp(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -249,6 +297,12 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   const subscriptionPackages = regionPackages.filter((p) => isPassOrSubscription(p));
 
   const currentPriceCents = selectedPackage ? selectedPackage.price_cents : 0;
+  const selectedPvpCents = selectedPackage
+    ? customPricesMap[selectedPackage.sku] || Math.round(selectedPackage.price_cents * 1.2)
+    : 0;
+  const selectedProfitCents = Math.max(0, selectedPvpCents - currentPriceCents);
+  const selectedMarginPercent =
+    currentPriceCents > 0 ? Math.round((selectedProfitCents / currentPriceCents) * 100) : 0;
   const hasEnoughBalance = wallet.available_balance_cents >= currentPriceCents;
 
   return (
@@ -319,17 +373,46 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
 
       {/* Banners de Confirmación o Error */}
       {orderSuccessMsg && (
-        <div className="p-4 rounded-2xl bg-emerald-950/70 border border-emerald-500/50 flex items-center justify-between text-xs text-emerald-300 shadow-lg">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-            <span className="font-semibold text-white">{orderSuccessMsg}</span>
+        <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/50 space-y-3 shadow-lg">
+          <div className="flex items-center justify-between text-xs text-emerald-300">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+              <span className="font-semibold text-white">{orderSuccessMsg}</span>
+            </div>
+            <button
+              onClick={() => setOrderSuccessMsg(null)}
+              className="text-emerald-400 hover:text-white font-bold underline text-xs"
+            >
+              Cerrar
+            </button>
           </div>
-          <button
-            onClick={() => setOrderSuccessMsg(null)}
-            className="text-emerald-400 hover:text-white font-bold underline"
-          >
-            Entendido
-          </button>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-emerald-800/60">
+            <div className="text-xs text-emerald-200">
+              <span>Cobraste a tu cliente: <strong className="text-white">${(selectedPvpCents / 100).toFixed(2)} USD</strong></span>
+              <span className="mx-2">·</span>
+              <span>Tu ganancia neta: <strong className="text-emerald-400">+${(selectedProfitCents / 100).toFixed(2)} USD ({selectedMarginPercent}%)</strong></span>
+            </div>
+
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(
+                `🎮 *COMPROBANTE DE RECARGA EXITOSA* 🎮\n\n` +
+                `🕹️ *Juego:* ${game.name}\n` +
+                `💎 *Paquete:* ${selectedPackage?.name}\n` +
+                (playerId ? `👤 *ID Jugador:* ${playerId}\n` : '') +
+                (verifiedName ? `🏷️ *Nombre:* ${verifiedName}\n` : '') +
+                `💵 *Total Pagado:* $${(selectedPvpCents / 100).toFixed(2)} USD\n` +
+                `⚡ *Estado:* ¡Recarga Completada y Entregada con Éxito!\n\n` +
+                `¡Gracias por tu compra!`
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Enviar Comprobante WhatsApp al Cliente</span>
+            </a>
+          </div>
         </div>
       )}
 
@@ -475,15 +558,35 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
               )}
             </div>
 
-            <div className="space-y-2 text-xs">
+            <div className="space-y-2.5 text-xs">
               <div className="flex items-center justify-between text-slate-400">
-                <span>Precio de venta</span>
+                <span>Costo Plataforma</span>
                 <span className="font-bold text-white">
                   ${(currentPriceCents / 100).toFixed(2)} USD
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-slate-400">
+              {/* PVP al Cliente Final */}
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+                <span className="text-indigo-300 font-bold flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-indigo-400" /> Tu PVP al Cliente
+                </span>
+                <span className="font-black text-indigo-300 text-sm">
+                  ${(selectedPvpCents / 100).toFixed(2)} USD
+                </span>
+              </div>
+
+              {/* Ganancia Neta Estimada */}
+              <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs">
+                <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5" /> Tu Ganancia Neta
+                </span>
+                <span className="font-black text-emerald-400 text-sm">
+                  +${(selectedProfitCents / 100).toFixed(2)} USD ({selectedMarginPercent}%)
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-slate-400 pt-1">
                 <span>Tu saldo disponible</span>
                 <span className={`font-bold ${hasEnoughBalance ? 'text-slate-300' : 'text-amber-400'}`}>
                   ${(wallet.available_balance_cents / 100).toFixed(2)} USD
@@ -491,7 +594,10 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
               </div>
 
               <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                <span className="font-black text-sm uppercase text-white">Total a Pagar</span>
+                <div>
+                  <span className="font-black text-xs uppercase text-white block">Total a Pagar</span>
+                  <span className="text-[10px] text-slate-400">Débito directo de tu billetera</span>
+                </div>
                 <span className="font-black text-base text-cyan-400">
                   ${(currentPriceCents / 100).toFixed(2)} USD
                 </span>
@@ -576,9 +682,10 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
                   {diamondPackages.map((pkg, idx) => {
                     const isSelected = selectedPackage?.id === pkg.id;
-                    const retailPriceCents = pkg.price_cents;
-                    const costCents = pkg.wholesale_cents || 0;
-                    const profitCents = costCents > 0 ? retailPriceCents - costCents : 0;
+                    const platformCostCents = pkg.price_cents;
+                    const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.2);
+                    const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
+                    const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
                     const isPopular = isPopularPackage(pkg, idx);
 
                     return (
@@ -586,7 +693,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                         key={pkg.id}
                         type="button"
                         onClick={() => setSelectedPackage(pkg)}
-                        className={`relative p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between h-28 group ${
+                        className={`relative p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[135px] group ${
                           isSelected
                             ? 'bg-indigo-950/70 border-cyan-400 shadow-glow-primary'
                             : 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
@@ -609,15 +716,44 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                           )}
                         </div>
 
-                        <div>
-                          <div className="text-sm font-black text-white">
-                            ${(retailPriceCents / 100).toFixed(2)}
+                        <div className="space-y-1 mt-2 w-full">
+                          <div className="flex items-baseline justify-between gap-1">
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-medium block">Costo:</span>
+                              <div className="text-xs font-black text-white">
+                                ${(platformCostCents / 100).toFixed(2)}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[10px] text-indigo-300 font-bold block">Tu PVP:</span>
+                              <div className="text-xs font-black text-cyan-300">
+                                ${(resellerPvpCents / 100).toFixed(2)}
+                              </div>
+                            </div>
                           </div>
 
-                          {/* Estricta privacidad: Solo admin puede ver costo y margen */}
-                          {role === 'admin' && profitCents > 0 && (
-                            <div className="text-[9px] text-slate-400 mt-0.5 truncate font-mono">
-                              Costo: ${(costCents / 100).toFixed(2)} · +${(profitCents / 100).toFixed(2)}
+                          <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/60">
+                            <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20 truncate">
+                              +{marginPercent}% (+${(resellerProfitCents / 100).toFixed(2)})
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingPvpSku(pkg.sku);
+                                setTempPvpInput((resellerPvpCents / 100).toFixed(2));
+                              }}
+                              title="Personalizar tu precio de venta final (PVP)"
+                              className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-cyan-300 transition-colors shrink-0"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                          </div>
+
+                          {role === 'admin' && (pkg.wholesale_cents || 0) > 0 && (
+                            <div className="text-[9px] text-slate-500 font-mono truncate">
+                              API: ${((pkg.wholesale_cents || 0) / 100).toFixed(2)}
                             </div>
                           )}
                         </div>
@@ -638,9 +774,10 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
                   {subscriptionPackages.map((pkg, idx) => {
                     const isSelected = selectedPackage?.id === pkg.id;
-                    const retailPriceCents = pkg.price_cents;
-                    const costCents = pkg.wholesale_cents || 0;
-                    const profitCents = costCents > 0 ? retailPriceCents - costCents : 0;
+                    const platformCostCents = pkg.price_cents;
+                    const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.2);
+                    const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
+                    const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
                     const isPopular = isPopularPackage(pkg, idx);
 
                     return (
@@ -648,7 +785,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                         key={pkg.id}
                         type="button"
                         onClick={() => setSelectedPackage(pkg)}
-                        className={`relative p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between h-28 group ${
+                        className={`relative p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[135px] group ${
                           isSelected
                             ? 'bg-indigo-950/70 border-cyan-400 shadow-glow-primary'
                             : 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
@@ -671,15 +808,44 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                           )}
                         </div>
 
-                        <div>
-                          <div className="text-sm font-black text-white">
-                            ${(retailPriceCents / 100).toFixed(2)}
+                        <div className="space-y-1 mt-2 w-full">
+                          <div className="flex items-baseline justify-between gap-1">
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-medium block">Costo:</span>
+                              <div className="text-xs font-black text-white">
+                                ${(platformCostCents / 100).toFixed(2)}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[10px] text-indigo-300 font-bold block">Tu PVP:</span>
+                              <div className="text-xs font-black text-cyan-300">
+                                ${(resellerPvpCents / 100).toFixed(2)}
+                              </div>
+                            </div>
                           </div>
 
-                          {/* Estricta privacidad: Solo admin puede ver costo y margen */}
-                          {role === 'admin' && profitCents > 0 && (
-                            <div className="text-[9px] text-slate-400 mt-0.5 truncate font-mono">
-                              Costo: ${(costCents / 100).toFixed(2)} · +${(profitCents / 100).toFixed(2)}
+                          <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/60">
+                            <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20 truncate">
+                              +{marginPercent}% (+${(resellerProfitCents / 100).toFixed(2)})
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingPvpSku(pkg.sku);
+                                setTempPvpInput((resellerPvpCents / 100).toFixed(2));
+                              }}
+                              title="Personalizar tu precio de venta final (PVP)"
+                              className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-cyan-300 transition-colors shrink-0"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                          </div>
+
+                          {role === 'admin' && (pkg.wholesale_cents || 0) > 0 && (
+                            <div className="text-[9px] text-slate-500 font-mono truncate">
+                              API: ${((pkg.wholesale_cents || 0) / 100).toFixed(2)}
                             </div>
                           )}
                         </div>
@@ -692,6 +858,81 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modal flotante de edición rápida de PVP */}
+      {editingPvpSku && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setEditingPvpSku(null)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Tag className="w-4 h-4 text-cyan-400" />
+                Ajustar Tu Precio de Venta (PVP)
+              </h4>
+              <button
+                onClick={() => setEditingPvpSku(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-300 space-y-2">
+              <p>Define cuánto le cobrarás a tu cliente final por este paquete. Tu ganancia neta se calculará en vivo.</p>
+              {selectedPackage && (
+                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Costo Plataforma:</span>
+                  <span className="font-bold text-white">${(selectedPackage.price_cents / 100).toFixed(2)} USD</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-400 uppercase">
+                Tu PVP al Cliente Final (USD)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.10"
+                  value={tempPvpInput}
+                  onChange={(e) => setTempPvpInput(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm font-bold focus:outline-none focus:border-cyan-400"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingPvpSku(null)}
+                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
+              >
+                Cancelar
+              </button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                isLoading={isSavingPvp}
+                onClick={() => handleSaveCustomPvp(editingPvpSku, tempPvpInput)}
+                className="flex-1 text-xs font-bold"
+              >
+                <Save className="w-3.5 h-3.5 mr-1.5" />
+                Guardar PVP
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

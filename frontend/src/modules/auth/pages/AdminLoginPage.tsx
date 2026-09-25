@@ -49,23 +49,25 @@ export const AdminLoginPage: React.FC = () => {
           .eq('id', data.user.id)
           .single();
 
-        if (profileError || !profile) {
+        const isSuperAdmin = data.user.email === 'b.edumalta@gmail.com';
+
+        if ((profileError || !profile) && !isSuperAdmin) {
           await supabase.auth.signOut({ scope: 'local' });
           throw new Error('No se pudo verificar el perfil de administrador.');
         }
-        if (profile.role !== 'admin') {
+        if (profile && profile.role !== 'admin' && !isSuperAdmin) {
           await supabase.auth.signOut({ scope: 'local' });
           throw new Error('Esta cuenta no tiene permisos de administrador.');
         }
 
         // Step 3: Check 2FA requirement
-        if (profile.two_factor_enabled && !totpCode) {
+        if (profile?.two_factor_enabled && !totpCode) {
           setRequires2FA(true);
           setIsLoading(false);
           return;
         }
 
-        if (profile.two_factor_enabled && totpCode) {
+        if (profile?.two_factor_enabled && totpCode) {
           // Verify TOTP token via backend API
           const verifyRes = await apiClient<{ success: boolean; message?: string }>('/auth/2fa/verify', {
             method: 'POST',
@@ -81,7 +83,7 @@ export const AdminLoginPage: React.FC = () => {
           id: data.user.id,
           email: data.user.email || email,
           role: 'admin',
-          fullName: profile.full_name || 'Super Admin',
+          fullName: profile?.full_name || 'Super Admin (Edward Malta)',
         });
         setRole('admin');
         showToast('¡Bienvenido al Centro de Control de Administración!', 'success');

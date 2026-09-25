@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           .eq('id', session.user.id)
           .single();
 
-        const role: UserRole = (profile?.role as UserRole) || 'client';
+        const role: UserRole = (profile?.role as UserRole) || (session.user.email === 'b.edumalta@gmail.com' ? 'admin' : 'client');
 
         set({
           user: {
@@ -91,7 +91,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           .eq('id', session.user.id)
           .single();
 
-        const role: UserRole = (profile?.role as UserRole) || 'client';
+        const role: UserRole = (profile?.role as UserRole) || (session.user.email === 'b.edumalta@gmail.com' ? 'admin' : 'client');
 
         set({
           user: {

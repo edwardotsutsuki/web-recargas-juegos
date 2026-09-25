@@ -67,8 +67,23 @@ export async function apiClient<T>(
   const { idempotencyKey, headers = {}, ...customConfig } = options;
 
   // Retrieve current session token from Supabase
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData?.session?.access_token;
+  let { data: sessionData } = await supabase.auth.getSession();
+  let token = sessionData?.session?.access_token;
+
+  // Auto-refresh si el token está por expirar (dentro de los próximos 60s) o ya expiró
+  if (sessionData?.session?.expires_at) {
+    const isExpiring = Date.now() >= sessionData.session.expires_at * 1000 - 60000;
+    if (isExpiring) {
+      try {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed?.session?.access_token) {
+          token = refreshed.session.access_token;
+        }
+      } catch (err) {
+        console.warn('[ApiClient] No se pudo auto-refrescar la sesión:', err);
+      }
+    }
+  }
 
   const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -91,10 +106,26 @@ export async function apiClient<T>(
   const url = `${baseUrl.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`;
 
   try {
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       ...customConfig,
       headers: requestHeaders,
     });
+
+    // Si recibimos 401 (token expirado en vuelo), intentar refrescar una vez y reintentar
+    if (response.status === 401) {
+      try {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed?.session?.access_token) {
+          requestHeaders['Authorization'] = `Bearer ${refreshed.session.access_token}`;
+          response = await fetch(url, {
+            ...customConfig,
+            headers: requestHeaders,
+          });
+        }
+      } catch {
+        // Falló refresco
+      }
+    }
 
     // Handle 204 No Content
     if (response.status === 204) {

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GameDetail, GamePackage } from '../../../types';
+import { GameDetail, GamePackage, CustomPrice } from '../../../types';
 import { catalogService } from '../../../services/api/catalog.service';
 import { playerService } from '../../../services/api/player.service';
 import { ordersService } from '../../../services/api/orders.service';
+import { resellerService } from '../../../services/api/reseller.service';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { useCartStore } from '../../../store/useCartStore';
+import { useAuthStore } from '../../../store/useAuthStore';
 import { PriceDisplay } from '../../../components/molecules/PriceDisplay';
 import { Button } from '../../../components/atoms/Button';
 import { Input } from '../../../components/atoms/Input';
@@ -26,6 +28,7 @@ import {
   AlertTriangle,
   ChevronLeft,
   Clock,
+  Share2,
 } from 'lucide-react';
 
 interface GameTopupModalProps {
@@ -43,6 +46,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
   circuitBreakerActive = false,
   circuitBreakerMessage,
 }) => {
+  const { user, role } = useAuthStore();
   const { wallet, fetchWallet } = useWalletStore();
   const { addItem } = useCartStore();
   const navigate = useNavigate();
@@ -51,6 +55,26 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
   const [isLoadingGame, setIsLoadingGame] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<GamePackage | null>(null);
+
+  // Precios personalizados de reventa
+  const [customPricesMap, setCustomPricesMap] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (user?.id) {
+      resellerService
+        .getCustomPrices()
+        .then((prices: CustomPrice[]) => {
+          if (Array.isArray(prices)) {
+            const map: Record<string, number> = {};
+            for (const cp of prices) {
+              map[cp.sku] = cp.custom_pvp_cents;
+            }
+            setCustomPricesMap(map);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user?.id]);
 
   // Player fields
   // Player fields
@@ -249,6 +273,17 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
     : 0;
   const missingDollars = (missingCents / 100).toFixed(2);
 
+  const selectedPvpCents = selectedPackage
+    ? customPricesMap[selectedPackage.sku] || Math.round(selectedPackage.price_cents * 1.2)
+    : 0;
+  const selectedProfitCents = selectedPackage
+    ? Math.max(0, selectedPvpCents - selectedPackage.price_cents)
+    : 0;
+  const selectedMarginPercent =
+    selectedPackage && selectedPackage.price_cents > 0
+      ? Math.round((selectedProfitCents / selectedPackage.price_cents) * 100)
+      : 0;
+
   const isPassOrSubscription = (pkg: GamePackage) => {
     const n = pkg.name.toLowerCase();
     return n.includes('pase') || n.includes('semanal') || n.includes('mensual') || n.includes('suscrip');
@@ -315,17 +350,40 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
             <>
               {/* Notificación de Éxito Móvil */}
               {orderSuccessMsg && (
-                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs text-emerald-800 font-bold shadow-xs">
-                  <div className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>{orderSuccessMsg}</span>
+                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2 text-xs text-emerald-800 font-bold shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{orderSuccessMsg}</span>
+                    </div>
+                    <button
+                      onClick={onClose}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-bold"
+                    >
+                      OK
+                    </button>
                   </div>
-                  <button
-                    onClick={onClose}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-bold"
-                  >
-                    OK
-                  </button>
+                  <div className="pt-2 border-t border-emerald-200/80 flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-emerald-700">Cobrado al cliente: <strong>${(selectedPvpCents / 100).toFixed(2)} USD</strong></span>
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(
+                        `🎮 *COMPROBANTE DE RECARGA EXITOSA* 🎮\n\n` +
+                        `🕹️ *Juego:* ${game?.name || ''}\n` +
+                        `💎 *Paquete:* ${selectedPackage?.name || ''}\n` +
+                        (playerId ? `👤 *ID Jugador:* ${playerId}\n` : '') +
+                        (verifiedName ? `🏷️ *Nombre:* ${verifiedName}\n` : '') +
+                        `💵 *Total Pagado:* $${(selectedPvpCents / 100).toFixed(2)} USD\n` +
+                        `⚡ *Estado:* ¡Recarga Completada y Entregada!\n\n` +
+                        `¡Gracias por tu compra!`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>Ticket WhatsApp</span>
+                    </a>
+                  </div>
                 </div>
               )}
 
@@ -476,7 +534,10 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                       const isSelected = selectedPackage?.sku === pkg.sku;
                       const isAvailable = pkg.is_active !== false;
                       const isPopular = isPopularPackage(pkg, idx);
-                      const profitCents = pkg.wholesale_cents && pkg.wholesale_cents < pkg.price_cents ? pkg.price_cents - pkg.wholesale_cents : 0;
+                      const platformCostCents = pkg.price_cents;
+                      const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.2);
+                      const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
+                      const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
 
                       return (
                         <button
@@ -484,7 +545,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                           type="button"
                           disabled={!isAvailable}
                           onClick={() => isAvailable && setSelectedPackage(pkg)}
-                          className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all min-h-[82px] active:scale-[0.98] ${
+                          className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all min-h-[92px] active:scale-[0.98] ${
                             !isAvailable
                               ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed'
                               : isSelected
@@ -503,13 +564,21 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                             </span>
                           </div>
 
-                          <div className="mt-2">
-                            <span className="text-sm font-black text-slate-900 block">
-                              $ {(pkg.price_cents / 100).toFixed(2)}
+                          <div className="mt-2 space-y-0.5">
+                            <div className="flex items-baseline justify-between gap-1">
+                              <span className="text-xs font-black text-slate-900 block">
+                                $ {(platformCostCents / 100).toFixed(2)}
+                              </span>
+                              <span className="text-[10px] text-indigo-600 font-extrabold">
+                                PVP: ${(resellerPvpCents / 100).toFixed(2)}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-emerald-600 font-bold block truncate">
+                              +{marginPercent}% (+${(resellerProfitCents / 100).toFixed(2)})
                             </span>
-                            {profitCents > 0 && (
-                              <span className="text-[10px] text-slate-500 font-medium block truncate">
-                                Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} · <span className="text-emerald-600 font-bold">+${(profitCents / 100).toFixed(2)}</span>
+                            {role === 'admin' && (pkg.wholesale_cents || 0) > 0 && (
+                              <span className="text-[9px] text-slate-400 font-mono block">
+                                API: ${((pkg.wholesale_cents || 0) / 100).toFixed(2)}
                               </span>
                             )}
                           </div>
@@ -531,7 +600,10 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                       const isSelected = selectedPackage?.sku === pkg.sku;
                       const isAvailable = pkg.is_active !== false;
                       const isPopular = isPopularPackage(pkg, idx);
-                      const profitCents = pkg.wholesale_cents && pkg.wholesale_cents < pkg.price_cents ? pkg.price_cents - pkg.wholesale_cents : 0;
+                      const platformCostCents = pkg.price_cents;
+                      const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.2);
+                      const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
+                      const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
 
                       return (
                         <button
@@ -539,7 +611,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                           type="button"
                           disabled={!isAvailable}
                           onClick={() => isAvailable && setSelectedPackage(pkg)}
-                          className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all min-h-[82px] active:scale-[0.98] ${
+                          className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all min-h-[92px] active:scale-[0.98] ${
                             !isAvailable
                               ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed'
                               : isSelected
@@ -558,13 +630,21 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                             </span>
                           </div>
 
-                          <div className="mt-2">
-                            <span className="text-sm font-black text-slate-900 block">
-                              $ {(pkg.price_cents / 100).toFixed(2)}
+                          <div className="mt-2 space-y-0.5">
+                            <div className="flex items-baseline justify-between gap-1">
+                              <span className="text-xs font-black text-slate-900 block">
+                                $ {(platformCostCents / 100).toFixed(2)}
+                              </span>
+                              <span className="text-[10px] text-indigo-600 font-extrabold">
+                                PVP: ${(resellerPvpCents / 100).toFixed(2)}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-emerald-600 font-bold block truncate">
+                              +{marginPercent}% (+${(resellerProfitCents / 100).toFixed(2)})
                             </span>
-                            {profitCents > 0 && (
-                              <span className="text-[10px] text-slate-500 font-medium block truncate">
-                                Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} · <span className="text-emerald-600 font-bold">+${(profitCents / 100).toFixed(2)}</span>
+                            {role === 'admin' && (pkg.wholesale_cents || 0) > 0 && (
+                              <span className="text-[9px] text-slate-400 font-mono block">
+                                API: ${((pkg.wholesale_cents || 0) / 100).toFixed(2)}
                               </span>
                             )}
                           </div>
@@ -599,18 +679,26 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
 
             {/* Resumen de orden */}
             {selectedPackage && (
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1 text-xs">
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5 text-xs">
                 <div className="flex items-center justify-between text-slate-600">
                   <span>Paquete</span>
                   <span className="font-bold text-slate-900">{selectedPackage.name}</span>
                 </div>
                 <div className="flex items-center justify-between text-slate-500 text-[11px]">
-                  <span>Saldo actual</span>
-                  <span>$ {(wallet.available_balance_cents / 100).toFixed(2)}</span>
+                  <span>Costo Plataforma (a pagar)</span>
+                  <span className="font-bold text-slate-900">$ {(selectedPackage.price_cents / 100).toFixed(2)} USD</span>
+                </div>
+                <div className="flex items-center justify-between text-indigo-700 font-extrabold text-xs">
+                  <span>Tu PVP al Cliente Final</span>
+                  <span className="font-black text-indigo-600 text-sm">$ {(selectedPvpCents / 100).toFixed(2)} USD</span>
+                </div>
+                <div className="flex items-center justify-between text-emerald-600 font-bold text-[11px]">
+                  <span>Tu Ganancia Estimada</span>
+                  <span>+${(selectedProfitCents / 100).toFixed(2)} USD ({selectedMarginPercent}%)</span>
                 </div>
                 <div className="flex items-center justify-between pt-1 border-t border-slate-200 text-slate-900 font-extrabold text-sm">
-                  <span>Cobrar al cliente</span>
-                  <span className="text-indigo-600 font-black">$ {(selectedPackage.price_cents / 100).toFixed(2)}</span>
+                  <span>Total a Pagar (Billetera)</span>
+                  <span className="text-cyan-700 font-black">$ {(selectedPackage.price_cents / 100).toFixed(2)} USD</span>
                 </div>
               </div>
             )}

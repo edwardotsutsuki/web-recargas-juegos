@@ -48,13 +48,20 @@ export async function authMiddleware(req) {
     if (authError || !user) return null;
 
     // Obtener rol verificado de la tabla profiles
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
+    let role = user.email === 'b.edumalta@gmail.com' ? 'admin' : 'client';
+    try {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
 
-    const role = profile?.role || 'client';
+      if (profile?.role) {
+        role = profile.role;
+      }
+    } catch {
+      // Usar rol por defecto o super admin
+    }
 
     return {
       id: user.id,
