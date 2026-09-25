@@ -10,6 +10,7 @@ export const orderService = {
     playerPayload = {},
     currency = 'USD',
     idempotencyKey,
+    operatorName = null,
   }) {
     if (!idempotencyKey) {
       const err = new Error('La cabecera Idempotency-Key es obligatoria.');
@@ -69,6 +70,7 @@ export const orderService = {
         playerPayload: playerPayload || {},
         idempotencyKey,
         requestFingerprint,
+        operatorName,
       });
 
       return reservation;
@@ -125,6 +127,7 @@ export const orderService = {
         player_id: playerPayload.id || null,
         player_name: playerPayload.name || null,
         status,
+        operator_name: o.operator_name || null,
         digital_code: o.digital_code || null,
         redeem_instructions: o.redeem_instructions || prod?.redeem_instructions || null,
         created_at: o.created_at,
@@ -231,6 +234,7 @@ export const orderService = {
         player_name: playerPayload.name || playerPayload.playerName || null,
         player_server: playerPayload.server || playerPayload.zoneId || null,
         status,
+        operator_name: o.operator_name || null,
         failure_code: o.failure_code || null,
         digital_code: o.digital_code || null,
         redeem_instructions: o.redeem_instructions || prod?.redeem_instructions || null,

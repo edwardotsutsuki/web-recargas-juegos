@@ -4,7 +4,7 @@ import { supabase, isSupabaseConfigured } from '../../../services/supabase/clien
 import { useAuthStore } from '../../../store/useAuthStore';
 import { Button } from '../../../components/atoms/Button';
 import { Input } from '../../../components/atoms/Input';
-import { Gamepad2, Mail, Lock, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Gamepad2, Mail, Lock, ArrowLeft, CheckCircle2, Store } from 'lucide-react';
 import { useUIStore } from '../../../store/useUIStore';
 import { apiClient } from '../../../services/api/client';
 import { Capacitor } from '@capacitor/core';
@@ -132,6 +132,25 @@ export const LoginPage: React.FC = () => {
             {error}
           </div>
         )}
+
+        {/* Botón de acceso rápido a Terminal POS para cajeros */}
+        <Link
+          to="/terminal"
+          className="w-full py-2.5 px-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-indigo-950/40 to-slate-900 border border-cyan-500/30 hover:border-cyan-400 text-slate-300 hover:text-white transition-all flex items-center justify-between group shadow-sm"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 group-hover:scale-110 transition-transform">
+              <Store className="w-4 h-4" />
+            </div>
+            <div className="text-left">
+              <span className="text-xs font-bold text-white block">Terminal POS / Cajeros</span>
+              <span className="text-[10px] text-slate-400 block">Ingreso rápido por Local y PIN de 4 dígitos</span>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold text-cyan-400 bg-cyan-950/80 border border-cyan-500/40 px-2 py-0.5 rounded-md">
+            Abrir POS ➔
+          </span>
+        </Link>
 
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">

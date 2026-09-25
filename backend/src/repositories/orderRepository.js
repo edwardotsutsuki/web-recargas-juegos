@@ -10,6 +10,7 @@ export const orderRepository = {
     playerPayload,
     idempotencyKey,
     requestFingerprint,
+    operatorName = null,
   }) {
     if (!isSupabaseConfigured) {
       return {
@@ -18,6 +19,7 @@ export const orderRepository = {
         order_id: `ord_${Date.now()}`,
         status: 'held',
         price_minor: priceMinor,
+        operator_name: operatorName,
       };
     }
 
@@ -34,6 +36,14 @@ export const orderRepository = {
       });
 
       if (!error && data) {
+        if (operatorName && data.order_id) {
+          supabaseAdmin
+            .from('orders')
+            .update({ operator_name: operatorName })
+            .eq('id', data.order_id)
+            .then(() => {})
+            .catch(() => {});
+        }
         return data;
       }
       if (error && (error.code === 'P0001' || error.code === '23505')) {
@@ -107,6 +117,7 @@ export const orderRepository = {
         idempotency_key: idempotencyKey,
         request_fingerprint: requestFingerprint,
         status: 'held',
+        operator_name: operatorName || null,
       })
       .select()
       .single();

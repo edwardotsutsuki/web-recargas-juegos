@@ -135,6 +135,15 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({ isOpen, onClose 
               <span className="flex-1">Configurar PVP (Venta)</span>
               {isCashierMode && <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
             </NavLink>
+            <NavLink
+              to="/staff"
+              className={navItemClass}
+              onClick={(e) => handleProtectedNav(e, '/staff')}
+            >
+              <Users className="w-4 h-4 text-emerald-400" />
+              <span className="flex-1">Personal / Cajeros</span>
+              {isCashierMode && <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+            </NavLink>
             <NavLink to="/orders" className={navItemClass} onClick={onClose}>
               <ShoppingBag className="w-4 h-4 text-purple-400" />
               <span>Mis Recargas / Órdenes</span>

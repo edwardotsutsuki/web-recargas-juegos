@@ -3,15 +3,27 @@ import { supabase } from '../services/supabase/client';
 import { UserProfile, UserRole } from '../types';
 import { useWalletStore } from './useWalletStore';
 import { useCartStore } from './useCartStore';
+import { useCashierStore } from './useCashierStore';
 
 interface AuthStore {
   user: UserProfile | null;
   role: UserRole;
   isAuthenticated: boolean;
   isLoading: boolean;
+  operatorName: string | null;
+  isCashier: boolean;
+  storeSlug: string | null;
   initialize: () => Promise<void>;
   setUser: (user: UserProfile | null) => void;
   setRole: (role: UserRole) => void;
+  setTerminalSession: (data: {
+    user: UserProfile;
+    token: string;
+    operatorName: string;
+    isCashier: boolean;
+    storeSlug: string;
+  }) => void;
+  clearTerminalSession: () => void;
   logout: () => Promise<void>;
   toggleDevRole: () => void;
 }
@@ -23,6 +35,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   role: 'client',
   isAuthenticated: false,
   isLoading: true,
+  operatorName: null,
+  isCashier: false,
+  storeSlug: null,
 
   initialize: async () => {
     // Si ya inicializó el listener de Supabase, solo refrescar la sesión actual
@@ -45,6 +60,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
+        // Limpiar sesión de terminal POS si hay sesión oficial de Supabase
+        localStorage.removeItem('recargas_terminal_token');
+        localStorage.removeItem('recargas_terminal_session');
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('id, role, full_name, phone, referral_code, two_factor_enabled, created_at')
@@ -62,13 +81,45 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           },
           role,
           isAuthenticated: true,
+          operatorName: null,
+          isCashier: false,
+          storeSlug: null,
           isLoading: false,
         });
       } else {
+        // Comprobar si hay sesión persistida de Terminal POS (Cajero o Dueño)
+        const termToken = typeof localStorage !== 'undefined' ? localStorage.getItem('recargas_terminal_token') : null;
+        const termSessionStr = typeof localStorage !== 'undefined' ? localStorage.getItem('recargas_terminal_session') : null;
+
+        if (termToken && termSessionStr) {
+          try {
+            const term = JSON.parse(termSessionStr);
+            set({
+              user: term.user,
+              role: term.user.role || 'client',
+              isAuthenticated: true,
+              operatorName: term.operatorName,
+              isCashier: term.isCashier === true,
+              storeSlug: term.storeSlug,
+              isLoading: false,
+            });
+            if (term.isCashier) {
+              useCashierStore.getState().setCashierMode(true);
+            }
+            return;
+          } catch {
+            localStorage.removeItem('recargas_terminal_token');
+            localStorage.removeItem('recargas_terminal_session');
+          }
+        }
+
         set({
           user: null,
           role: 'client',
           isAuthenticated: false,
+          operatorName: null,
+          isCashier: false,
+          storeSlug: null,
           isLoading: false,
         });
       }
@@ -76,12 +127,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // Escuchar cambios de autenticación en vivo
       supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_OUT' || !session?.user) {
-          set({
-            user: null,
-            role: 'client',
-            isAuthenticated: false,
-            isLoading: false,
-          });
+          const termToken = typeof localStorage !== 'undefined' ? localStorage.getItem('recargas_terminal_token') : null;
+          if (!termToken) {
+            set({
+              user: null,
+              role: 'client',
+              isAuthenticated: false,
+              operatorName: null,
+              isCashier: false,
+              storeSlug: null,
+              isLoading: false,
+            });
+          }
           return;
         }
 
@@ -102,6 +159,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           },
           role,
           isAuthenticated: true,
+          operatorName: null,
+          isCashier: false,
+          storeSlug: null,
           isLoading: false,
         });
       });
@@ -127,8 +187,51 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 
+  setTerminalSession: ({ user, token, operatorName, isCashier, storeSlug }) => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('recargas_terminal_token', token);
+      localStorage.setItem(
+        'recargas_terminal_session',
+        JSON.stringify({ user, operatorName, isCashier, storeSlug })
+      );
+    }
+    set({
+      user,
+      role: user.role || 'client',
+      isAuthenticated: true,
+      operatorName,
+      isCashier,
+      storeSlug,
+      isLoading: false,
+    });
+    if (isCashier) {
+      useCashierStore.getState().setCashierMode(true);
+    } else {
+      useCashierStore.getState().setCashierMode(false);
+    }
+  },
+
+  clearTerminalSession: () => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('recargas_terminal_token');
+      localStorage.removeItem('recargas_terminal_session');
+    }
+    useCashierStore.getState().setCashierMode(false);
+    set({
+      user: null,
+      role: 'client',
+      isAuthenticated: false,
+      operatorName: null,
+      isCashier: false,
+      storeSlug: null,
+    });
+  },
+
   logout: async () => {
     try {
+      // 0. Limpiar sesión de terminal POS si existiese
+      get().clearTerminalSession();
+
       // 1. Desconectar y limpiar de raíz los stores en memoria para evitar estados montados
       try {
         useWalletStore.getState().unsubscribeRealtime();

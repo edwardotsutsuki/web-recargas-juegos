@@ -8,6 +8,7 @@ import { metricsService } from '../services/metricsService.js';
 import { depositService } from '../services/depositService.js';
 import { balanceMonitorService } from '../services/balanceMonitorService.js';
 import { resellerService } from '../services/resellerService.js';
+import { staffService } from '../services/staffService.js';
 import { promotionRepository } from '../repositories/promotionRepository.js';
 import { auditRepository } from '../repositories/auditRepository.js';
 import { materialsRepository } from '../repositories/materialsRepository.js';
@@ -96,6 +97,23 @@ export async function handleRequest(req, res) {
         playerId: body.playerId,
         server: body.server,
         zoneId: body.serverZone || body.zoneId,
+      });
+      return sendJson(res, 200, result);
+    }
+
+    // --- Terminal POS: Operadores de Local y Login por PIN ---
+    if (method === 'POST' && pathname === '/auth/terminal-operators') {
+      const body = await parseBody(req);
+      const result = await staffService.getStoreOperators(body.storeSlug || body.store_slug);
+      return sendJson(res, 200, result);
+    }
+
+    if (method === 'POST' && pathname === '/auth/terminal-login') {
+      const body = await parseBody(req);
+      const result = await staffService.terminalLogin({
+        storeSlug: body.storeSlug || body.store_slug,
+        operatorName: body.operatorName || body.operator_name,
+        pinCode: body.pinCode || body.pin_code || body.pin,
       });
       return sendJson(res, 200, result);
     }
@@ -268,6 +286,33 @@ export async function handleRequest(req, res) {
       return sendJson(res, 200, referrals);
     }
 
+    // --- Gestión de Cajeros / Personal del Revendedor ---
+    if (method === 'GET' && pathname === '/reseller/staff') {
+      const staffData = await staffService.getMyStaff(user.id);
+      return sendJson(res, 200, staffData);
+    }
+
+    if (method === 'POST' && pathname === '/reseller/staff') {
+      const body = await parseBody(req);
+      const saved = await staffService.saveStaff(user.id, body);
+      return sendJson(res, 200, saved);
+    }
+
+    if (method === 'DELETE' && pathname.startsWith('/reseller/staff/')) {
+      const staffId = pathname.replace('/reseller/staff/', '');
+      await staffService.deleteStaff(user.id, staffId);
+      return sendJson(res, 200, { success: true });
+    }
+
+    if (method === 'POST' && pathname === '/reseller/store-settings') {
+      const body = await parseBody(req);
+      const settings = await staffService.updateStoreSettings(user.id, {
+        storeSlug: body.storeSlug || body.store_slug,
+        masterPin: body.masterPin || body.master_pin,
+      });
+      return sendJson(res, 200, { success: true, ...settings });
+    }
+
     // --- Mesa de Ayuda: Tickets de Soporte (Cliente) ---
     if (method === 'GET' && pathname === '/tickets') {
       const tickets = await ticketRepository.getUserTickets(user.id);
@@ -363,6 +408,7 @@ export async function handleRequest(req, res) {
         },
         currency: body.currency || 'USD',
         idempotencyKey,
+        operatorName: user.operatorName || body.operatorName || null,
       });
 
       return sendJson(res, 202, {

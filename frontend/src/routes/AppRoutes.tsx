@@ -20,6 +20,7 @@ import { SupportPage } from '../modules/client/pages/SupportPage';
 import { DownloadsPage } from '../modules/client/pages/DownloadsPage';
 import { AccountingBookPage } from '../modules/client/pages/AccountingBookPage';
 import { ResellerPvpPage } from '../modules/client/pages/ResellerPvpPage';
+import { StaffManagementPage } from '../modules/client/pages/StaffManagementPage';
 
 // Admin Isolated Pages
 import { AdminDashboardPage } from '../modules/admin/pages/AdminDashboardPage';
@@ -39,6 +40,7 @@ import { AdminBankAccountsPage } from '../modules/admin/pages/AdminBankAccountsP
 import { LoginPage } from '../modules/auth/pages/LoginPage';
 import { RegisterPage } from '../modules/auth/pages/RegisterPage';
 import { AdminLoginPage } from '../modules/auth/pages/AdminLoginPage';
+import { TerminalLoginPage } from '../modules/auth/pages/TerminalLoginPage';
 import { AuthGuard } from '../modules/auth/guards/AuthGuard';
 import { RoleGuard } from '../modules/auth/guards/RoleGuard';
 import { NotFoundPage } from '../components/pages/NotFoundPage';
@@ -106,6 +108,8 @@ export const AppRoutes: React.FC = () => {
       {/* Public Auth Routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/terminal" element={<TerminalLoginPage />} />
+      <Route path="/pos" element={<Navigate to="/terminal" replace />} />
       <Route path="/sys-admin-auth/login" element={<AdminLoginPage />} />
 
       {/* 🛡️ Partner Panel (Client Layout) - Protected with AuthGuard */}
@@ -120,6 +124,8 @@ export const AppRoutes: React.FC = () => {
         <Route path="/catalog" element={<CatalogPage />} />
         <Route path="/reseller/pvp" element={<ResellerPvpPage />} />
         <Route path="/reseller-pvp" element={<Navigate to="/reseller/pvp" replace />} />
+        <Route path="/staff" element={<StaffManagementPage />} />
+        <Route path="/reseller/staff" element={<Navigate to="/staff" replace />} />
         <Route path="/orders" element={<OrdersHistoryPage />} />
         <Route path="/profile" element={<PartnerProfilePage />} />
         <Route path="/wallet/deposit" element={<DepositPage />} />

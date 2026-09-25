@@ -92,10 +92,16 @@ export async function apiClient<T>(
 
   if (token) {
     requestHeaders['Authorization'] = `Bearer ${token}`;
-  } else if (import.meta.env.DEV) {
-    // En entorno de desarrollo o prueba local sin sesión persistida de Supabase:
-    const currentRole = useAuthStore.getState().role;
-    requestHeaders['Authorization'] = currentRole === 'admin' ? 'Bearer dev-admin-token' : 'Bearer dev-client-token';
+  } else {
+    // Si no hay token de Supabase, verificar si hay sesión activa de Terminal POS
+    const terminalToken = typeof localStorage !== 'undefined' ? localStorage.getItem('recargas_terminal_token') : null;
+    if (terminalToken) {
+      requestHeaders['Authorization'] = `Bearer ${terminalToken}`;
+    } else if (import.meta.env.DEV) {
+      // En entorno de desarrollo o prueba local sin sesión persistida de Supabase:
+      const currentRole = useAuthStore.getState().role;
+      requestHeaders['Authorization'] = currentRole === 'admin' ? 'Bearer dev-admin-token' : 'Bearer dev-client-token';
+    }
   }
 
   if (idempotencyKey) {

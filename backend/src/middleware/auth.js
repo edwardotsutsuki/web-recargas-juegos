@@ -1,4 +1,5 @@
 import { supabaseAdmin, isSupabaseConfigured } from '../repositories/supabaseClient.js';
+import { staffService } from '../services/staffService.js';
 
 export async function authMiddleware(req) {
   const authHeader = req.headers['authorization'];
@@ -8,6 +9,22 @@ export async function authMiddleware(req) {
   }
 
   const token = authHeader.split(' ')[1];
+
+  // Token de Terminal POS (Cajero o Dueño con PIN)
+  if (token && token.startsWith('term_')) {
+    const termUser = staffService.verifyTerminalToken(token);
+    if (termUser) {
+      return {
+        id: termUser.userId,
+        email: termUser.email,
+        role: termUser.role || 'client',
+        operatorName: termUser.operatorName,
+        isCashier: termUser.isCashier === true,
+        storeSlug: termUser.storeSlug,
+      };
+    }
+    return null;
+  }
 
   // En modo desarrollo, permitir tokens de desarrollo mapeados a usuarios sembrados en la BD
   if (process.env.NODE_ENV === 'development') {

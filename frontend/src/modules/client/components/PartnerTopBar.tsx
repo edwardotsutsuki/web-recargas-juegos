@@ -15,7 +15,7 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
   const navigate = useNavigate();
   const { wallet, isLoading: isWalletLoading, fetchWallet } = useWalletStore();
   const { items, toggleCart } = useCartStore();
-  const { logout } = useAuthStore();
+  const { logout, operatorName, isCashier, storeSlug } = useAuthStore();
   const { isCashierMode, openPinModal } = useCashierStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -29,6 +29,18 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
     } catch (err) {
       console.error('Error cerrando sesión en mobile top bar:', err);
       navigate('/login', { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  const handleShiftChange = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      navigate('/terminal', { replace: true });
+    } catch {
+      navigate('/terminal', { replace: true });
     } finally {
       setIsLoggingOut(false);
     }
@@ -53,6 +65,24 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
 
       {/* Right: Cashier Switch + Balance Widget + Quick Deposit + Cart + Mobile Logout */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Operador / Turno POS Activo */}
+        {operatorName && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-700/80">
+            <span className={`w-2 h-2 rounded-full ${isCashier ? 'bg-amber-400' : 'bg-emerald-400'} animate-pulse`} />
+            <span className="text-[11px] font-bold text-slate-300">
+              <span className="hidden sm:inline text-slate-400 font-mono">{storeSlug ? `${storeSlug}: ` : ''}</span>
+              <span className="text-white capitalize">{operatorName}</span>
+            </span>
+            <button
+              type="button"
+              onClick={handleShiftChange}
+              title="Cambiar turno de cajero / Bloquear terminal"
+              className="ml-1 text-[10px] text-cyan-400 hover:text-cyan-300 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+            >
+              Turno
+            </button>
+          </div>
+        )}
         {/* Cashier Mode Button */}
         {isCashierMode ? (
           <button
