@@ -1,22 +1,15 @@
 -- ==============================================================================
--- SINCRONIZACIÓN MAESTRA TOTAL: LOCAL -> SUPABASE CLOUD (EN LÍNEA)
--- ==============================================================================
--- Este script es 100% IDEMPOTENTE (se puede correr múltiples veces de forma segura).
--- Deja Supabase Online IDÉNTICO al Supabase Local:
---  1. Todas las 16 tablas públicas con sus columnas, tipos, constraints y RLS.
---  2. Inclusión de 'digital_code' y 'redeem_instructions' en 'orders'.
---  3. RPCs transaccionales monetarias atómicas (credit_wallet, reserve_purchase...).
---  4. Semillas oficiales (system_settings, promotions, rewards, payment_methods).
---  5. Usuarios: Clave '#RyuuDragon9595' y rol 'admin' para b.edumalta@gmail.com.
+-- SCRIPT MAESTRO DE SINCRONIZACIÓN TOTAL: SUPABASE LOCAL -> SUPABASE ONLINE
+-- Garantiza consistencia del 100% en las 16 tablas, columnas, políticas RLS,
+-- funciones RPC atómicas y unificación de credenciales (#RyuuDragon9595).
 -- ==============================================================================
 
 BEGIN;
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ------------------------------------------------------------------------------
--- 1. TABLA: profiles (Perfiles de usuarios y revendedores)
+-- 1. TABLA: profiles (Perfiles de usuario, roles y seguridad)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -24,23 +17,23 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   full_name text,
   phone text,
   referral_code text UNIQUE,
-  referred_by uuid REFERENCES public.profiles(id),
-  two_factor_enabled boolean NOT NULL DEFAULT false,
+  two_factor_enabled boolean DEFAULT false,
   two_factor_secret text,
+  referred_by uuid REFERENCES public.profiles(id),
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz DEFAULT now()
 );
 
 ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS role text DEFAULT 'client',
+  ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'client',
   ADD COLUMN IF NOT EXISTS full_name text,
   ADD COLUMN IF NOT EXISTS phone text,
   ADD COLUMN IF NOT EXISTS referral_code text,
-  ADD COLUMN IF NOT EXISTS referred_by uuid,
   ADD COLUMN IF NOT EXISTS two_factor_enabled boolean DEFAULT false,
   ADD COLUMN IF NOT EXISTS two_factor_secret text,
-  ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now(),
-  ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+  ADD COLUMN IF NOT EXISTS referred_by uuid,
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
@@ -48,7 +41,7 @@ DROP POLICY IF EXISTS "profiles_select_public" ON public.profiles;
 CREATE POLICY "profiles_select_public" ON public.profiles FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
-CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 DROP POLICY IF EXISTS "profiles_admin_all" ON public.profiles;
 CREATE POLICY "profiles_admin_all" ON public.profiles FOR ALL USING (
@@ -61,29 +54,36 @@ GRANT SELECT ON public.profiles TO anon;
 
 
 -- ------------------------------------------------------------------------------
--- 2. TABLA: wallets (Billeteras virtuales de clientes y revendedores)
+-- 2. TABLA: wallets (Billetera virtual en centavos minor)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.wallets (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   currency text NOT NULL DEFAULT 'USD',
-  balance_minor bigint NOT NULL DEFAULT 0 CHECK (balance_minor >= 0),
-  held_minor bigint NOT NULL DEFAULT 0 CHECK (held_minor >= 0),
+  balance_minor bigint NOT NULL DEFAULT 0,
+  held_minor bigint NOT NULL DEFAULT 0,
+  available_minor bigint GENERATED ALWAYS AS (balance_minor - held_minor) STORED,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT unique_user_currency UNIQUE (user_id, currency)
+  CONSTRAINT chk_wallets_balance_non_negative CHECK (balance_minor >= 0),
+  CONSTRAINT chk_wallets_held_non_negative CHECK (held_minor >= 0),
+  CONSTRAINT chk_wallets_held_not_exceed_balance CHECK (balance_minor >= held_minor),
+  CONSTRAINT uq_wallets_user_currency UNIQUE (user_id, currency)
 );
 
 ALTER TABLE public.wallets
-  ADD COLUMN IF NOT EXISTS currency text DEFAULT 'USD',
-  ADD COLUMN IF NOT EXISTS balance_minor bigint DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS held_minor bigint DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS currency text NOT NULL DEFAULT 'USD',
+  ADD COLUMN IF NOT EXISTS balance_minor bigint NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS held_minor bigint NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now(),
   ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='wallets' AND column_name='available_minor') THEN
-    ALTER TABLE public.wallets ADD COLUMN available_minor bigint GENERATED ALWAYS AS (balance_minor - held_minor) STORED;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'uq_wallets_user_currency'
+  ) THEN
+    ALTER TABLE public.wallets ADD CONSTRAINT uq_wallets_user_currency UNIQUE (user_id, currency);
   END IF;
 END $$;
 
@@ -97,56 +97,41 @@ GRANT SELECT ON public.wallets TO authenticated;
 
 
 -- ------------------------------------------------------------------------------
--- 3. TABLA: transactions (Libro contable inmutable)
+-- 3. TABLA: transactions (Libro mayor contable inmutable)
 -- ------------------------------------------------------------------------------
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'transaction_kind') THEN
-    CREATE TYPE public.transaction_kind AS ENUM ('deposit', 'purchase_reserve', 'purchase_settle', 'purchase_refund', 'adjustment', 'referral_bonus');
-  END IF;
-END $$;
-
 CREATE TABLE IF NOT EXISTS public.transactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  wallet_id uuid NOT NULL REFERENCES public.wallets(id) ON DELETE RESTRICT,
-  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
+  wallet_id uuid NOT NULL REFERENCES public.wallets(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   currency text NOT NULL DEFAULT 'USD',
   order_id uuid,
-  kind public.transaction_kind NOT NULL,
-  amount_minor bigint NOT NULL,
+  kind text NOT NULL CHECK (kind IN ('deposit', 'purchase_reserve', 'purchase_settle', 'purchase_refund', 'admin_adjustment')),
+  amount_minor bigint NOT NULL CHECK (amount_minor > 0),
   balance_delta_minor bigint NOT NULL DEFAULT 0,
   held_delta_minor bigint NOT NULL DEFAULT 0,
-  idempotency_key text NOT NULL,
-  actor_id uuid REFERENCES public.profiles(id),
-  source text NOT NULL DEFAULT 'system',
+  idempotency_key text UNIQUE,
+  actor_id uuid,
+  source text,
   external_reference text,
   reason text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT unique_wallet_idempotency UNIQUE (wallet_id, idempotency_key)
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 ALTER TABLE public.transactions
-  ADD COLUMN IF NOT EXISTS balance_delta_minor bigint DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS held_delta_minor bigint DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS balance_delta_minor bigint NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS held_delta_minor bigint NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS idempotency_key text,
   ADD COLUMN IF NOT EXISTS actor_id uuid,
-  ADD COLUMN IF NOT EXISTS source text DEFAULT 'system',
+  ADD COLUMN IF NOT EXISTS source text,
   ADD COLUMN IF NOT EXISTS external_reference text,
   ADD COLUMN IF NOT EXISTS reason text;
 
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='transactions' AND column_name='balance_before_minor') THEN
-    ALTER TABLE public.transactions ALTER COLUMN balance_before_minor DROP NOT NULL;
-  END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='transactions' AND column_name='balance_after_minor') THEN
-    ALTER TABLE public.transactions ALTER COLUMN balance_after_minor DROP NOT NULL;
-  END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='transactions' AND column_name='held_before_minor') THEN
-    ALTER TABLE public.transactions ALTER COLUMN held_before_minor DROP NOT NULL;
-  END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='transactions' AND column_name='held_after_minor') THEN
-    ALTER TABLE public.transactions ALTER COLUMN held_after_minor DROP NOT NULL;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'transactions_idempotency_key_key'
+  ) THEN
+    ALTER TABLE public.transactions ADD CONSTRAINT transactions_idempotency_key_key UNIQUE (idempotency_key);
   END IF;
 END $$;
 
@@ -165,20 +150,24 @@ GRANT SELECT ON public.transactions TO authenticated;
 CREATE TABLE IF NOT EXISTS public.orders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
-  sku text NOT NULL,
-  game_id text NOT NULL,
-  price_minor bigint NOT NULL CHECK (price_minor > 0),
-  wholesale_minor bigint NOT NULL DEFAULT 0,
+  wallet_id uuid REFERENCES public.wallets(id),
   currency text NOT NULL DEFAULT 'USD',
-  player_id text,
-  server_id text,
-  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'succeeded', 'failed', 'cancelled')),
-  provider_order_id text,
+  provider text DEFAULT 'canjea',
+  product_id text,
+  player_payload jsonb DEFAULT '{}'::jsonb,
+  price_minor bigint NOT NULL CHECK (price_minor > 0),
+  wholesale_minor bigint DEFAULT 0,
+  idempotency_key text,
+  request_fingerprint text,
+  status text NOT NULL DEFAULT 'pending',
+  provider_reference text,
   digital_code text,
   redeem_instructions text,
+  failure_code text,
   last_error_message text,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  finalized_at timestamptz
 );
 
 ALTER TABLE public.orders
@@ -186,6 +175,9 @@ ALTER TABLE public.orders
   ADD COLUMN IF NOT EXISTS digital_code text,
   ADD COLUMN IF NOT EXISTS redeem_instructions text,
   ADD COLUMN IF NOT EXISTS last_error_message text,
+  ADD COLUMN IF NOT EXISTS provider_reference text,
+  ADD COLUMN IF NOT EXISTS failure_code text,
+  ADD COLUMN IF NOT EXISTS finalized_at timestamptz,
   ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
@@ -250,7 +242,7 @@ WHERE NOT EXISTS (SELECT 1 FROM public.payment_methods LIMIT 1);
 
 
 -- ------------------------------------------------------------------------------
--- 7. TABLA: deposit_requests (Solicitudes de recarga de saldo)
+-- 7. TABLA: deposit_requests (Comprobantes y solicitudes de recarga de saldo)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.deposit_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -272,10 +264,11 @@ CREATE TABLE IF NOT EXISTS public.deposit_requests (
 );
 
 ALTER TABLE public.deposit_requests
+  ADD COLUMN IF NOT EXISTS payment_method_id uuid REFERENCES public.payment_methods(id),
   ADD COLUMN IF NOT EXISTS voucher_hash text,
   ADD COLUMN IF NOT EXISTS voucher_compressed_url text,
   ADD COLUMN IF NOT EXISTS rejection_reason text,
-  ADD COLUMN IF NOT EXISTS approved_by uuid,
+  ADD COLUMN IF NOT EXISTS approved_by uuid REFERENCES public.profiles(id),
   ADD COLUMN IF NOT EXISTS approved_at timestamptz,
   ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 
@@ -297,7 +290,7 @@ GRANT SELECT, INSERT ON public.deposit_requests TO authenticated;
 
 
 -- ------------------------------------------------------------------------------
--- 8. TABLA: catalog_game_overrides (Portadas, Banners y Badges en Admin)
+-- 8. TABLA: catalog_game_overrides (Personalización de imágenes y banners de juegos)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.catalog_game_overrides (
   game_id text PRIMARY KEY,
@@ -315,43 +308,56 @@ ALTER TABLE public.catalog_game_overrides
   ADD COLUMN IF NOT EXISTS custom_image_url text,
   ADD COLUMN IF NOT EXISTS custom_banner_url text,
   ADD COLUMN IF NOT EXISTS custom_badge text,
-  ADD COLUMN IF NOT EXISTS is_visible boolean DEFAULT true,
-  ADD COLUMN IF NOT EXISTS sort_order int DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS is_visible boolean NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS sort_order int NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 
 ALTER TABLE public.catalog_game_overrides ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "catalog_game_overrides_public_select" ON public.catalog_game_overrides;
-CREATE POLICY "catalog_game_overrides_public_select" ON public.catalog_game_overrides FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Juegos visibles para todos" ON public.catalog_game_overrides;
+CREATE POLICY "Juegos visibles para todos" ON public.catalog_game_overrides FOR SELECT USING (is_visible = true);
 
-DROP POLICY IF EXISTS "catalog_game_overrides_admin_write" ON public.catalog_game_overrides;
-CREATE POLICY "catalog_game_overrides_admin_write" ON public.catalog_game_overrides FOR ALL USING (
+DROP POLICY IF EXISTS "Admin gestiona catalog overrides" ON public.catalog_game_overrides;
+CREATE POLICY "Admin gestiona catalog overrides" ON public.catalog_game_overrides FOR ALL USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
 );
 
 GRANT ALL ON public.catalog_game_overrides TO service_role;
 GRANT SELECT ON public.catalog_game_overrides TO anon, authenticated;
-GRANT INSERT, UPDATE, DELETE ON public.catalog_game_overrides TO authenticated;
+GRANT ALL ON public.catalog_game_overrides TO authenticated;
 
 
 -- ------------------------------------------------------------------------------
--- 9. TABLA: promotions (Avisos y Banners Promocionales de la Tienda)
+-- 9. TABLA: promotions (Avisos y banners oficiales de la tienda)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.promotions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   title text NOT NULL,
   message text NOT NULL,
-  badge_text text NOT NULL DEFAULT 'PROMO EXCLUSIVA',
+  badge_text text,
   banner_image_url text,
   action_url text,
-  action_label text DEFAULT 'Aprovechar Oferta',
-  placement text NOT NULL DEFAULT 'top_banner' CHECK (placement IN ('top_banner', 'hero', 'modal')),
+  action_label text,
+  placement text DEFAULT 'top_banner',
   is_active boolean NOT NULL DEFAULT true,
-  start_date timestamptz DEFAULT now(),
+  start_date timestamptz,
   end_date timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.promotions
+  ADD COLUMN IF NOT EXISTS message text,
+  ADD COLUMN IF NOT EXISTS badge_text text,
+  ADD COLUMN IF NOT EXISTS banner_image_url text,
+  ADD COLUMN IF NOT EXISTS action_url text,
+  ADD COLUMN IF NOT EXISTS action_label text,
+  ADD COLUMN IF NOT EXISTS placement text DEFAULT 'top_banner',
+  ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS start_date timestamptz,
+  ADD COLUMN IF NOT EXISTS end_date timestamptz,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 
 ALTER TABLE public.promotions ENABLE ROW LEVEL SECURITY;
 
@@ -360,30 +366,41 @@ CREATE POLICY "promotions_active_select" ON public.promotions FOR SELECT USING (
 
 GRANT ALL ON public.promotions TO service_role;
 GRANT SELECT ON public.promotions TO anon, authenticated;
-GRANT INSERT, UPDATE, DELETE ON public.promotions TO authenticated;
+GRANT ALL ON public.promotions TO authenticated;
 
 INSERT INTO public.promotions (title, message, badge_text, action_url, action_label, placement, is_active)
-VALUES
-  ('🔥 ¡Semana del Diamante Free Fire!', 'Recibe hasta 10% adicional de diamantes en todas tus compras directas por ID.', 'OFERTA LIMITADA', '/catalog?game=freefire', 'Recargar Diamantes', 'top_banner', true),
-  ('💎 Bono para Socios Revendedores', 'Alcanza tu primera meta de ventas de $25.00 y recibe $1.00 directo a tu saldo virtual.', 'BENEFICIO SOCIOS', '/client/accounting', 'Ver Metas', 'hero', true)
-ON CONFLICT DO NOTHING;
+SELECT 'Bonus de Bienvenida Gamer', 'Recibe hasta 5% extra en tus primeras 3 recargas directas', 'HOT', '/catalog', 'Explorar Catálogo', 'top_banner', true
+WHERE NOT EXISTS (SELECT 1 FROM public.promotions LIMIT 1);
+
+INSERT INTO public.promotions (title, message, badge_text, action_url, action_label, placement, is_active)
+SELECT 'Pases de Batalla Disponibles', 'Acredita pases de Free Fire y Mobile Legends al instante', 'TOP', '/catalog', 'Ver Juegos', 'top_banner', true
+WHERE (SELECT COUNT(*) FROM public.promotions) < 2;
 
 
 -- ------------------------------------------------------------------------------
--- 10. TABLA: rewards (Desafíos y Bonos para Revendedores)
+-- 10. TABLA: rewards (Recompensas por volumen de ventas de revendedores)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.rewards (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   title text NOT NULL,
   description text,
-  target_sales_cents bigint NOT NULL CHECK (target_sales_cents > 0),
-  reward_bonus_cents bigint NOT NULL CHECK (reward_bonus_cents > 0),
+  target_sales_cents bigint NOT NULL DEFAULT 10000,
+  reward_bonus_cents bigint NOT NULL DEFAULT 500,
   game_id text,
-  badge_icon text NOT NULL DEFAULT 'trophy',
+  badge_icon text DEFAULT 'Trophy',
   is_active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.rewards
+  ADD COLUMN IF NOT EXISTS target_sales_cents bigint DEFAULT 10000,
+  ADD COLUMN IF NOT EXISTS reward_bonus_cents bigint DEFAULT 500,
+  ADD COLUMN IF NOT EXISTS game_id text,
+  ADD COLUMN IF NOT EXISTS badge_icon text DEFAULT 'Trophy',
+  ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 
 ALTER TABLE public.rewards ENABLE ROW LEVEL SECURITY;
 
@@ -392,36 +409,47 @@ CREATE POLICY "rewards_public_select" ON public.rewards FOR SELECT USING (is_act
 
 GRANT ALL ON public.rewards TO service_role;
 GRANT SELECT ON public.rewards TO anon, authenticated;
-GRANT INSERT, UPDATE, DELETE ON public.rewards TO authenticated;
+GRANT ALL ON public.rewards TO authenticated;
 
 INSERT INTO public.rewards (title, description, target_sales_cents, reward_bonus_cents, badge_icon, is_active)
-VALUES
-  ('Desafío Novato', 'Acumula tus primeros $25.00 en recargas y gana $1.00 de bono a tu saldo.', 2500, 100, 'trophy', true),
-  ('Desafío Pro Gamer', 'Alcanza $100.00 en recargas procesadas y recibe un bono de $5.00 a tu billetera.', 10000, 500, 'sparkles', true),
-  ('Maestro Mayorista', 'Llega a $500.00 en ventas mensuales y desbloquea $30.00 de recompensa directa.', 50000, 3000, 'crown', true)
-ON CONFLICT DO NOTHING;
+SELECT 'Bronce Gamer', 'Alcanza $100 en recargas mensuales y recibe $5.00 USD de bono directo', 10000, 500, 'Shield', true
+WHERE NOT EXISTS (SELECT 1 FROM public.rewards LIMIT 1);
+
+INSERT INTO public.rewards (title, description, target_sales_cents, reward_bonus_cents, badge_icon, is_active)
+SELECT 'Plata Pro', 'Alcanza $500 en recargas mensuales y recibe $30.00 USD de bono directo', 50000, 3000, 'Medal', true
+WHERE (SELECT COUNT(*) FROM public.rewards) < 2;
+
+INSERT INTO public.rewards (title, description, target_sales_cents, reward_bonus_cents, badge_icon, is_active)
+SELECT 'Oro Élite', 'Alcanza $1,000 en recargas y recibe $75.00 USD de bono directo', 100000, 7500, 'Crown', true
+WHERE (SELECT COUNT(*) FROM public.rewards) < 3;
 
 
 -- ------------------------------------------------------------------------------
--- 11. TABLA: reseller_custom_prices (Precios PVP configurados por Revendedores)
+-- 11. TABLA: reseller_custom_prices (Precios de reventa personalizados por usuario)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.reseller_custom_prices (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   sku text NOT NULL,
-  custom_pvp_cents bigint NOT NULL CHECK (custom_pvp_cents >= 0),
+  custom_pvp_cents bigint NOT NULL CHECK (custom_pvp_cents > 0),
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT uq_reseller_product UNIQUE (user_id, sku)
 );
 
 ALTER TABLE public.reseller_custom_prices
+  ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS sku text,
   ADD COLUMN IF NOT EXISTS custom_pvp_cents bigint DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS sku text;
+  ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_user_sku') THEN
-    ALTER TABLE public.reseller_custom_prices ADD CONSTRAINT unique_user_sku UNIQUE (user_id, sku);
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'uq_reseller_product'
+  ) THEN
+    ALTER TABLE public.reseller_custom_prices ADD CONSTRAINT uq_reseller_product UNIQUE (user_id, sku);
   END IF;
 END $$;
 
@@ -435,25 +463,37 @@ GRANT ALL ON public.reseller_custom_prices TO authenticated;
 
 
 -- ------------------------------------------------------------------------------
--- 12. TABLA: provider_synced_products (Catálogo sincronizado desde Canjea API)
+-- 12. TABLA: provider_synced_products (Catálogo de paquetes del proveedor)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.provider_synced_products (
   sku text PRIMARY KEY,
   game_id text NOT NULL,
-  game_name text NOT NULL,
+  game_name text,
   name text NOT NULL,
   wholesale_price text,
   suggested_price text,
-  currency text DEFAULT 'USD',
-  requires_player_id boolean DEFAULT false,
-  can_verify_player boolean DEFAULT false,
-  is_active boolean DEFAULT true,
+  currency text NOT NULL DEFAULT 'USD',
+  requires_player_id boolean DEFAULT true,
+  can_verify_player boolean DEFAULT true,
+  is_active boolean NOT NULL DEFAULT true,
   first_seen_at timestamptz DEFAULT now(),
   last_seen_at timestamptz DEFAULT now(),
   notified_admin boolean DEFAULT false
 );
 
 CREATE INDEX IF NOT EXISTS idx_provider_synced_products_game_id ON public.provider_synced_products(game_id);
+
+ALTER TABLE public.provider_synced_products
+  ADD COLUMN IF NOT EXISTS game_name text,
+  ADD COLUMN IF NOT EXISTS wholesale_price text,
+  ADD COLUMN IF NOT EXISTS suggested_price text,
+  ADD COLUMN IF NOT EXISTS currency text DEFAULT 'USD',
+  ADD COLUMN IF NOT EXISTS requires_player_id boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS can_verify_player boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS first_seen_at timestamptz DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS last_seen_at timestamptz DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS notified_admin boolean DEFAULT false;
 
 ALTER TABLE public.provider_synced_products ENABLE ROW LEVEL SECURITY;
 
@@ -471,15 +511,19 @@ CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   admin_id uuid REFERENCES public.profiles(id),
   action text NOT NULL,
-  target_user_id uuid REFERENCES public.profiles(id),
-  details jsonb DEFAULT '{}'::jsonb,
+  target_id text,
+  details jsonb,
   ip_address text,
-  user_agent text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
 ALTER TABLE public.admin_audit_logs
-  ADD COLUMN IF NOT EXISTS admin_id uuid REFERENCES public.profiles(id);
+  ADD COLUMN IF NOT EXISTS admin_id uuid REFERENCES public.profiles(id),
+  ADD COLUMN IF NOT EXISTS action text,
+  ADD COLUMN IF NOT EXISTS target_id text,
+  ADD COLUMN IF NOT EXISTS details jsonb,
+  ADD COLUMN IF NOT EXISTS ip_address text,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 
 ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
 
@@ -493,7 +537,7 @@ GRANT ALL ON public.admin_audit_logs TO authenticated;
 
 
 -- ------------------------------------------------------------------------------
--- 14. TABLA: promotional_materials (Banners y recursos de marketing)
+-- 14. TABLA: promotional_materials (Material descargable para redes y marketing)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.promotional_materials (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -508,6 +552,13 @@ CREATE TABLE IF NOT EXISTS public.promotional_materials (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.promotional_materials
+  ADD COLUMN IF NOT EXISTS format text DEFAULT 'ZIP',
+  ADD COLUMN IF NOT EXISTS file_size_mb numeric(6,2) DEFAULT 5.00,
+  ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS sort_order int DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 
 ALTER TABLE public.promotional_materials ENABLE ROW LEVEL SECURITY;
 
