@@ -56,7 +56,7 @@ export const staffService = {
     // 1. Buscar local por slug
     const { data: store, error: storeErr } = await supabaseAdmin
       .from('profiles')
-      .select('id, full_name, store_slug, email')
+      .select('id, full_name, store_slug')
       .ilike('store_slug', cleanSlug)
       .maybeSingle();
 
@@ -112,7 +112,7 @@ export const staffService = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabaseAdmin
         .from('profiles')
-        .select('id, email, full_name, role, store_slug, master_pin')
+        .select('id, full_name, role, store_slug, master_pin')
         .ilike('store_slug', cleanSlug)
         .maybeSingle();
       if (error || !data) {
@@ -121,7 +121,15 @@ export const staffService = {
         err.code = 'STORE_NOT_FOUND';
         throw err;
       }
-      store = data;
+      // Obtener email desde auth.users (profiles no almacena email)
+      let storeEmail = '';
+      try {
+        const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.id);
+        storeEmail = authUser?.user?.email || '';
+      } catch {
+        storeEmail = '';
+      }
+      store = { ...data, email: storeEmail };
     } else {
       store = {
         id: '00000000-0000-0000-0000-000000000002',

@@ -188,14 +188,28 @@ export const orderService = {
     const profilesMap = {};
     if (userIds.length > 0 && isSupabaseConfigured) {
       try {
+        // profiles no contiene email — obtenemos full_name de profiles y email de auth.users
         const { data: profiles } = await supabaseAdmin
           .from('profiles')
-          .select('id, email, full_name')
+          .select('id, full_name')
           .in('id', userIds);
         if (profiles) {
           for (const p of profiles) {
-            profilesMap[p.id] = p;
+            profilesMap[p.id] = { ...p, email: null };
           }
+        }
+        // Enriquecer con email desde auth.users (listUsers devuelve hasta 1000 por llamada)
+        try {
+          const { data: authData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+          if (authData?.users) {
+            for (const u of authData.users) {
+              if (profilesMap[u.id] !== undefined) {
+                profilesMap[u.id].email = u.email || null;
+              }
+            }
+          }
+        } catch (authErr) {
+          console.warn('[orderService] No se pudo obtener emails de auth.users:', authErr?.message);
         }
       } catch (profErr) {
         console.warn('[orderService] Error consultando perfiles para getGlobalOrders:', profErr?.message);
