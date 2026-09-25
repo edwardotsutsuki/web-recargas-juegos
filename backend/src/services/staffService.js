@@ -384,4 +384,46 @@ export const staffService = {
     if (error) throw error;
     return { storeSlug: cleanSlug, masterPin: cleanPin };
   },
+
+  /**
+   * Valida el PIN maestro del dueño contra la base de datos real
+   */
+  async verifyMasterPin(resellerId, pinCode) {
+    if (!pinCode) {
+      const err = new Error('El PIN de propietario es obligatorio.');
+      err.status = 400;
+      throw err;
+    }
+
+    const cleanPin = pinCode.trim();
+
+    if (!isSupabaseConfigured) {
+      if (cleanPin === '1234') return { success: true };
+      const err = new Error('PIN de propietario incorrecto.');
+      err.status = 401;
+      throw err;
+    }
+
+    const { data: profile, error } = await supabaseAdmin
+      .from('profiles')
+      .select('master_pin')
+      .eq('id', resellerId)
+      .maybeSingle();
+
+    if (error || !profile) {
+      const err = new Error('Perfil de revendedor no encontrado.');
+      err.status = 404;
+      throw err;
+    }
+
+    const expectedPin = profile.master_pin || '1234';
+    if (cleanPin !== expectedPin) {
+      const err = new Error('PIN de propietario incorrecto.');
+      err.status = 401;
+      throw err;
+    }
+
+    return { success: true };
+  },
 };
+

@@ -228,7 +228,25 @@ export async function handleRequest(req, res) {
       return sendJson(res, 200, wallet);
     }
 
+    // Helper de seguridad: impide acceso de cajeros a finanzas y configuraciones del dueño
+    const requireOwner = () => {
+      if (user.isCashier) {
+        const err = new Error('Acceso restringido: Esta sección requiere inicio de sesión como Administrador/Dueño.');
+        err.status = 403;
+        err.code = 'CASHIER_RESTRICTED';
+        throw err;
+      }
+    };
+
+    // Verificación segura de PIN Maestro de Dueño contra la base de datos
+    if (method === 'POST' && pathname === '/auth/verify-master-pin') {
+      const body = await parseBody(req);
+      const result = await staffService.verifyMasterPin(user.id, body.pin || body.pinCode);
+      return sendJson(res, 200, result);
+    }
+
     if (method === 'POST' && pathname === '/wallet/deposits') {
+      requireOwner();
       const body = await parseBody(req);
       const cleanAmountStr = String(body.amount ?? 0).replace(/,/g, '.');
       const deposit = await depositService.submitDepositRequest({
@@ -248,6 +266,7 @@ export async function handleRequest(req, res) {
     }
 
     if (method === 'GET' && pathname === '/wallet/deposits') {
+      requireOwner();
       const deposits = await depositService.getMyDeposits(user.id);
       return sendJson(res, 200, deposits);
     }
@@ -256,11 +275,13 @@ export async function handleRequest(req, res) {
     // Módulos de Revendedor (Precios PVP, Libro Contable, Recompensas y Referidos)
     // -------------------------------------------------------------------------
     if (method === 'GET' && pathname === '/reseller/prices') {
+      requireOwner();
       const prices = await resellerService.getCustomPrices(user.id);
       return sendJson(res, 200, prices);
     }
 
     if (method === 'POST' && pathname === '/reseller/prices') {
+      requireOwner();
       const body = await parseBody(req);
       const cleanPvpStr = String(body.pvp_usd ?? 0).replace(/,/g, '.');
       const updated = await resellerService.setCustomPrice(
@@ -272,6 +293,7 @@ export async function handleRequest(req, res) {
     }
 
     if (method === 'GET' && pathname === '/reseller/accounting') {
+      requireOwner();
       const book = await resellerService.getAccountingBook(user.id);
       return sendJson(res, 200, book);
     }
@@ -288,23 +310,27 @@ export async function handleRequest(req, res) {
 
     // --- Gestión de Cajeros / Personal del Revendedor ---
     if (method === 'GET' && pathname === '/reseller/staff') {
+      requireOwner();
       const staffData = await staffService.getMyStaff(user.id);
       return sendJson(res, 200, staffData);
     }
 
     if (method === 'POST' && pathname === '/reseller/staff') {
+      requireOwner();
       const body = await parseBody(req);
       const saved = await staffService.saveStaff(user.id, body);
       return sendJson(res, 200, saved);
     }
 
     if (method === 'DELETE' && pathname.startsWith('/reseller/staff/')) {
+      requireOwner();
       const staffId = pathname.replace('/reseller/staff/', '');
       await staffService.deleteStaff(user.id, staffId);
       return sendJson(res, 200, { success: true });
     }
 
     if (method === 'POST' && pathname === '/reseller/store-settings') {
+      requireOwner();
       const body = await parseBody(req);
       const settings = await staffService.updateStoreSettings(user.id, {
         storeSlug: body.storeSlug || body.store_slug,

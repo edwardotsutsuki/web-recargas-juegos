@@ -115,4 +115,14 @@ export const staffService = {
       body: JSON.stringify(data),
     });
   },
+
+  /**
+   * Valida el PIN maestro del dueño en el servidor
+   */
+  async verifyMasterPin(pin: string): Promise<{ success: boolean }> {
+    return apiClient<{ success: boolean }>('/auth/verify-master-pin', {
+      method: 'POST',
+      body: JSON.stringify({ pin }),
+    });
+  },
 };

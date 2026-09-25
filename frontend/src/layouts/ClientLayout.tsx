@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { PartnerSidebar } from '../modules/client/components/PartnerSidebar';
 import { PartnerTopBar } from '../modules/client/components/PartnerTopBar';
@@ -9,12 +9,22 @@ import { MobileClientBottomNav } from '../components/organisms/MobileClientBotto
 import { PlayerVerificationModal } from '../modules/client/components/PlayerVerificationModal';
 import { CashierPinModal } from '../modules/client/components/CashierPinModal';
 import { useUIStore } from '../store/useUIStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { CheckCircle2, AlertTriangle, Info, X } from 'lucide-react';
 
 export const ClientLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { toast, hideToast } = useUIStore();
+  const { isCashier } = useAuthStore();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Si es cajero, confinarlo estrictamente a la pantalla de enviar recargas (/catalog)
+  useEffect(() => {
+    if (isCashier && location.pathname !== '/catalog') {
+      navigate('/catalog', { replace: true });
+    }
+  }, [isCashier, location.pathname, navigate]);
 
   // Reset scroll to top on route change to prevent jumping or sliding down
   useEffect(() => {
@@ -36,16 +46,22 @@ export const ClientLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#080d18] text-slate-100 flex overflow-x-hidden">
-      {/* Vertical Gamer Sidebar */}
-      <PartnerSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
+      {/* Vertical Gamer Sidebar (Completamente invisible para cajeros) */}
+      {!isCashier && (
+        <PartnerSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+      )}
 
-      {/* Main Content Viewport */}
-      <div className="flex-1 flex flex-col min-h-screen lg:pl-64 transition-all duration-300 w-full max-w-full overflow-x-hidden">
-        {/* Active Promotions Announcement Banner (Hidden on mobile and native APKs to save space) */}
-        {!isNative && (
+      {/* Main Content Viewport: Ancho completo cuando está el cajero */}
+      <div
+        className={`flex-1 flex flex-col min-h-screen transition-all duration-300 w-full max-w-full overflow-x-hidden ${
+          isCashier ? 'pl-0' : 'lg:pl-64'
+        }`}
+      >
+        {/* Active Promotions Announcement Banner (Oculto para cajeros y móviles) */}
+        {!isNative && !isCashier && (
           <div className="hidden md:block">
             <PromotionsBanner />
           </div>
@@ -54,18 +70,22 @@ export const ClientLayout: React.FC = () => {
         {/* Top Header Bar */}
         <PartnerTopBar onOpenSidebar={() => setIsSidebarOpen(true)} />
 
-        {/* Dynamic Page Content */}
-        <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-[1800px] w-full mx-auto pb-28 lg:pb-8 overflow-x-hidden">
+        {/* Dynamic Page Content: Espacio exclusivo de trabajo para emitir recargas */}
+        <main
+          className={`flex-1 p-3 sm:p-6 lg:p-8 max-w-[1800px] w-full mx-auto overflow-x-hidden ${
+            isCashier ? 'pb-8' : 'pb-28 lg:pb-8'
+          }`}
+        >
           <Outlet />
         </main>
 
         {/* Global Modals & Drawers */}
         <CartDrawer />
         <PlayerVerificationModal />
-        <CashierPinModal />
+        {!isCashier && <CashierPinModal />}
 
-        {/* Mobile & Native Floating Bottom Navigation Dock */}
-        <MobileClientBottomNav />
+        {/* Mobile & Native Floating Bottom Navigation Dock (Oculto para cajeros) */}
+        {!isCashier && <MobileClientBottomNav />}
 
         {/* Global Toast Notification */}
         {toast.isOpen && (
