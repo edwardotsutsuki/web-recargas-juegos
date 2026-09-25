@@ -45,7 +45,12 @@ CREATE POLICY "reseller_staff_owner_policy" ON public.reseller_staff
     USING (auth.uid() = reseller_id)
     WITH CHECK (auth.uid() = reseller_id);
 
+-- Permisos para service_role y usuarios autenticados
+GRANT ALL ON public.reseller_staff TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.reseller_staff TO authenticated;
+
 -- 5. Sembrar slug por defecto 'ryuu' y pin '1234' para la cuenta principal del dueño
 UPDATE public.profiles 
 SET store_slug = 'ryuu', master_pin = '1234'
 WHERE id IN (SELECT id FROM auth.users WHERE email = 'b.edumalta@gmail.com');
+
