@@ -168,7 +168,7 @@ export const DepositPage: React.FC = () => {
       return;
     }
 
-    const numAmount = parseFloat(amount || '0');
+    const numAmount = parseFloat((amount || '0').replace(/,/g, '.').trim());
     if (isNaN(numAmount) || numAmount <= 0) {
       showToast('Ingresa un monto válido mayor a $0.00 USD.', 'error');
       return;
@@ -254,12 +254,16 @@ export const DepositPage: React.FC = () => {
                 ¿Cuánto quieres cargar? ($)
               </label>
               <input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="100"
-                className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-300 text-slate-900 font-extrabold text-lg focus:outline-none focus:border-indigo-500 shadow-2xs"
+                onChange={(e) => setAmount(e.target.value.replace(/,/g, '.'))}
+                onBlur={() => {
+                  const num = parseFloat((amount || '0').replace(/,/g, '.'));
+                  if (!isNaN(num) && num > 0) setAmount(num.toFixed(2));
+                }}
+                placeholder="100.00"
+                className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-300 text-slate-900 font-extrabold text-lg focus:outline-none focus:border-indigo-500 shadow-2xs font-mono"
               />
 
               {/* 4 Píldoras de Monto Rápido */}
@@ -668,10 +672,14 @@ export const DepositPage: React.FC = () => {
             <div>
               <Input
                 label="Monto depositado ($ USD)"
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => setAmount(e.target.value.replace(/,/g, '.'))}
+                onBlur={() => {
+                  const num = parseFloat((amount || '0').replace(/,/g, '.'));
+                  if (!isNaN(num) && num > 0) setAmount(num.toFixed(2));
+                }}
                 placeholder="Ej: 50.00"
                 helperText="Se acreditará exactamente este valor a tu saldo tras validar el comprobante."
                 required

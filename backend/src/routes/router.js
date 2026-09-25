@@ -212,11 +212,12 @@ export async function handleRequest(req, res) {
 
     if (method === 'POST' && pathname === '/wallet/deposits') {
       const body = await parseBody(req);
+      const cleanAmountStr = String(body.amount ?? 0).replace(/,/g, '.');
       const deposit = await depositService.submitDepositRequest({
         userId: user.id,
         paymentMethodId: body.paymentMethodId || body.payment_method_id,
         bankName: body.bankName || body.bank_name,
-        amountCents: body.amountCents || Math.round(Number(body.amount || 0) * 100),
+        amountCents: body.amountCents || Math.round(Number(cleanAmountStr || 0) * 100),
         currency: body.currency || 'USD',
         referenceNumber: body.referenceNumber || body.reference_number,
         voucherUrl: body.voucherUrl || body.voucher_url,
@@ -243,10 +244,11 @@ export async function handleRequest(req, res) {
 
     if (method === 'POST' && pathname === '/reseller/prices') {
       const body = await parseBody(req);
+      const cleanPvpStr = String(body.pvp_usd ?? 0).replace(/,/g, '.');
       const updated = await resellerService.setCustomPrice(
         user.id,
         body.sku,
-        body.custom_pvp_cents ?? Math.round(Number(body.pvp_usd || 0) * 100)
+        body.custom_pvp_cents ?? Math.round(Number(cleanPvpStr || 0) * 100)
       );
       return sendJson(res, 200, { success: true, data: updated });
     }

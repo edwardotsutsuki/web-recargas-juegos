@@ -94,7 +94,8 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   }, [user?.id]);
 
   const handleSaveCustomPvp = async (sku: string, pvpDecimalStr: string) => {
-    const num = parseFloat(pvpDecimalStr);
+    const clean = (pvpDecimalStr || '').replace(/,/g, '.').trim();
+    const num = parseFloat(clean);
     if (isNaN(num) || num <= 0) return;
     setIsSavingPvp(true);
     try {
@@ -899,12 +900,16 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">$</span>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0.10"
+                  type="text"
+                  inputMode="decimal"
                   value={tempPvpInput}
-                  onChange={(e) => setTempPvpInput(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm font-bold focus:outline-none focus:border-cyan-400"
+                  onChange={(e) => setTempPvpInput(e.target.value.replace(/,/g, '.'))}
+                  onBlur={() => {
+                    const num = parseFloat(tempPvpInput.replace(/,/g, '.'));
+                    if (!isNaN(num) && num > 0) setTempPvpInput(num.toFixed(2));
+                  }}
+                  placeholder="0.00"
+                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white font-mono text-sm font-bold focus:outline-none focus:border-cyan-400"
                   autoFocus
                 />
               </div>

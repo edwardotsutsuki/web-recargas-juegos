@@ -61,15 +61,31 @@ export const ResellerPvpPage: React.FC = () => {
   }, []);
 
   const handlePriceChange = (sku: string, val: string) => {
+    // Reemplaza comas automáticamente por puntos para mantener consistencia con los costos
+    const sanitized = val.replace(/,/g, '.');
     setPvpValues((prev) => ({
       ...prev,
-      [sku]: val,
+      [sku]: sanitized,
     }));
+  };
+
+  const handleBlurPrice = (sku: string) => {
+    const rawVal = pvpValues[sku];
+    if (!rawVal) return;
+    const clean = rawVal.replace(/,/g, '.').trim();
+    const num = parseFloat(clean);
+    if (!isNaN(num) && num > 0) {
+      setPvpValues((prev) => ({
+        ...prev,
+        [sku]: num.toFixed(2),
+      }));
+    }
   };
 
   const handleSavePrice = async (sku: string) => {
     const rawVal = pvpValues[sku];
-    const num = parseFloat(rawVal || '0');
+    const clean = (rawVal || '0').replace(/,/g, '.').trim();
+    const num = parseFloat(clean);
     if (isNaN(num) || num <= 0) {
       showToast('Ingresa un precio PVP válido.', 'error');
       return;
@@ -78,6 +94,11 @@ export const ResellerPvpPage: React.FC = () => {
     setSavingSku(sku);
     try {
       await resellerService.setCustomPrice(sku, num);
+      // Actualizar el estado local con el valor redondeado a 2 decimales estándar con punto
+      setPvpValues((prev) => ({
+        ...prev,
+        [sku]: num.toFixed(2),
+      }));
       showToast(`¡PVP guardado con éxito ($${num.toFixed(2)} USD)!`, 'success');
     } catch (err: any) {
       showToast(err.message || 'Error al guardar PVP', 'error');
@@ -188,7 +209,7 @@ export const ResellerPvpPage: React.FC = () => {
               {filtered.map((prod) => {
                 const wholesaleCost = prod.price_cents / 100;
                 const suggestedPvp = (wholesaleCost * 1.15).toFixed(2);
-                const currentPvp = parseFloat(pvpValues[prod.id] || suggestedPvp);
+                const currentPvp = parseFloat((pvpValues[prod.id] || suggestedPvp).replace(/,/g, '.')) || wholesaleCost;
                 const estimatedProfit = Math.max(0, currentPvp - wholesaleCost).toFixed(2);
                 const profitMargin = wholesaleCost > 0 ? (((currentPvp - wholesaleCost) / wholesaleCost) * 100).toFixed(1) : '0.0';
                 const isSaving = savingSku === prod.id;
@@ -242,11 +263,12 @@ export const ResellerPvpPage: React.FC = () => {
                         <div className="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 focus-within:border-cyan-400">
                           <span className="text-slate-400 font-bold text-xs">$</span>
                           <input
-                            type="number"
-                            step="0.05"
-                            min={wholesaleCost}
+                            type="text"
+                            inputMode="decimal"
                             value={pvpValues[prod.id] || ''}
                             onChange={(e) => handlePriceChange(prod.id, e.target.value)}
+                            onBlur={() => handleBlurPrice(prod.id)}
+                            placeholder={suggestedPvp}
                             className="w-full bg-transparent font-mono font-bold text-cyan-300 text-sm focus:outline-none"
                           />
                         </div>
@@ -301,7 +323,7 @@ export const ResellerPvpPage: React.FC = () => {
                 {filtered.map((prod) => {
                   const wholesaleCost = prod.price_cents / 100;
                   const suggestedPvp = (wholesaleCost * 1.15).toFixed(2);
-                  const currentPvp = parseFloat(pvpValues[prod.id] || suggestedPvp);
+                  const currentPvp = parseFloat((pvpValues[prod.id] || suggestedPvp).replace(/,/g, '.')) || wholesaleCost;
                   const estimatedProfit = Math.max(0, currentPvp - wholesaleCost).toFixed(2);
                   const profitMargin = wholesaleCost > 0 ? (((currentPvp - wholesaleCost) / wholesaleCost) * 100).toFixed(1) : '0.0';
                   const isSaving = savingSku === prod.id;
@@ -328,11 +350,12 @@ export const ResellerPvpPage: React.FC = () => {
                         <div className="flex items-center gap-1.5 w-32">
                           <span className="text-slate-400 font-bold">$</span>
                           <input
-                            type="number"
-                            step="0.05"
-                            min={wholesaleCost}
+                            type="text"
+                            inputMode="decimal"
                             value={pvpValues[prod.id] || ''}
                             onChange={(e) => handlePriceChange(prod.id, e.target.value)}
+                            onBlur={() => handleBlurPrice(prod.id)}
+                            placeholder={suggestedPvp}
                             className="w-full px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 font-mono font-bold text-cyan-300 text-xs focus:outline-none focus:border-cyan-400"
                           />
                         </div>

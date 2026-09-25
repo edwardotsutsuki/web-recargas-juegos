@@ -103,13 +103,14 @@ export const AdminCatalogPage: React.FC = () => {
   };
 
   const handlePackagePriceChange = (sku: string, newPriceStr: string) => {
+    const sanitized = newPriceStr.replace(/,/g, '.');
     setPackagesList((prev) =>
       prev.map((pkg) => {
         if (pkg.sku === sku) {
-          const val = parseFloat(newPriceStr) || 0;
+          const val = parseFloat(sanitized) || 0;
           return {
             ...pkg,
-            price_decimal: newPriceStr,
+            price_decimal: sanitized,
             price_cents: Math.round(val * 100),
           };
         }
@@ -594,8 +595,8 @@ export const AdminCatalogPage: React.FC = () => {
                           </thead>
                           <tbody className="divide-y divide-slate-800/60">
                             {packagesList.map((pkg) => {
-                              const wholesale = parseFloat(pkg.wholesale_decimal || '0');
-                              const pvp = parseFloat(pkg.price_decimal || '0');
+                              const wholesale = parseFloat((pkg.wholesale_decimal || '0').replace(/,/g, '.'));
+                              const pvp = parseFloat((pkg.price_decimal || '0').replace(/,/g, '.'));
                               const margin = pvp - wholesale;
                               const marginPercent = wholesale > 0 ? ((margin / wholesale) * 100).toFixed(1) : '0';
                               const isActive = pkg.is_active !== false;
@@ -612,11 +613,16 @@ export const AdminCatalogPage: React.FC = () => {
                                   <td className="p-3">
                                     <div className="w-24">
                                       <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
+                                        type="text"
+                                        inputMode="decimal"
                                         value={pkg.price_decimal}
                                         onChange={(e) => handlePackagePriceChange(pkg.sku, e.target.value)}
+                                        onBlur={() => {
+                                          const val = parseFloat((pkg.price_decimal || '0').replace(/,/g, '.'));
+                                          if (!isNaN(val) && val > 0) {
+                                            handlePackagePriceChange(pkg.sku, val.toFixed(2));
+                                          }
+                                        }}
                                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
                                       />
                                     </div>
