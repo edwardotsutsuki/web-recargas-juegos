@@ -15,8 +15,10 @@ import {
   X,
   Settings,
   Tag,
+  Lock,
 } from 'lucide-react';
 import { useAuthStore } from '../../../store/useAuthStore';
+import { useCashierStore } from '../../../store/useCashierStore';
 
 interface PartnerSidebarProps {
   isOpen: boolean;
@@ -26,7 +28,17 @@ interface PartnerSidebarProps {
 export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { isCashierMode, openPinModal } = useCashierStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleProtectedNav = (e: React.MouseEvent, path: string) => {
+    if (isCashierMode) {
+      e.preventDefault();
+      openPinModal('access_restricted', path);
+    } else {
+      onClose();
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -114,9 +126,14 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({ isOpen, onClose 
               <Gamepad2 className="w-4 h-4 text-indigo-400" />
               <span>Pedir Juegos / Pines</span>
             </NavLink>
-            <NavLink to="/reseller/pvp" className={navItemClass} onClick={onClose}>
+            <NavLink
+              to="/reseller/pvp"
+              className={navItemClass}
+              onClick={(e) => handleProtectedNav(e, '/reseller/pvp')}
+            >
               <Tag className="w-4 h-4 text-cyan-400" />
-              <span>Configurar PVP (Venta)</span>
+              <span className="flex-1">Configurar PVP (Venta)</span>
+              {isCashierMode && <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
             </NavLink>
             <NavLink to="/orders" className={navItemClass} onClick={onClose}>
               <ShoppingBag className="w-4 h-4 text-purple-400" />
@@ -129,13 +146,23 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({ isOpen, onClose 
             <span className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-400 block">
               Billetera & Ganancias
             </span>
-            <NavLink to="/wallet/deposit" className={navItemClass} onClick={onClose}>
+            <NavLink
+              to="/wallet/deposit"
+              className={navItemClass}
+              onClick={(e) => handleProtectedNav(e, '/wallet/deposit')}
+            >
               <CreditCard className="w-4 h-4 text-emerald-400" />
-              <span>Reportar Pago (Recarga)</span>
+              <span className="flex-1">Reportar Pago (Recarga)</span>
+              {isCashierMode && <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
             </NavLink>
-            <NavLink to="/accounting" className={navItemClass} onClick={onClose}>
+            <NavLink
+              to="/accounting"
+              className={navItemClass}
+              onClick={(e) => handleProtectedNav(e, '/accounting')}
+            >
               <BookOpen className="w-4 h-4 text-emerald-400" />
-              <span>Mi Libro Contable</span>
+              <span className="flex-1">Mi Libro Contable</span>
+              {isCashierMode && <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
             </NavLink>
             <NavLink to="/rewards" className={navItemClass} onClick={onClose}>
               <Trophy className="w-4 h-4 text-amber-400" />

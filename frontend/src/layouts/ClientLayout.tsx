@@ -7,6 +7,7 @@ import { PromotionsBanner } from '../components/organisms/PromotionsBanner';
 import { CartDrawer } from '../components/organisms/CartDrawer';
 import { MobileClientBottomNav } from '../components/organisms/MobileClientBottomNav';
 import { PlayerVerificationModal } from '../modules/client/components/PlayerVerificationModal';
+import { CashierPinModal } from '../modules/client/components/CashierPinModal';
 import { useUIStore } from '../store/useUIStore';
 import { CheckCircle2, AlertTriangle, Info, X } from 'lucide-react';
 
@@ -61,6 +62,7 @@ export const ClientLayout: React.FC = () => {
         {/* Global Modals & Drawers */}
         <CartDrawer />
         <PlayerVerificationModal />
+        <CashierPinModal />
 
         {/* Mobile & Native Floating Bottom Navigation Dock */}
         <MobileClientBottomNav />

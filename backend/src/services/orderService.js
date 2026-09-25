@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { orderRepository } from '../repositories/orderRepository.js';
 import { catalogService } from './catalogService.js';
+import { supabaseAdmin, isSupabaseConfigured } from '../repositories/supabaseClient.js';
 
 export const orderService = {
   async createOrder({
@@ -172,7 +173,70 @@ export const orderService = {
   },
 
   async getGlobalOrders() {
-    return orderRepository.getGlobalOrders();
+    const orders = await orderRepository.getGlobalOrders();
+    let catalog = [];
+    try {
+      catalog = await catalogService.getCatalog();
+    } catch {
+      catalog = [];
+    }
+
+    const userIds = [...new Set(orders.map((o) => o.user_id).filter(Boolean))];
+    const profilesMap = {};
+    if (userIds.length > 0 && isSupabaseConfigured) {
+      try {
+        const { data: profiles } = await supabaseAdmin
+          .from('profiles')
+          .select('id, email, full_name')
+          .in('id', userIds);
+        if (profiles) {
+          for (const p of profiles) {
+            profilesMap[p.id] = p;
+          }
+        }
+      } catch (profErr) {
+        console.warn('[orderService] Error consultando perfiles para getGlobalOrders:', profErr?.message);
+      }
+    }
+
+    return orders.map((o) => {
+      const prod = catalog.find((p) => p.sku === o.product_id);
+      let playerPayload = {};
+      try {
+        playerPayload = typeof o.player_payload === 'string' ? JSON.parse(o.player_payload) : (o.player_payload || {});
+      } catch {
+        playerPayload = {};
+      }
+
+      let status = 'processing';
+      if (o.status === 'succeeded' || o.status === 'completed') status = 'completed';
+      else if (o.status === 'failed') status = 'failed';
+      else if (o.status === 'cancelled') status = 'cancelled';
+      else if (o.status === 'held') status = 'processing';
+
+      const userProf = profilesMap[o.user_id] || {};
+
+      return {
+        id: o.id,
+        user_id: o.user_id,
+        user_email: userProf.email || 'Cliente Anónimo',
+        user_name: userProf.full_name || null,
+        product_id: o.product_id,
+        product_name: prod ? prod.name : (o.product_id || 'Recarga Gamer'),
+        game: prod ? prod.game : 'Juegos Online',
+        amount_cents: Number(o.price_minor || o.amount_cents || 0),
+        wholesale_cents: prod?.wholesale_cents || 0,
+        currency: o.currency || 'USD',
+        player_id: playerPayload.id || playerPayload.playerId || null,
+        player_name: playerPayload.name || playerPayload.playerName || null,
+        player_server: playerPayload.server || playerPayload.zoneId || null,
+        status,
+        failure_code: o.failure_code || null,
+        digital_code: o.digital_code || null,
+        redeem_instructions: o.redeem_instructions || prod?.redeem_instructions || null,
+        created_at: o.created_at,
+      };
+    });
   },
 };
 

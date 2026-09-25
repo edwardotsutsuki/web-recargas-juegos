@@ -2,11 +2,13 @@ import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Grid, ShoppingBag, User, Zap } from 'lucide-react';
 import { useCartStore } from '../../store/useCartStore';
+import { useCashierStore } from '../../store/useCashierStore';
 
 export const MobileClientBottomNav: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { items } = useCartStore();
+  const { isCashierMode, openPinModal } = useCashierStore();
   const totalCartCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   const navItems = [
@@ -48,7 +50,13 @@ export const MobileClientBottomNav: React.FC = () => {
             return (
               <button
                 key={idx}
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  if (isCashierMode) {
+                    openPinModal('access_restricted', item.path);
+                  } else {
+                    navigate(item.path);
+                  }
+                }}
                 className="relative -top-5 flex flex-col items-center group focus:outline-none"
                 aria-label={item.label}
               >

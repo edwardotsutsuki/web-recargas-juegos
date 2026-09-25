@@ -102,14 +102,19 @@ export type OrderStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'c
 export interface Order {
   id: string;
   user_id: string;
+  user_email?: string;
+  user_name?: string;
   product_id: string;
   product_name: string;
   game: string;
   amount_cents: number;
+  wholesale_cents?: number;
   currency: string;
   player_id?: string;
   player_name?: string;
+  player_server?: string;
   status: OrderStatus;
+  failure_code?: string | null;
   digital_code?: string;
   redeem_instructions?: string | null;
   created_at: string;

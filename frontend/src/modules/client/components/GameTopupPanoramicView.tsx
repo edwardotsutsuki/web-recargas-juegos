@@ -7,6 +7,7 @@ import { resellerService } from '../../../services/api/reseller.service';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { useCartStore } from '../../../store/useCartStore';
 import { useAuthStore } from '../../../store/useAuthStore';
+import { useCashierStore } from '../../../store/useCashierStore';
 import { Button } from '../../../components/atoms/Button';
 import { Input } from '../../../components/atoms/Input';
 import {
@@ -47,6 +48,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   const { role, user } = useAuthStore();
   const { wallet, fetchWallet } = useWalletStore();
   const { addItem } = useCartStore();
+  const { isCashierMode } = useCashierStore();
 
   const [game, setGame] = useState<GameDetail | null>(null);
   const [isLoadingGame, setIsLoadingGame] = useState(true);
@@ -390,9 +392,13 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
 
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-emerald-800/60">
             <div className="text-xs text-emerald-200">
-              <span>Cobraste a tu cliente: <strong className="text-white">${(selectedPvpCents / 100).toFixed(2)} USD</strong></span>
-              <span className="mx-2">·</span>
-              <span>Tu ganancia neta: <strong className="text-emerald-400">+${(selectedProfitCents / 100).toFixed(2)} USD ({selectedMarginPercent}%)</strong></span>
+              <span>Cobrado al cliente: <strong className="text-white">${(selectedPvpCents / 100).toFixed(2)} USD</strong></span>
+              {!isCashierMode && (
+                <>
+                  <span className="mx-2">·</span>
+                  <span>Tu ganancia neta: <strong className="text-emerald-400">+${(selectedProfitCents / 100).toFixed(2)} USD ({selectedMarginPercent}%)</strong></span>
+                </>
+              )}
             </div>
 
             <a
@@ -560,49 +566,81 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
             </div>
 
             <div className="space-y-2.5 text-xs">
-              <div className="flex items-center justify-between text-slate-400">
-                <span>Costo Plataforma</span>
-                <span className="font-bold text-white">
-                  ${(currentPriceCents / 100).toFixed(2)} USD
-                </span>
-              </div>
+              {isCashierMode ? (
+                <>
+                  <div className="flex items-center justify-between p-3 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 text-xs shadow-inner">
+                    <span className="text-cyan-300 font-bold flex items-center gap-1.5">
+                      <Tag className="w-4 h-4 text-cyan-400" /> Precio de Venta al Cliente
+                    </span>
+                    <span className="font-black text-cyan-300 text-base font-mono">
+                      ${(selectedPvpCents / 100).toFixed(2)} USD
+                    </span>
+                  </div>
 
-              {/* PVP al Cliente Final */}
-              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800 text-xs">
-                <span className="text-indigo-300 font-bold flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5 text-indigo-400" /> Tu PVP al Cliente
-                </span>
-                <span className="font-black text-indigo-300 text-sm">
-                  ${(selectedPvpCents / 100).toFixed(2)} USD
-                </span>
-              </div>
+                  <div className="flex items-center justify-between text-slate-400 pt-1">
+                    <span>Estado de Recarga</span>
+                    <span className={`font-bold font-mono text-xs ${hasEnoughBalance ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {hasEnoughBalance ? '✓ Saldo Operativo Disponible' : '⚠ Saldo Insuficiente'}
+                    </span>
+                  </div>
 
-              {/* Ganancia Neta Estimada */}
-              <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs">
-                <span className="text-emerald-400 font-bold flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5" /> Tu Ganancia Neta
-                </span>
-                <span className="font-black text-emerald-400 text-sm">
-                  +${(selectedProfitCents / 100).toFixed(2)} USD ({selectedMarginPercent}%)
-                </span>
-              </div>
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                    <div>
+                      <span className="font-black text-xs uppercase text-white block">Cobro al Cliente</span>
+                      <span className="text-[10px] text-slate-400">Precio final fijado por tienda</span>
+                    </div>
+                    <span className="font-black text-base text-cyan-400 font-mono">
+                      ${(selectedPvpCents / 100).toFixed(2)} USD
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>Costo Plataforma</span>
+                    <span className="font-bold text-white">
+                      ${(currentPriceCents / 100).toFixed(2)} USD
+                    </span>
+                  </div>
 
-              <div className="flex items-center justify-between text-slate-400 pt-1">
-                <span>Tu saldo disponible</span>
-                <span className={`font-bold ${hasEnoughBalance ? 'text-slate-300' : 'text-amber-400'}`}>
-                  ${(wallet.available_balance_cents / 100).toFixed(2)} USD
-                </span>
-              </div>
+                  {/* PVP al Cliente Final */}
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+                    <span className="text-indigo-300 font-bold flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-indigo-400" /> Tu PVP al Cliente
+                    </span>
+                    <span className="font-black text-indigo-300 text-sm">
+                      ${(selectedPvpCents / 100).toFixed(2)} USD
+                    </span>
+                  </div>
 
-              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                <div>
-                  <span className="font-black text-xs uppercase text-white block">Total a Pagar</span>
-                  <span className="text-[10px] text-slate-400">Débito directo de tu billetera</span>
-                </div>
-                <span className="font-black text-base text-cyan-400">
-                  ${(currentPriceCents / 100).toFixed(2)} USD
-                </span>
-              </div>
+                  {/* Ganancia Neta Estimada */}
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs">
+                    <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5" /> Tu Ganancia Neta
+                    </span>
+                    <span className="font-black text-emerald-400 text-sm">
+                      +${(selectedProfitCents / 100).toFixed(2)} USD ({selectedMarginPercent}%)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-slate-400 pt-1">
+                    <span>Tu saldo disponible</span>
+                    <span className={`font-bold ${hasEnoughBalance ? 'text-slate-300' : 'text-amber-400'}`}>
+                      ${(wallet.available_balance_cents / 100).toFixed(2)} USD
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                    <div>
+                      <span className="font-black text-xs uppercase text-white block">Total a Pagar</span>
+                      <span className="text-[10px] text-slate-400">Débito directo de tu billetera</span>
+                    </div>
+                    <span className="font-black text-base text-cyan-400 font-mono">
+                      ${(currentPriceCents / 100).toFixed(2)} USD
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Botones de Acción */}
@@ -717,47 +755,58 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                           )}
                         </div>
 
-                        <div className="space-y-1 mt-2 w-full">
-                          <div className="flex items-baseline justify-between gap-1">
-                            <div>
-                              <span className="text-[10px] text-slate-400 font-medium block">Costo:</span>
-                              <div className="text-xs font-black text-white">
-                                ${(platformCostCents / 100).toFixed(2)}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-[10px] text-indigo-300 font-bold block">Tu PVP:</span>
-                              <div className="text-xs font-black text-cyan-300">
-                                ${(resellerPvpCents / 100).toFixed(2)}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/60">
-                            <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20 truncate">
-                              +{marginPercent}% (+${(resellerProfitCents / 100).toFixed(2)})
+                        {isCashierMode ? (
+                          <div className="mt-2 w-full pt-1.5 border-t border-slate-800/80 text-center">
+                            <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                              Precio al Cliente
                             </span>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingPvpSku(pkg.sku);
-                                setTempPvpInput((resellerPvpCents / 100).toFixed(2));
-                              }}
-                              title="Personalizar tu precio de venta final (PVP)"
-                              className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-cyan-300 transition-colors shrink-0"
-                            >
-                              <Edit3 className="w-3 h-3" />
-                            </button>
-                          </div>
-
-                          {role === 'admin' && (pkg.wholesale_cents || 0) > 0 && (
-                            <div className="text-[9px] text-slate-500 font-mono truncate">
-                              API: ${((pkg.wholesale_cents || 0) / 100).toFixed(2)}
+                            <div className="text-sm font-black text-cyan-300 font-mono">
+                              ${(resellerPvpCents / 100).toFixed(2)} USD
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1 mt-2 w-full">
+                            <div className="flex items-baseline justify-between gap-1">
+                              <div>
+                                <span className="text-[10px] text-slate-400 font-medium block">Costo:</span>
+                                <div className="text-xs font-black text-white">
+                                  ${(platformCostCents / 100).toFixed(2)}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-indigo-300 font-bold block">Tu PVP:</span>
+                                <div className="text-xs font-black text-cyan-300">
+                                  ${(resellerPvpCents / 100).toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/60">
+                              <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20 truncate">
+                                +{marginPercent}% (+${(resellerProfitCents / 100).toFixed(2)})
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingPvpSku(pkg.sku);
+                                  setTempPvpInput((resellerPvpCents / 100).toFixed(2));
+                                }}
+                                title="Personalizar tu precio de venta final (PVP)"
+                                className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-cyan-300 transition-colors shrink-0"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                              </button>
+                            </div>
+
+                            {role === 'admin' && (pkg.wholesale_cents || 0) > 0 && (
+                              <div className="text-[9px] text-slate-500 font-mono truncate">
+                                API: ${((pkg.wholesale_cents || 0) / 100).toFixed(2)}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </button>
                     );
                   })}
@@ -809,47 +858,58 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                           )}
                         </div>
 
-                        <div className="space-y-1 mt-2 w-full">
-                          <div className="flex items-baseline justify-between gap-1">
-                            <div>
-                              <span className="text-[10px] text-slate-400 font-medium block">Costo:</span>
-                              <div className="text-xs font-black text-white">
-                                ${(platformCostCents / 100).toFixed(2)}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-[10px] text-indigo-300 font-bold block">Tu PVP:</span>
-                              <div className="text-xs font-black text-cyan-300">
-                                ${(resellerPvpCents / 100).toFixed(2)}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/60">
-                            <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20 truncate">
-                              +{marginPercent}% (+${(resellerProfitCents / 100).toFixed(2)})
+                        {isCashierMode ? (
+                          <div className="mt-2 w-full pt-1.5 border-t border-slate-800/80 text-center">
+                            <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                              Precio al Cliente
                             </span>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingPvpSku(pkg.sku);
-                                setTempPvpInput((resellerPvpCents / 100).toFixed(2));
-                              }}
-                              title="Personalizar tu precio de venta final (PVP)"
-                              className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-cyan-300 transition-colors shrink-0"
-                            >
-                              <Edit3 className="w-3 h-3" />
-                            </button>
-                          </div>
-
-                          {role === 'admin' && (pkg.wholesale_cents || 0) > 0 && (
-                            <div className="text-[9px] text-slate-500 font-mono truncate">
-                              API: ${((pkg.wholesale_cents || 0) / 100).toFixed(2)}
+                            <div className="text-sm font-black text-cyan-300 font-mono">
+                              ${(resellerPvpCents / 100).toFixed(2)} USD
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1 mt-2 w-full">
+                            <div className="flex items-baseline justify-between gap-1">
+                              <div>
+                                <span className="text-[10px] text-slate-400 font-medium block">Costo:</span>
+                                <div className="text-xs font-black text-white">
+                                  ${(platformCostCents / 100).toFixed(2)}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-indigo-300 font-bold block">Tu PVP:</span>
+                                <div className="text-xs font-black text-cyan-300">
+                                  ${(resellerPvpCents / 100).toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/60">
+                              <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20 truncate">
+                                +{marginPercent}% (+${(resellerProfitCents / 100).toFixed(2)})
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingPvpSku(pkg.sku);
+                                  setTempPvpInput((resellerPvpCents / 100).toFixed(2));
+                                }}
+                                title="Personalizar tu precio de venta final (PVP)"
+                                className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-cyan-300 transition-colors shrink-0"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                              </button>
+                            </div>
+
+                            {role === 'admin' && (pkg.wholesale_cents || 0) > 0 && (
+                              <div className="text-[9px] text-slate-500 font-mono truncate">
+                                API: ${((pkg.wholesale_cents || 0) / 100).toFixed(2)}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </button>
                     );
                   })}

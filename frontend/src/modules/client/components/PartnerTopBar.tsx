@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Gamepad2, Wallet, RefreshCw, ShoppingBag, Plus, LogOut } from 'lucide-react';
+import { Gamepad2, Wallet, RefreshCw, ShoppingBag, Plus, LogOut, ShieldCheck, Lock } from 'lucide-react';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { useCartStore } from '../../../store/useCartStore';
 import { useAuthStore } from '../../../store/useAuthStore';
+import { useCashierStore } from '../../../store/useCashierStore';
 import { PriceDisplay } from '../../../components/molecules/PriceDisplay';
 import { useNavigate } from 'react-router-dom';
 
@@ -15,6 +16,7 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
   const { wallet, isLoading: isWalletLoading, fetchWallet } = useWalletStore();
   const { items, toggleCart } = useCartStore();
   const { logout } = useAuthStore();
+  const { isCashierMode, openPinModal } = useCashierStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const totalCartCount = items.reduce((acc, item) => acc + item.quantity, 0);
@@ -49,8 +51,34 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
         </div>
       </div>
 
-      {/* Right: Balance Widget + Quick Deposit + Cart + Mobile Logout */}
+      {/* Right: Cashier Switch + Balance Widget + Quick Deposit + Cart + Mobile Logout */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Cashier Mode Button */}
+        {isCashierMode ? (
+          <button
+            type="button"
+            onClick={() => openPinModal('disable')}
+            title="Modo Mostrador/Cajero activo (ganancias ocultas). Haz clic para ingresar PIN y desbloquear."
+            className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 hover:bg-amber-500/30 transition-all flex items-center gap-1.5 text-xs font-black shadow-xs"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="hidden sm:inline">Modo Cajero</span>
+            <span className="text-[9px] bg-amber-400 text-slate-950 font-bold px-1.5 py-0.2 rounded font-mono">
+              PIN
+            </span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => openPinModal('enable')}
+            title="Activar Modo Mostrador para ocultar ganancias a empleados o clientes"
+            className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-700/80 text-slate-300 hover:text-white hover:border-cyan-400/50 transition-all flex items-center gap-1.5 text-xs font-semibold"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="hidden sm:inline">Modo Mostrador</span>
+          </button>
+        )}
+
         {/* Virtual Balance Widget */}
         <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5">
           <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
@@ -61,31 +89,39 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
               Saldo Disponible
             </span>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <PriceDisplay
-                cents={wallet.available_balance_cents}
-                currency={wallet.currency}
-                size="sm"
-                className="text-emerald-400 font-bold"
-              />
-              <button
-                onClick={() => fetchWallet()}
-                title="Refrescar saldo"
-                className="text-slate-500 hover:text-slate-300 transition-colors"
-              >
-                <RefreshCw className={`w-3 h-3 ${isWalletLoading ? 'animate-spin text-cyan-400' : ''}`} />
-              </button>
+              {isCashierMode ? (
+                <span className="text-emerald-400 font-mono font-bold text-xs">Operativo ●●●</span>
+              ) : (
+                <PriceDisplay
+                  cents={wallet.available_balance_cents}
+                  currency={wallet.currency}
+                  size="sm"
+                  className="text-emerald-400 font-bold"
+                />
+              )}
+              {!isCashierMode && (
+                <button
+                  onClick={() => fetchWallet()}
+                  title="Refrescar saldo"
+                  className="text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isWalletLoading ? 'animate-spin text-cyan-400' : ''}`} />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Quick Deposit Button (hidden on mobile since bottom dock has big Recargar button) */}
-          <button
-            onClick={() => navigate('/wallet/deposit')}
-            title="Reportar depósito para recargar saldo"
-            className="ml-1 text-[11px] font-bold text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 px-2.5 py-1 rounded-lg transition-colors hidden sm:flex items-center gap-1 border border-cyan-500/20"
-          >
-            <Plus className="w-3 h-3" />
-            Recargar
-          </button>
+          {/* Quick Deposit Button (only visible for business owner, not in cashier mode) */}
+          {!isCashierMode && (
+            <button
+              onClick={() => navigate('/wallet/deposit')}
+              title="Reportar depósito para recargar saldo"
+              className="ml-1 text-[11px] font-bold text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 px-2.5 py-1 rounded-lg transition-colors hidden sm:flex items-center gap-1 border border-cyan-500/20"
+            >
+              <Plus className="w-3 h-3" />
+              Recargar
+            </button>
+          )}
         </div>
 
         {/* Cart Drawer Button */}

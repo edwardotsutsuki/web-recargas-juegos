@@ -6,6 +6,7 @@ import { playerService } from '../../../services/api/player.service';
 import { ordersService } from '../../../services/api/orders.service';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { useCartStore } from '../../../store/useCartStore';
+import { useCashierStore } from '../../../store/useCashierStore';
 import { PriceDisplay } from '../../../components/molecules/PriceDisplay';
 import { Button } from '../../../components/atoms/Button';
 import { Input } from '../../../components/atoms/Input';
@@ -45,6 +46,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
 }) => {
   const { wallet, fetchWallet } = useWalletStore();
   const { addItem } = useCartStore();
+  const { isCashierMode } = useCashierStore();
   const navigate = useNavigate();
 
   const [game, setGame] = useState<GameDetail | null>(null);
@@ -507,7 +509,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                             <span className="text-sm font-black text-slate-900 block">
                               $ {(pkg.price_cents / 100).toFixed(2)}
                             </span>
-                            {profitCents > 0 && (
+                            {!isCashierMode && profitCents > 0 && (
                               <span className="text-[10px] text-slate-500 font-medium block truncate">
                                 Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} · <span className="text-emerald-600 font-bold">+${(profitCents / 100).toFixed(2)}</span>
                               </span>
@@ -562,7 +564,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                             <span className="text-sm font-black text-slate-900 block">
                               $ {(pkg.price_cents / 100).toFixed(2)}
                             </span>
-                            {profitCents > 0 && (
+                            {!isCashierMode && profitCents > 0 && (
                               <span className="text-[10px] text-slate-500 font-medium block truncate">
                                 Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} · <span className="text-emerald-600 font-bold">+${(profitCents / 100).toFixed(2)}</span>
                               </span>
@@ -979,7 +981,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                               <span className="text-sm font-black text-cyan-300 block">
                                 $ {(pkg.price_cents / 100).toFixed(2)}
                               </span>
-                              {profitCents > 0 && (
+                              {!isCashierMode && profitCents > 0 && (
                                 <span className="text-[10px] text-slate-400 font-medium block truncate">
                                   Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} ·{' '}
                                   <span className="text-emerald-400 font-bold">
@@ -1052,7 +1054,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                               <span className="text-sm font-black text-cyan-300 block">
                                 $ {(pkg.price_cents / 100).toFixed(2)}
                               </span>
-                              {profitCents > 0 && (
+                              {!isCashierMode && profitCents > 0 && (
                                 <span className="text-[10px] text-slate-400 font-medium block truncate">
                                   Tú: ≈ ${(pkg.wholesale_cents! / 100).toFixed(2)} ·{' '}
                                   <span className="text-emerald-400 font-bold">
