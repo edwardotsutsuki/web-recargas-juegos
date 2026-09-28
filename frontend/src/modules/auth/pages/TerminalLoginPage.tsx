@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { staffService, StoreOperator } from '../../../services/api/staff.service';
+import { supabase } from '../../../services/supabase/client';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useUIStore } from '../../../store/useUIStore';
 import { Store, User, Lock, Delete, ArrowRight, ShieldCheck, Gamepad2, ArrowLeft, RefreshCw } from 'lucide-react';
@@ -132,6 +133,9 @@ export const TerminalLoginPage: React.FC = () => {
         operatorName: selectedOperator,
         pinCode: pinToSubmit,
       });
+
+      // Limpiar cualquier sesión previa de Supabase en este navegador para evitar conflictos
+      await supabase.auth.signOut().catch(() => {});
 
       // Guardar sesión en el store de auth
       setTerminalSession({

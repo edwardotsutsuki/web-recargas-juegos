@@ -1,15 +1,15 @@
 -- ============================================================
 -- FIX: "invalid input value for enum public.transaction_kind: deposit"
 -- ============================================================
--- EJECUTAR EN: Supabase SQL Editor (una sola vez)
--- NOTA: Ejecutar las 2 secciones POR SEPARADO si da error.
+-- EJECUTAR EN: Supabase SQL Editor
+-- SI DA ERROR: ejecutar PASO 1 solo, luego PASO 2 solo.
 -- ============================================================
 
--- PASO 1: Agregar 'deposit' al enum (EJECUTAR SOLO, NO DENTRO DE TRANSACTION)
+-- PASO 1: Agregar 'deposit' al enum (NO puede ir dentro de BEGIN/COMMIT)
 ALTER TYPE public.transaction_kind ADD VALUE IF NOT EXISTS 'deposit';
 
 
--- PASO 2: Reemplazar credit_wallet (EJECUTAR DESPUÉS DEL PASO 1)
+-- PASO 2: Reemplazar credit_wallet con version completa y corregida
 CREATE OR REPLACE FUNCTION public.credit_wallet(
   p_user_id uuid,
   p_amount_minor bigint,
@@ -97,9 +97,6 @@ BEGIN
 END;
 $$;
 
--- Asegurar permisos
+-- Asegurar permisos: solo service_role puede ejecutar
 REVOKE ALL ON FUNCTION public.credit_wallet(uuid, bigint, text, text, text, uuid, text, text) FROM public, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.credit_wallet(uuid, bigint, text, text, text, uuid, text, text) TO service_role;
-
--- Verificar:
-SELECT enumlabel FROM pg_enum WHERE enumtypid = 'public.transaction_kind'::regtype ORDER BY enumsortorder;

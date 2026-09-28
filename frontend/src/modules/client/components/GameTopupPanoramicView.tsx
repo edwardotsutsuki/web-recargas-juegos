@@ -75,25 +75,23 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   const [orderSuccessMsg, setOrderSuccessMsg] = useState<string | null>(null);
   const [orderErrorMsg, setOrderErrorMsg] = useState<string | null>(null);
 
-  // Cargar precios personalizados del revendedor
+  // Cargar precios personalizados del revendedor (PVP de la tienda)
   useEffect(() => {
-    if (user?.id) {
-      resellerService
-        .getCustomPrices()
-        .then((prices: CustomPrice[]) => {
-          if (Array.isArray(prices)) {
-            const map: Record<string, number> = {};
-            for (const cp of prices) {
-              map[cp.sku] = cp.custom_pvp_cents;
-            }
-            setCustomPricesMap(map);
+    resellerService
+      .getCustomPrices()
+      .then((prices: CustomPrice[]) => {
+        if (Array.isArray(prices)) {
+          const map: Record<string, number> = {};
+          for (const cp of prices) {
+            map[cp.sku] = cp.custom_pvp_cents;
           }
-        })
-        .catch((err) => {
-          console.warn('No se pudieron cargar precios PVP del revendedor:', err);
-        });
-    }
-  }, [user?.id]);
+          setCustomPricesMap(map);
+        }
+      })
+      .catch((err) => {
+        console.warn('No se pudieron cargar precios PVP del revendedor:', err);
+      });
+  }, [user?.id, isCashierMode]);
 
   const handleSaveCustomPvp = async (sku: string, pvpDecimalStr: string) => {
     const clean = (pvpDecimalStr || '').replace(/,/g, '.').trim();
@@ -301,7 +299,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
 
   const currentPriceCents = selectedPackage ? selectedPackage.price_cents : 0;
   const selectedPvpCents = selectedPackage
-    ? customPricesMap[selectedPackage.sku] || Math.round(selectedPackage.price_cents * 1.2)
+    ? customPricesMap[selectedPackage.sku] || Math.round(selectedPackage.price_cents * 1.15)
     : 0;
   const selectedProfitCents = Math.max(0, selectedPvpCents - currentPriceCents);
   const selectedMarginPercent =
@@ -722,7 +720,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                   {diamondPackages.map((pkg, idx) => {
                     const isSelected = selectedPackage?.id === pkg.id;
                     const platformCostCents = pkg.price_cents;
-                    const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.2);
+                    const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.15);
                     const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
                     const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
                     const isPopular = isPopularPackage(pkg, idx);
@@ -825,7 +823,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                   {subscriptionPackages.map((pkg, idx) => {
                     const isSelected = selectedPackage?.id === pkg.id;
                     const platformCostCents = pkg.price_cents;
-                    const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.2);
+                    const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.15);
                     const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
                     const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
                     const isPopular = isPopularPackage(pkg, idx);
