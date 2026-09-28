@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, RefreshCw, LogOut, Server, AlertTriangle, CheckCircle2, Smartphone } from 'lucide-react';
+import { Shield, RefreshCw, LogOut, Server, AlertTriangle, CheckCircle2, Smartphone, CreditCard, Headphones } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { adminService } from '../../services/api/admin.service';
 
@@ -13,6 +13,21 @@ export const AdminTopBar: React.FC = () => {
   const [alertLevel, setAlertLevel] = useState<string>('normal');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
+  const [pendingDeposits, setPendingDeposits] = useState<number>(0);
+  const [pendingTickets, setPendingTickets] = useState<number>(0);
+
+  const fetchAlerts = async () => {
+    try {
+      const [depRes, tickRes] = await Promise.all([
+        adminService.getPendingDepositsCount(),
+        adminService.getPendingTicketsCount(),
+      ]);
+      setPendingDeposits(depRes?.pending_count ?? 0);
+      setPendingTickets(tickRes?.pending_count ?? 0);
+    } catch {
+      // Silencioso
+    }
+  };
 
   const fetchProviderStatus = async (forceRefresh = false) => {
     try {
@@ -33,9 +48,13 @@ export const AdminTopBar: React.FC = () => {
 
   useEffect(() => {
     fetchProviderStatus(false);
-    // Intervalo de chequeo cada 60 segundos
-    const interval = setInterval(() => fetchProviderStatus(false), 60000);
-    return () => clearInterval(interval);
+    fetchAlerts();
+    const intervalProvider = setInterval(() => fetchProviderStatus(false), 60000);
+    const intervalAlerts = setInterval(fetchAlerts, 10000);
+    return () => {
+      clearInterval(intervalProvider);
+      clearInterval(intervalAlerts);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -143,6 +162,35 @@ export const AdminTopBar: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Quick Notification Alerts */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Link
+              to="/sys-admin-auth/deposits"
+              title={pendingDeposits > 0 ? `${pendingDeposits} depósito(s) pendientes de aprobación` : 'Ver Depósitos y Vouchers'}
+              className="relative p-2 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-800 transition-all text-slate-300 hover:text-white"
+            >
+              <CreditCard className="w-4 h-4 text-amber-400" />
+              {pendingDeposits > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-amber-500 text-slate-950 font-black text-[9px] animate-pulse shadow-md shadow-amber-500/50">
+                  {pendingDeposits}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              to="/sys-admin-auth/support"
+              title={pendingTickets > 0 ? `${pendingTickets} ticket(s) de soporte pendientes` : 'Ver Tickets de Soporte'}
+              className="relative p-2 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 transition-all text-slate-300 hover:text-white"
+            >
+              <Headphones className="w-4 h-4 text-indigo-400" />
+              {pendingTickets > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-indigo-500 text-white font-black text-[9px] animate-pulse shadow-md shadow-indigo-500/50">
+                  {pendingTickets}
+                </span>
+              )}
+            </Link>
           </div>
 
           {/* Admin User Info & Actions */}

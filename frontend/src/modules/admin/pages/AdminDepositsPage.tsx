@@ -32,20 +32,27 @@ export const AdminDepositsPage: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState('Comprobante no coincide con el extracto bancario');
   const [actionInProgressId, setActionInProgressId] = useState<string | null>(null);
 
-  const fetchDeposits = async () => {
-    setLoading(true);
+  const fetchDeposits = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const data = await adminService.getDeposits(filterStatus === 'all' ? undefined : filterStatus);
       setDeposits(data || []);
     } catch (err: any) {
-      showToast(err.message || 'Error al cargar depósitos', 'error');
+      if (!isBackground) {
+        showToast(err.message || 'Error al cargar depósitos', 'error');
+      }
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchDeposits();
+    // Auto-actualización en segundo plano cada 10 segundos
+    const interval = setInterval(() => {
+      fetchDeposits(true);
+    }, 10000);
+    return () => clearInterval(interval);
   }, [filterStatus]);
 
   const handleApprove = async (deposit: DepositRequest) => {
@@ -114,8 +121,8 @@ export const AdminDepositsPage: React.FC = () => {
             Cuentas Bancarias
           </Link>
           <button
-            onClick={fetchDeposits}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-2 transition-colors"
+            onClick={() => fetchDeposits(false)}
+            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refrescar Lista

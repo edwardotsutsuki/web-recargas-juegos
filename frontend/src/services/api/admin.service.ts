@@ -273,6 +273,21 @@ export const adminService = {
     return apiClient<any[]>(`/admin/tickets${query}`);
   },
 
+  async getPendingTicketsCount(): Promise<{ pending_count: number }> {
+    try {
+      return await apiClient<{ pending_count: number }>('/admin/tickets/pending-count');
+    } catch {
+      return { pending_count: 0 };
+    }
+  },
+
+  async replyTicket(id: string, payload: { message: string; status?: string }): Promise<any> {
+    return apiClient<any>(`/admin/tickets/${id}/reply`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
   async updateTicket(id: string, payload: { status?: string; admin_reply?: string }): Promise<any> {
     return apiClient<any>(`/admin/tickets/${id}`, {
       method: 'PUT',

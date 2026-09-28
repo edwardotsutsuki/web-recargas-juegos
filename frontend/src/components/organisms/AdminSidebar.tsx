@@ -23,38 +23,54 @@ import { nativeNotificationService } from '../../services/nativeNotificationServ
 
 export const AdminSidebar: React.FC = () => {
   const [pendingCount, setPendingCount] = useState<number>(0);
+  const [pendingTicketsCount, setPendingTicketsCount] = useState<number>(0);
   const prevPendingCountRef = useRef<number | null>(null);
+  const prevTicketsCountRef = useRef<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    const checkPendingDeposits = async () => {
+    const checkPendingAlerts = async () => {
       try {
-        const res = await adminService.getPendingDepositsCount();
-        const count = res?.pending_count ?? 0;
+        const [depRes, tickRes] = await Promise.all([
+          adminService.getPendingDepositsCount(),
+          adminService.getPendingTicketsCount(),
+        ]);
+
+        const depCount = depRes?.pending_count ?? 0;
+        const tickCount = tickRes?.pending_count ?? 0;
 
         if (isMounted) {
-          // Si el conteo sube y no es la primera carga, emitir sonido y aviso nativo
-          if (prevPendingCountRef.current !== null && count > prevPendingCountRef.current) {
+          // Si el conteo de depósitos sube, emitir alerta
+          if (prevPendingCountRef.current !== null && depCount > prevPendingCountRef.current) {
             soundService.playNotificationChime();
-            nativeNotificationService.sendDepositAlert({ count });
-            document.title = `🔔 (${count}) Nuevo Depósito - Admin`;
-          } else if (count > 0) {
-            document.title = `(${count}) Depósitos Pendientes - Admin`;
+            nativeNotificationService.sendDepositAlert({ count: depCount });
+          }
+
+          // Si el conteo de tickets de soporte sube, emitir alerta
+          if (prevTicketsCountRef.current !== null && tickCount > prevTicketsCountRef.current) {
+            soundService.playNotificationChime();
+          }
+
+          const totalAlerts = depCount + tickCount;
+          if (totalAlerts > 0) {
+            document.title = `🔔 (${totalAlerts}) Alertas Pendientes - Admin`;
           } else {
             document.title = 'Panel Admin - Recargas Juegos Online';
           }
 
-          prevPendingCountRef.current = count;
-          setPendingCount(count);
+          prevPendingCountRef.current = depCount;
+          prevTicketsCountRef.current = tickCount;
+          setPendingCount(depCount);
+          setPendingTicketsCount(tickCount);
         }
       } catch {
         // Silencioso en caso de desconexión momentánea
       }
     };
 
-    checkPendingDeposits();
-    const interval = setInterval(checkPendingDeposits, 15000); // Polling cada 15 segundos
+    checkPendingAlerts();
+    const interval = setInterval(checkPendingAlerts, 10000); // Polling cada 10 segundos
 
     return () => {
       isMounted = false;
@@ -73,7 +89,12 @@ export const AdminSidebar: React.FC = () => {
     { to: '/sys-admin-auth/bank-accounts', label: 'Cuentas Bancarias', icon: Landmark },
     { to: '/sys-admin-auth/catalog', label: 'Portadas & Catálogo', icon: ImageIcon },
     { to: '/sys-admin-auth/materials', label: 'Materiales & Descargas', icon: Download },
-    { to: '/sys-admin-auth/support', label: 'Mesa de Ayuda / Tickets', icon: Headphones },
+    {
+      to: '/sys-admin-auth/support',
+      label: 'Mesa de Ayuda / Tickets',
+      icon: Headphones,
+      badge: pendingTicketsCount > 0 ? pendingTicketsCount : null,
+    },
     { to: '/sys-admin-auth/promotions', label: 'Avisos & Promociones', icon: Megaphone },
     { to: '/sys-admin-auth/rewards', label: 'Retos & Recompensas', icon: Trophy },
     { to: '/sys-admin-auth/settings', label: 'Control Saldo & Freno', icon: ShieldAlert },

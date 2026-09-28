@@ -1,38 +1,95 @@
-import React, { useEffect, useState } from 'react';
-import { Headphones, MessageCircle, Send, HelpCircle, PlusCircle, CheckCircle2, Clock, MessageSquare } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  Headphones,
+  MessageCircle,
+  Send,
+  HelpCircle,
+  PlusCircle,
+  CheckCircle2,
+  Clock,
+  MessageSquare,
+  ShieldCheck,
+  User,
+  RefreshCw,
+  X,
+} from 'lucide-react';
 import { Button } from '../../../components/atoms/Button';
 import { apiClient } from '../../../services/api/client';
 import { useUIStore } from '../../../store/useUIStore';
 import { SupportTicket } from '../../../types';
+import { soundService } from '../../../utils/sound';
 
 export const SupportPage: React.FC = () => {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
-  // Form
+  // Form para crear nuevo ticket
   const [subject, setSubject] = useState('');
   const [category, setCategory] = useState<string>('deposit_inquiry');
   const [priority, setPriority] = useState<string>('normal');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Form para responder a un ticket existente
+  const [replyingTicketId, setReplyingTicketId] = useState<string | null>(null);
+  const [replyMessage, setReplyMessage] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
+
+  const prevRepliesCountRef = useRef<Record<string, number>>({});
+  const isFirstLoadRef = useRef(true);
+
   const { showToast } = useUIStore();
 
-  const loadTickets = async () => {
+  const loadTickets = async (isBackground = false) => {
     try {
-      setIsLoading(true);
+      if (!isBackground) setIsLoading(true);
       const data = await apiClient<SupportTicket[]>('/tickets');
-      setTickets(data || []);
+      const loadedTickets = data || [];
+
+      // Detectar si llegó una nueva respuesta de soporte
+      if (!isFirstLoadRef.current) {
+        let hasNewAdminReply = false;
+        loadedTickets.forEach((t) => {
+          const prevCount = prevRepliesCountRef.current[t.id] ?? 0;
+          const currentCount = (t.replies || []).length;
+          if (currentCount > prevCount) {
+            const lastReply = t.replies![currentCount - 1];
+            if (lastReply.sender === 'admin') {
+              hasNewAdminReply = true;
+            }
+          }
+        });
+
+        if (hasNewAdminReply) {
+          soundService.playNotificationChime();
+          showToast('🎧 ¡El equipo de soporte ha respondido a tu ticket!', 'info');
+        }
+      }
+
+      // Guardar conteos actuales
+      const newCounts: Record<string, number> = {};
+      loadedTickets.forEach((t) => {
+        newCounts[t.id] = (t.replies || []).length;
+      });
+      prevRepliesCountRef.current = newCounts;
+      isFirstLoadRef.current = false;
+
+      setTickets(loadedTickets);
     } catch (err) {
-      console.error('Error al cargar tickets del usuario:', err);
+      if (!isBackground) console.error('Error al cargar tickets del usuario:', err);
     } finally {
-      setIsLoading(false);
+      if (!isBackground) setIsLoading(false);
     }
   };
 
   useEffect(() => {
     loadTickets();
+    // Auto-actualización periódica en tiempo real cada 10 segundos
+    const interval = setInterval(() => {
+      loadTickets(true);
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleCreateTicket = async (e: React.FormEvent) => {
@@ -52,11 +109,34 @@ export const SupportPage: React.FC = () => {
       setSubject('');
       setMessage('');
       setShowCreateForm(false);
-      loadTickets();
+      loadTickets(false);
     } catch (err: any) {
       showToast(err.message || 'Error al enviar ticket', 'error');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSendReply = async (ticketId: string, e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyMessage.trim()) return;
+
+    setIsSendingReply(true);
+    try {
+      await apiClient(`/tickets/${ticketId}/reply`, {
+        method: 'POST',
+        body: JSON.stringify({
+          message: replyMessage.trim(),
+        }),
+      });
+      showToast('Tu mensaje fue enviado al equipo de soporte', 'success');
+      setReplyMessage('');
+      setReplyingTicketId(null);
+      loadTickets(true);
+    } catch (err: any) {
+      showToast(err.message || 'Error al enviar respuesta', 'error');
+    } finally {
+      setIsSendingReply(false);
     }
   };
 
@@ -86,13 +166,23 @@ export const SupportPage: React.FC = () => {
   return (
     <div className="space-y-6 pb-12 text-slate-100">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-black text-white font-['Rajdhani'] uppercase tracking-wide flex items-center gap-2">
-          Centro de Soporte & Tickets <Headphones className="w-5 h-5 text-indigo-400" />
-        </h1>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Atención prioritaria para recargas, acreditación de depósitos bancarios y consultas de socios revendedores.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white font-['Rajdhani'] uppercase tracking-wide flex items-center gap-2">
+            Centro de Soporte & Tickets <Headphones className="w-5 h-5 text-indigo-400" />
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Atención prioritaria para recargas, acreditación de depósitos bancarios y consultas de socios revendedores.
+          </p>
+        </div>
+
+        <button
+          onClick={() => loadTickets(false)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-colors w-fit cursor-pointer"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>Actualizar</span>
+        </button>
       </div>
 
       {/* Action Cards */}
@@ -230,14 +320,14 @@ export const SupportPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowCreateForm(false)}
-                className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors"
+                className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="py-2.5 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50"
+                className="py-2.5 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isSubmitting ? 'Enviando ticket...' : 'Enviar Ticket'}
               </button>
@@ -263,47 +353,166 @@ export const SupportPage: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {tickets.map((t) => (
-              <div
-                key={t.id}
-                className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3 hover:border-slate-700 transition-all"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-indigo-400 font-bold">
-                      #{t.id.substring(0, 8)}
-                    </span>
-                    <h4 className="text-sm font-bold text-white">{t.subject}</h4>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(t.status)}
-                    <span className="text-[11px] text-slate-500 font-mono">
-                      {new Date(t.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
+            {tickets.map((t) => {
+              const replies = t.replies || [];
+              const isReplyingThis = replyingTicketId === t.id;
 
-                <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60">
-                  {t.message}
-                </p>
-
-                {t.admin_reply ? (
-                  <div className="p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-400">
-                      <Headphones className="w-3.5 h-3.5" />
-                      <span>Respuesta de Soporte Oficial</span>
+              return (
+                <div
+                  key={t.id}
+                  className="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4 hover:border-slate-700 transition-all"
+                >
+                  {/* Ticket Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-indigo-400 font-bold px-2 py-0.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                        #{t.id.substring(0, 8)}
+                      </span>
+                      <h4 className="text-sm font-bold text-white">{t.subject}</h4>
                     </div>
-                    <p className="text-xs text-slate-200 leading-relaxed">
-                      {t.admin_reply}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(t.status)}
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {new Date(t.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Initial Message */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+                      <User className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Tu Consulta Inicial</span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800/70 whitespace-pre-wrap">
+                      {t.message}
                     </p>
                   </div>
-                ) : (
-                  <div className="text-[11px] text-slate-500 italic">
-                    Un asesor revisará tu ticket a la brevedad posible.
+
+                  {/* Conversation Replies Thread */}
+                  {replies.length > 0 && (
+                    <div className="space-y-2.5 pt-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                        Historial de Respuestas ({replies.length})
+                      </span>
+
+                      <div className="space-y-2.5">
+                        {replies.map((reply, idx) => {
+                          const isAdmin = reply.sender === 'admin';
+
+                          return (
+                            <div
+                              key={reply.id || idx}
+                              className={`p-3.5 rounded-2xl border space-y-1.5 ${
+                                isAdmin
+                                  ? 'bg-indigo-950/40 border-indigo-500/30'
+                                  : 'bg-slate-950/40 border-slate-800/80'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  {isAdmin ? (
+                                    <>
+                                      <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                                      <span className="text-xs font-bold text-cyan-400">
+                                        {reply.sender_name || 'Soporte Oficial'}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <User className="w-3.5 h-3.5 text-indigo-400" />
+                                      <span className="text-xs font-bold text-indigo-300">
+                                        {reply.sender_name || 'Tú'}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-500 font-mono">
+                                  {new Date(reply.created_at).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">
+                                {reply.message}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fallback if no replies yet */}
+                  {replies.length === 0 && (
+                    <div className="text-[11px] text-slate-500 italic flex items-center gap-1.5 py-1">
+                      <Clock className="w-3.5 h-3.5 text-amber-500/80" />
+                      <span>Un asesor revisará tu ticket a la brevedad posible.</span>
+                    </div>
+                  )}
+
+                  {/* Reply Button & Toggle */}
+                  <div className="pt-2 flex flex-col items-end">
+                    {!isReplyingThis ? (
+                      <button
+                        onClick={() => {
+                          setReplyingTicketId(t.id);
+                          setReplyMessage('');
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 border border-indigo-500/30 hover:border-indigo-500 text-xs font-semibold text-indigo-300 hover:text-white transition-all cursor-pointer"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Responder al Ticket</span>
+                      </button>
+                    ) : (
+                      <form
+                        onSubmit={(e) => handleSendReply(t.id, e)}
+                        className="w-full p-4 rounded-2xl bg-slate-950 border border-indigo-500/40 space-y-3 animate-fade-in"
+                      >
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Escribir Respuesta a Soporte</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setReplyingTicketId(null)}
+                            className="p-1 rounded-lg text-slate-400 hover:text-white"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <textarea
+                          required
+                          rows={3}
+                          value={replyMessage}
+                          onChange={(e) => setReplyMessage(e.target.value)}
+                          placeholder="Añade más información, número de transacción o responde las preguntas del asesor..."
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
+                        />
+
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setReplyingTicketId(null)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isSendingReply || !replyMessage.trim()}
+                            className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>{isSendingReply ? 'Enviando...' : 'Enviar Respuesta'}</span>
+                          </button>
+                        </div>
+                      </form>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -346,6 +346,14 @@ export interface PromotionalMaterial {
   updated_at: string;
 }
 
+export interface TicketReply {
+  id: string;
+  sender: 'admin' | 'client';
+  sender_name: string;
+  message: string;
+  created_at: string;
+}
+
 export interface SupportTicket {
   id: string;
   user_id: string;
@@ -356,6 +364,7 @@ export interface SupportTicket {
   priority: 'low' | 'normal' | 'high' | 'urgent';
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   admin_reply?: string | null;
+  replies?: TicketReply[];
   resolved_at?: string | null;
   created_at: string;
   updated_at: string;

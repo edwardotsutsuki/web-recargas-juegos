@@ -361,6 +361,23 @@ export async function handleRequest(req, res) {
       return sendJson(res, 201, ticket);
     }
 
+    // POST /tickets/:id/reply
+    if (method === 'POST' && pathname.match(/^\/tickets\/[^/]+\/reply$/)) {
+      const ticketId = pathname.split('/')[2];
+      const body = await parseBody(req);
+      if (!body.message || !body.message.trim()) {
+        return sendError(res, 400, 'FIELDS_REQUIRED', 'El mensaje de respuesta no puede estar vacío.');
+      }
+      const updated = await ticketRepository.addReply({
+        ticketId,
+        sender: 'client',
+        senderName: user.full_name || user.email || 'Cliente',
+        message: body.message,
+        userId: user.id,
+      });
+      return sendJson(res, 200, updated);
+    }
+
     // --- Seguridad: Verificación en Dos Pasos (2FA) ---
     if (method === 'POST' && pathname === '/auth/2fa/setup') {
       const { secret, otpauthUrl, qrCodeUrl } = twoFactorService.generateSecret({
@@ -888,10 +905,48 @@ export async function handleRequest(req, res) {
       }
 
       // --- Módulo Admin: Mesa de Ayuda & Tickets de Soporte ---
+      // GET /admin/tickets/pending-count
+      if (method === 'GET' && pathname === '/admin/tickets/pending-count') {
+        const count = await ticketRepository.getPendingTicketsCount();
+        return sendJson(res, 200, { pending_count: count });
+      }
+
       // GET /admin/tickets
       if (method === 'GET' && pathname === '/admin/tickets') {
-        const tickets = await ticketRepository.getAllTicketsAdmin();
+        const status = url.searchParams.get('status');
+        const tickets = await ticketRepository.getAllTicketsAdmin(status);
         return sendJson(res, 200, tickets);
+      }
+
+      // POST /admin/tickets/:id/reply
+      if (method === 'POST' && pathname.match(/^\/admin\/tickets\/[^/]+\/reply$/)) {
+        const ticketId = pathname.split('/')[3];
+        const body = await parseBody(req);
+        if (!body.message || !body.message.trim()) {
+          return sendError(res, 400, 'FIELDS_REQUIRED', 'El mensaje de respuesta no puede estar vacío.');
+        }
+        const updated = await ticketRepository.addReply({
+          ticketId,
+          sender: 'admin',
+          senderName: user.full_name || 'Soporte Administrativo',
+          message: body.message,
+          newStatus: body.status || 'in_progress',
+        });
+
+        if (updated.user_email) {
+          try {
+            await emailService.sendTicketReplyNotification({
+              toEmail: updated.user_email,
+              ticketSubject: updated.subject,
+              adminReply: body.message,
+              ticketId: updated.id,
+            });
+          } catch (err) {
+            console.error('Error enviando email de notificación de respuesta:', err);
+          }
+        }
+
+        return sendJson(res, 200, updated);
       }
 
       // PUT /admin/tickets/:id
@@ -901,11 +956,16 @@ export async function handleRequest(req, res) {
         const updated = await ticketRepository.updateTicketAdmin(ticketId, body);
 
         if (body.admin_reply && updated.user_email) {
-          await emailService.sendTicketReplyNotification({
-            toEmail: updated.user_email,
-            ticketSubject: updated.subject,
-            adminReply: body.admin_reply,
-          });
+          try {
+            await emailService.sendTicketReplyNotification({
+              toEmail: updated.user_email,
+              ticketSubject: updated.subject,
+              adminReply: body.admin_reply,
+              ticketId: updated.id,
+            });
+          } catch (err) {
+            console.error('Error enviando email de notificación de respuesta:', err);
+          }
         }
 
         return sendJson(res, 200, updated);
