@@ -75,20 +75,33 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      resellerService
-        .getCustomPrices()
-        .then((prices: CustomPrice[]) => {
-          if (Array.isArray(prices)) {
-            const map: Record<string, number> = {};
-            for (const cp of prices) {
-              map[cp.sku] = cp.custom_pvp_cents;
+      let isMounted = true;
+
+      const loadPrices = () => {
+        resellerService
+          .getCustomPrices()
+          .then((prices: CustomPrice[]) => {
+            if (!isMounted) return;
+            if (Array.isArray(prices) && prices.length > 0) {
+              const map: Record<string, number> = {};
+              for (const cp of prices) {
+                map[cp.sku] = cp.custom_pvp_cents;
+              }
+              setCustomPricesMap(map);
             }
-            setCustomPricesMap(map);
-          }
-        })
-        .catch((err) => {
-          console.warn('No se pudieron cargar precios PVP del revendedor en modal:', err);
-        });
+          })
+          .catch((err) => {
+            console.warn('No se pudieron cargar precios PVP del revendedor en modal:', err);
+          });
+      };
+
+      loadPrices();
+      const retryTimer = setTimeout(loadPrices, 1200);
+
+      return () => {
+        isMounted = false;
+        clearTimeout(retryTimer);
+      };
     }
   }, [isOpen]);
 

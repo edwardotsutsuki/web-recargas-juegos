@@ -75,22 +75,36 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   const [orderSuccessMsg, setOrderSuccessMsg] = useState<string | null>(null);
   const [orderErrorMsg, setOrderErrorMsg] = useState<string | null>(null);
 
-  // Cargar precios personalizados del revendedor (PVP de la tienda)
+  // Cargar precios personalizados del revendedor (PVP de la tienda) con reintento de seguridad
   useEffect(() => {
-    resellerService
-      .getCustomPrices()
-      .then((prices: CustomPrice[]) => {
-        if (Array.isArray(prices)) {
-          const map: Record<string, number> = {};
-          for (const cp of prices) {
-            map[cp.sku] = cp.custom_pvp_cents;
+    let isMounted = true;
+
+    const loadPrices = () => {
+      resellerService
+        .getCustomPrices()
+        .then((prices: CustomPrice[]) => {
+          if (!isMounted) return;
+          if (Array.isArray(prices) && prices.length > 0) {
+            const map: Record<string, number> = {};
+            for (const cp of prices) {
+              map[cp.sku] = cp.custom_pvp_cents;
+            }
+            setCustomPricesMap(map);
           }
-          setCustomPricesMap(map);
-        }
-      })
-      .catch((err) => {
-        console.warn('No se pudieron cargar precios PVP del revendedor:', err);
-      });
+        })
+        .catch((err) => {
+          console.warn('No se pudieron cargar precios PVP del revendedor:', err);
+        });
+    };
+
+    loadPrices();
+    // Reintento a los 1200ms por si el token de terminal tardó en hidratarse
+    const retryTimer = setTimeout(loadPrices, 1200);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(retryTimer);
+    };
   }, [user?.id, isCashierMode]);
 
   const handleSaveCustomPvp = async (sku: string, pvpDecimalStr: string) => {
