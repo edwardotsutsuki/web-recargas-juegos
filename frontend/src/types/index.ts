@@ -142,6 +142,7 @@ export interface CreateOrderRequest {
   playerName?: string;
   fields?: Record<string, string>;
   currency: string;
+  customPvpCents?: number;
 }
 
 export interface CreateOrderResponse {

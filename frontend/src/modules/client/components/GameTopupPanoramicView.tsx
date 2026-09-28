@@ -259,6 +259,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
         playerName: hasRequiredFields ? undefined : verifiedName || undefined,
         fields: hasRequiredFields ? customFields : undefined,
         currency: selectedPackage.currency || 'USD',
+        customPvpCents: selectedPvpCents,
       });
 
       const displayId = res?.orderId || res?.id || '';

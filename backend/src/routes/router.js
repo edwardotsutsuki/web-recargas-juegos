@@ -423,6 +423,17 @@ export async function handleRequest(req, res) {
 
       const idempotencyKey = req.headers['idempotency-key'];
 
+      let customPvpCents = body.customPvpCents || body.custom_pvp_cents || null;
+      if (!customPvpCents) {
+        try {
+          const userPrices = await resellerService.getCustomPrices(user.id);
+          const cp = userPrices.find((p) => p.sku === sku);
+          if (cp && cp.custom_pvp_cents) {
+            customPvpCents = cp.custom_pvp_cents;
+          }
+        } catch {}
+      }
+
       const order = await orderService.createOrder({
         userId: user.id,
         sku,
@@ -431,6 +442,7 @@ export async function handleRequest(req, res) {
           name: body.playerName,
           server: body.serverZone || body.server,
           fields: body.fields || null,
+          custom_pvp_cents: customPvpCents ? Number(customPvpCents) : null,
         },
         currency: body.currency || 'USD',
         idempotencyKey,

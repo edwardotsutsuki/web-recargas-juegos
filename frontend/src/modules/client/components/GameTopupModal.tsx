@@ -252,6 +252,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
         playerName: hasRequiredFields ? undefined : verifiedName || undefined,
         fields: hasRequiredFields ? customFields : undefined,
         currency: selectedPackage.currency,
+        customPvpCents: customPricesMap[selectedPackage.sku] || Math.round(selectedPackage.price_cents * 1.15),
       });
 
       // Refrescar inmediatamente el saldo de la billetera en la interfaz

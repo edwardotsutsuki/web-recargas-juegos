@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Order } from '../../../types';
+import { Order, CustomPrice } from '../../../types';
 import { ordersService } from '../../../services/api/orders.service';
+import { resellerService } from '../../../services/api/reseller.service';
 import { Badge } from '../../../components/atoms/Badge';
-import { PriceDisplay } from '../../../components/molecules/PriceDisplay';
 import { useUIStore } from '../../../store/useUIStore';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
@@ -31,6 +31,7 @@ export const OrdersHistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const { isCashier, operatorName, storeSlug } = useAuthStore();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [customPricesMap, setCustomPricesMap] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
   const [expandedInstructions, setExpandedInstructions] = useState<Record<string, boolean>>({});
@@ -46,18 +47,29 @@ export const OrdersHistoryPage: React.FC = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
-    async function loadOrders() {
+    async function loadData() {
       setIsLoading(true);
       try {
-        const data = await ordersService.getMyOrders();
-        setOrders(data);
+        const [ordersData, pricesData] = await Promise.all([
+          ordersService.getMyOrders(),
+          resellerService.getCustomPrices().catch(() => [] as CustomPrice[]),
+        ]);
+        setOrders(ordersData);
+
+        if (Array.isArray(pricesData) && pricesData.length > 0) {
+          const map: Record<string, number> = {};
+          for (const cp of pricesData) {
+            map[cp.sku] = cp.custom_pvp_cents;
+          }
+          setCustomPricesMap(map);
+        }
       } catch (err) {
-        console.error('Error cargando historial de pedidos:', err);
+        console.error('Error cargando historial de pedidos y precios:', err);
       } finally {
         setIsLoading(false);
       }
     }
-    loadOrders();
+    loadData();
   }, []);
 
   const handleCopyCode = (code: string, orderId: string) => {
@@ -67,7 +79,22 @@ export const OrdersHistoryPage: React.FC = () => {
     setTimeout(() => setCopiedCodeId(null), 2500);
   };
 
+  // Cálculo preciso del PVP (Precio de Venta al Cliente)
+  const getOrderPvpDollars = (order: Order): number => {
+    // 1. Si la orden tiene registrado el precio de venta final (PVP) guardado en su emisión
+    if (order.custom_pvp_cents && order.custom_pvp_cents > 0) {
+      return order.custom_pvp_cents / 100;
+    }
+    // 2. Si el revendedor tiene configurado un PVP para este paquete/sku
+    if (order.product_id && customPricesMap[order.product_id]) {
+      return customPricesMap[order.product_id] / 100;
+    }
+    // 3. Margen sugerido de venta (+15%)
+    return Math.round(order.amount_cents * 1.15) / 100;
+  };
+
   const handleDirectPrint = (order: Order) => {
+    const pvpDollars = getOrderPvpDollars(order);
     const ticketData: ThermalTicketData = {
       orderId: order.id,
       game: order.game,
@@ -77,7 +104,8 @@ export const OrdersHistoryPage: React.FC = () => {
       playerServer: order.player_server,
       digitalCode: order.digital_code,
       redeemInstructions: order.redeem_instructions,
-      priceDollars: order.amount_cents / 100,
+      priceDollars: pvpDollars,
+      currency: order.currency || 'USD',
       operatorName: order.operator_name || operatorName,
       storeName: storeSlug ? `LOCAL: ${storeSlug.toUpperCase()}` : 'RECARGAS JUEGOS PRO',
       createdAt: order.created_at,
@@ -89,6 +117,7 @@ export const OrdersHistoryPage: React.FC = () => {
   };
 
   const handleOpenPreview = (order: Order) => {
+    const pvpDollars = getOrderPvpDollars(order);
     const ticketData: ThermalTicketData = {
       orderId: order.id,
       game: order.game,
@@ -98,7 +127,8 @@ export const OrdersHistoryPage: React.FC = () => {
       playerServer: order.player_server,
       digitalCode: order.digital_code,
       redeemInstructions: order.redeem_instructions,
-      priceDollars: order.amount_cents / 100,
+      priceDollars: pvpDollars,
+      currency: order.currency || 'USD',
       operatorName: order.operator_name || operatorName,
       storeName: storeSlug ? `LOCAL: ${storeSlug.toUpperCase()}` : 'RECARGAS JUEGOS PRO',
       createdAt: order.created_at,
@@ -391,12 +421,19 @@ export const OrdersHistoryPage: React.FC = () => {
 
                 {/* Derecha: Código Digital / Precio / Botones de Impresión */}
                 <div className="flex flex-col md:items-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
-                  <PriceDisplay
-                    cents={order.amount_cents}
-                    currency={order.currency}
-                    size="lg"
-                    className="text-slate-900 dark:text-white font-black font-mono"
-                  />
+                  <div className="text-left md:text-right space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                      Cobrado al Cliente (PVP)
+                    </span>
+                    <span className="text-base sm:text-lg font-black font-mono text-cyan-600 dark:text-cyan-400 block">
+                      ${getOrderPvpDollars(order).toFixed(2)} {order.currency || 'USD'}
+                    </span>
+                    {!isCashier && (
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-mono">
+                        Costo: ${(order.amount_cents / 100).toFixed(2)} &bull; Ganancia: +${(getOrderPvpDollars(order) - order.amount_cents / 100).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
 
                   {/* Código digital si aplica */}
                   {order.digital_code && (

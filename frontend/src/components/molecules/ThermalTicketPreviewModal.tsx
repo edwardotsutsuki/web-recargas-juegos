@@ -157,7 +157,7 @@ export const ThermalTicketPreviewModal: React.FC<ThermalTicketPreviewModalProps>
 
           {/* Total */}
           <div className="flex justify-between items-baseline text-sm font-black">
-            <span>TOTAL:</span>
+            <span>TOTAL COBRADO:</span>
             <span className="text-base font-black">${formattedPrice} USD</span>
           </div>
 
