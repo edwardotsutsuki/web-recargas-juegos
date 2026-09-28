@@ -117,6 +117,8 @@ export interface Order {
   failure_code?: string | null;
   digital_code?: string;
   redeem_instructions?: string | null;
+  operator_name?: string | null;
+  custom_pvp_cents?: number;
   created_at: string;
 }
 

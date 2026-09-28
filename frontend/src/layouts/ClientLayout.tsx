@@ -19,9 +19,9 @@ export const ClientLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Si es cajero, confinarlo estrictamente a la pantalla de enviar recargas (/catalog)
+  // Si es cajero, confinarlo a la pantalla de ventas (/catalog) y a sus tickets/pedidos (/orders)
   useEffect(() => {
-    if (isCashier && location.pathname !== '/catalog') {
+    if (isCashier && location.pathname !== '/catalog' && location.pathname !== '/orders') {
       navigate('/catalog', { replace: true });
     }
   }, [isCashier, location.pathname, navigate]);

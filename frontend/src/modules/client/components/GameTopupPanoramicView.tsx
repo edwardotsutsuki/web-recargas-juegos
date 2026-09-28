@@ -30,7 +30,13 @@ import {
   Share2,
   Save,
   X,
+  Printer,
 } from 'lucide-react';
+import {
+  ThermalTicketData,
+  thermalTicketService,
+} from '../../../services/thermalTicketService';
+import { ThermalTicketPreviewModal } from '../../../components/molecules/ThermalTicketPreviewModal';
 
 interface GameTopupPanoramicViewProps {
   gameId: string;
@@ -45,10 +51,13 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   circuitBreakerActive = false,
   circuitBreakerMessage,
 }) => {
-  const { role, user } = useAuthStore();
+  const { role, user, isCashier, operatorName, storeSlug } = useAuthStore();
   const { wallet, fetchWallet } = useWalletStore();
   const { addItem } = useCartStore();
   const { isCashierMode } = useCashierStore();
+
+  const [recentTicketData, setRecentTicketData] = useState<ThermalTicketData | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const [game, setGame] = useState<GameDetail | null>(null);
   const [isLoadingGame, setIsLoadingGame] = useState(true);
@@ -257,6 +266,46 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
         `¡Orden #${displayId.slice(0, 8)} generada exitosamente! Tu recarga está siendo procesada en vivo.`
       );
       fetchWallet();
+
+      const ticketInfo: ThermalTicketData = {
+        orderId: displayId,
+        productName: selectedPackage.name,
+        gameName: game.name,
+        priceDollars: selectedPvpCents / 100,
+        currency: selectedPackage.currency || 'USD',
+        playerId: !hasRequiredFields ? playerId.trim() || null : null,
+        playerName: !hasRequiredFields ? verifiedName || null : null,
+        playerServer: hasRequiredFields ? null : serverZone.trim() || null,
+        operatorName: isCashierMode || isCashier ? (operatorName || 'Cajero') : (user?.fullName || 'Tienda'),
+        storeName: storeSlug ? `LOCAL ${storeSlug.toUpperCase()}` : 'RECARGAS JUEGOS PRO',
+        digitalCode: res?.digital_code || null,
+        redeemInstructions: selectedPackage.redeem_instructions || null,
+        createdAt: new Date().toISOString(),
+        isReprint: false,
+      };
+      setRecentTicketData(ticketInfo);
+
+      // Si el proveedor genera el PIN de forma asíncrona, consultar el estado en unos segundos
+      if (displayId) {
+        setTimeout(async () => {
+          try {
+            const updated = await ordersService.getOrderById(displayId);
+            if (updated && updated.digital_code) {
+              setRecentTicketData((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      digitalCode: updated.digital_code || null,
+                      redeemInstructions: updated.redeem_instructions || prev.redeemInstructions,
+                    }
+                  : null
+              );
+            }
+          } catch {
+            // Silencioso
+          }
+        }, 2200);
+      }
     } catch (err: any) {
       setOrderErrorMsg(
         err?.message || 'No se pudo procesar la recarga. Verifica tu saldo e inténtalo de nuevo.'
@@ -415,24 +464,47 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
               )}
             </div>
 
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(
-                `🎮 *COMPROBANTE DE RECARGA EXITOSA* 🎮\n\n` +
-                `🕹️ *Juego:* ${game.name}\n` +
-                `💎 *Paquete:* ${selectedPackage?.name}\n` +
-                (playerId ? `👤 *ID Jugador:* ${playerId}\n` : '') +
-                (verifiedName ? `🏷️ *Nombre:* ${verifiedName}\n` : '') +
-                `💵 *Total Pagado:* $${(selectedPvpCents / 100).toFixed(2)} USD\n` +
-                `⚡ *Estado:* ¡Recarga Completada y Entregada con Éxito!\n\n` +
-                `¡Gracias por tu compra!`
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              <span>Enviar Comprobante WhatsApp al Cliente</span>
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (recentTicketData) {
+                    thermalTicketService.printThermalTicket(recentTicketData);
+                  }
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Imprimir Ticket (80mm)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/60 dark:hover:bg-emerald-900 text-emerald-900 dark:text-emerald-200 text-xs font-bold transition-all border border-emerald-300 dark:border-emerald-600/50 cursor-pointer active:scale-95"
+              >
+                <span>Ver Ticket</span>
+              </button>
+
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  `🎮 *COMPROBANTE DE RECARGA EXITOSA* 🎮\n\n` +
+                  `🕹️ *Juego:* ${game.name}\n` +
+                  `💎 *Paquete:* ${selectedPackage?.name}\n` +
+                  (playerId ? `👤 *ID Jugador:* ${playerId}\n` : '') +
+                  (verifiedName ? `🏷️ *Nombre:* ${verifiedName}\n` : '') +
+                  `💵 *Total Pagado:* $${(selectedPvpCents / 100).toFixed(2)} USD\n` +
+                  `⚡ *Estado:* ¡Recarga Completada y Entregada con Éxito!\n\n` +
+                  `¡Gracias por tu compra!`
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>WhatsApp</span>
+              </a>
+            </div>
           </div>
         </div>
       )}
@@ -950,6 +1022,13 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal de Previsualización e Impresión de Ticket Térmico (80mm) */}
+      <ThermalTicketPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        ticketData={recentTicketData}
+      />
     </div>
   );
 };

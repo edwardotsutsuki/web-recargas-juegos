@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Gamepad2, Wallet, RefreshCw, ShoppingBag, Plus, LogOut, ShieldCheck, Lock, Sun, Moon } from 'lucide-react';
+import { Gamepad2, Wallet, RefreshCw, ShoppingBag, Plus, LogOut, ShieldCheck, Lock, Sun, Moon, Printer } from 'lucide-react';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { useCartStore } from '../../../store/useCartStore';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useCashierStore } from '../../../store/useCashierStore';
 import { useThemeStore } from '../../../store/useThemeStore';
 import { PriceDisplay } from '../../../components/molecules/PriceDisplay';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface PartnerTopBarProps {
   onOpenSidebar?: () => void;
@@ -14,6 +14,7 @@ interface PartnerTopBarProps {
 
 export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { wallet, isLoading: isWalletLoading, fetchWallet } = useWalletStore();
   const { items, toggleCart } = useCartStore();
   const { logout, operatorName, isCashier, storeSlug } = useAuthStore();
@@ -115,6 +116,19 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
                 {totalCartCount}
               </span>
             )}
+          </button>
+
+          {/* Botón Mis Ventas & Tickets Térmicos */}
+          <button
+            type="button"
+            onClick={() => navigate(location.pathname === '/orders' ? '/catalog' : '/orders')}
+            title="Ver mis ventas y reimprimir tickets térmicos de 80mm"
+            className="px-3 py-2 rounded-xl bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-950/60 dark:hover:bg-cyan-900/80 border border-cyan-200 dark:border-cyan-500/40 text-cyan-800 dark:text-cyan-300 hover:text-cyan-950 dark:hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+          >
+            <Printer className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+            <span className="font-['Rajdhani'] uppercase tracking-wider font-bold">
+              {location.pathname === '/orders' ? 'Catálogo' : 'Mis Ventas'}
+            </span>
           </button>
 
           {/* Botón Prominente: Cerrar Turno y Salir al Terminal POS */}
