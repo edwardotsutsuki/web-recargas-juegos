@@ -316,14 +316,14 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
   return (
     <>
       {/* ========================================================================= */}
-      {/* VISTA MÓVIL (md:hidden): Pantalla Completa Estilo Proveedor (Imagen 2)    */}
+      {/* VISTA MÓVIL (md:hidden): Pantalla Completa Estilo Proveedor               */}
       {/* ========================================================================= */}
-      <div className="md:hidden fixed inset-0 z-50 bg-[#F8FAFC] text-slate-800 flex flex-col overflow-hidden animate-fade-in">
+      <div className="md:hidden fixed inset-0 z-50 bg-slate-50 dark:bg-[#080c14] text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden animate-fade-in">
         {/* Barra Superior Móvil */}
-        <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-2xs shrink-0">
+        <div className="bg-white dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between shadow-2xs shrink-0">
           <button
             onClick={onClose}
-            className="flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-slate-900 active:scale-95 transition-transform"
+            className="flex items-center gap-1 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4 text-slate-500" />
             <span>Elegir paquete</span>
@@ -334,15 +334,15 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
               <img
                 src={game.image_url}
                 alt={game.name}
-                className="w-6 h-6 rounded-lg object-cover border border-slate-100"
+                className="w-6 h-6 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
               />
-              <span className="font-extrabold text-xs text-slate-900 truncate max-w-[120px]">
+              <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate max-w-[120px]">
                 {game.name}
               </span>
             </div>
           )}
 
-          <div className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-black">
+          <div className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-black">
             $ {(wallet.available_balance_cents / 100).toFixed(2)}
           </div>
         </div>
@@ -352,20 +352,20 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
           {isLoadingGame || !game ? (
             <div className="py-20 text-center space-y-3">
               <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs text-slate-500">Cargando paquetes en vivo...</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Cargando paquetes en vivo...</p>
             </div>
           ) : (
             <>
               {/* Notificación de Éxito Móvil */}
               {orderSuccessMsg && (
-                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs text-emerald-800 font-bold shadow-xs">
+                <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-500/40 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-200 font-bold shadow-xs">
                   <div className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>{orderSuccessMsg}</span>
                   </div>
                   <button
                     onClick={onClose}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-bold"
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold cursor-pointer"
                   >
                     OK
                   </button>
@@ -374,8 +374,8 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
 
               {/* Notificación de Error Móvil */}
               {orderErrorMsg && (
-                <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 flex items-center gap-2.5 text-xs text-red-800 shadow-xs">
-                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <div className="p-3.5 rounded-2xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-500/40 flex items-center gap-2.5 text-xs text-red-800 dark:text-red-200 shadow-xs">
+                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
                   <span>{orderErrorMsg}</span>
                 </div>
               )}
@@ -388,10 +388,10 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                       key={reg.id}
                       type="button"
                       onClick={() => handleSelectRegion(reg.id)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 ${
                         selectedRegion === reg.id
-                          ? 'bg-indigo-600 text-white shadow-xs'
-                          : 'bg-white border border-slate-200 text-slate-700'
+                          ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/40 scale-[1.02]'
+                          : 'bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 shadow-2xs'
                       }`}
                     >
                       {reg.label}
@@ -511,7 +511,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
               {/* Categoría: DIAMANTES / MONEDAS (Cuadrícula 2 Columnas Móvil) */}
               {diamondPackages.length > 0 && (
                 <div className="space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block px-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block px-1">
                     {subscriptionPackages.length > 0 ? (game.id === 'bs' ? 'Gemas' : game.id === 'fn' ? 'Pavos' : 'Diamantes y Monedas') : 'Paquetes Disponibles'}
                   </span>
                   <div className="grid grid-cols-2 gap-2.5">
@@ -530,12 +530,12 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                           type="button"
                           disabled={!isAvailable}
                           onClick={() => isAvailable && setSelectedPackage(pkg)}
-                          className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all min-h-[82px] active:scale-[0.98] ${
+                          className={`gamer-card p-3 rounded-2xl border text-left flex flex-col justify-between transition-all min-h-[82px] ${
                             !isAvailable
-                              ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed'
+                              ? 'opacity-40 bg-slate-100 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 cursor-not-allowed'
                               : isSelected
-                              ? 'border-indigo-600 bg-[#f0edff] shadow-xs ring-2 ring-indigo-500/80'
-                              : 'border-slate-200 bg-white hover:border-slate-300 shadow-2xs'
+                              ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50/90 dark:bg-indigo-950/60 shadow-xs ring-2 ring-indigo-500/80'
+                              : 'border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/70 hover:border-indigo-300 dark:hover:border-slate-700 shadow-2xs'
                           }`}
                         >
                           <div className="space-y-1">
@@ -544,7 +544,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                                 Más pedido
                               </span>
                             )}
-                            <span className="text-xs font-extrabold text-slate-900 line-clamp-1 block">
+                            <span className="text-xs font-extrabold text-slate-900 dark:text-white line-clamp-1 block">
                               {pkg.name}
                             </span>
                           </div>
@@ -552,27 +552,27 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                           <div className="mt-2">
                             {isCashierMode ? (
                               <div>
-                                <span className="text-[10px] text-slate-500 uppercase font-bold block">
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold block">
                                   Precio Cliente
                                 </span>
-                                <span className="text-sm font-black text-indigo-600 block">
+                                <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 block font-mono">
                                   $ {(resellerPvpCents / 100).toFixed(2)}
                                 </span>
                               </div>
                             ) : (
                               <div>
                                 <div className="flex items-baseline justify-between">
-                                  <span className="text-sm font-black text-slate-900 block">
+                                  <span className="text-sm font-black text-slate-900 dark:text-white block font-mono">
                                     $ {(resellerPvpCents / 100).toFixed(2)}
                                   </span>
                                   {resellerProfitCents > 0 && (
-                                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded">
+                                    <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/60">
                                       +{marginPercent}%
                                     </span>
                                   )}
                                 </div>
-                                <span className="text-[10px] text-slate-500 font-medium block truncate">
-                                  Costo: ${(platformCostCents / 100).toFixed(2)} · <span className="text-emerald-600 font-bold">+${(resellerProfitCents / 100).toFixed(2)}</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block truncate">
+                                  Costo: ${(platformCostCents / 100).toFixed(2)} · <span className="text-emerald-600 dark:text-emerald-400 font-bold">+${(resellerProfitCents / 100).toFixed(2)}</span>
                                 </span>
                               </div>
                             )}
@@ -587,7 +587,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
               {/* Categoría: PASES Y SUSCRIPCIONES (Cuadrícula 2 Columnas Móvil) */}
               {subscriptionPackages.length > 0 && (
                 <div className="space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block px-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block px-1">
                     Pases y Suscripciones
                   </span>
                   <div className="grid grid-cols-2 gap-2.5">
@@ -606,12 +606,12 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                           type="button"
                           disabled={!isAvailable}
                           onClick={() => isAvailable && setSelectedPackage(pkg)}
-                          className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all min-h-[82px] active:scale-[0.98] ${
+                          className={`gamer-card p-3 rounded-2xl border text-left flex flex-col justify-between transition-all min-h-[82px] ${
                             !isAvailable
-                              ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed'
+                              ? 'opacity-40 bg-slate-100 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 cursor-not-allowed'
                               : isSelected
-                              ? 'border-indigo-600 bg-[#f0edff] shadow-xs ring-2 ring-indigo-500/80'
-                              : 'border-slate-200 bg-white hover:border-slate-300 shadow-2xs'
+                              ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50/90 dark:bg-indigo-950/60 shadow-xs ring-2 ring-indigo-500/80'
+                              : 'border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/70 hover:border-indigo-300 dark:hover:border-slate-700 shadow-2xs'
                           }`}
                         >
                           <div className="space-y-1">
@@ -620,7 +620,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                                 Más pedido
                               </span>
                             )}
-                            <span className="text-xs font-extrabold text-slate-900 line-clamp-1 block">
+                            <span className="text-xs font-extrabold text-slate-900 dark:text-white line-clamp-1 block">
                               {pkg.name} 💎
                             </span>
                           </div>
@@ -628,27 +628,27 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                           <div className="mt-2">
                             {isCashierMode ? (
                               <div>
-                                <span className="text-[10px] text-slate-500 uppercase font-bold block">
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold block">
                                   Precio Cliente
                                 </span>
-                                <span className="text-sm font-black text-indigo-600 block">
+                                <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 block font-mono">
                                   $ {(resellerPvpCents / 100).toFixed(2)}
                                 </span>
                               </div>
                             ) : (
                               <div>
                                 <div className="flex items-baseline justify-between">
-                                  <span className="text-sm font-black text-slate-900 block">
+                                  <span className="text-sm font-black text-slate-900 dark:text-white block font-mono">
                                     $ {(resellerPvpCents / 100).toFixed(2)}
                                   </span>
                                   {resellerProfitCents > 0 && (
-                                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded">
+                                    <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/60">
                                       +{marginPercent}%
                                     </span>
                                   )}
                                 </div>
-                                <span className="text-[10px] text-slate-500 font-medium block truncate">
-                                  Costo: ${(platformCostCents / 100).toFixed(2)} · <span className="text-emerald-600 font-bold">+${(resellerProfitCents / 100).toFixed(2)}</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block truncate">
+                                  Costo: ${(platformCostCents / 100).toFixed(2)} · <span className="text-emerald-600 dark:text-emerald-400 font-bold">+${(resellerProfitCents / 100).toFixed(2)}</span>
                                 </span>
                               </div>
                             )}
@@ -665,52 +665,52 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
 
         {/* Barra Inferior Fija de Resumen y Compra (Móvil) */}
         {game && (
-          <div className="bg-white border-t border-slate-200 p-4 space-y-2.5 shadow-lg shrink-0">
+          <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 space-y-2.5 shadow-lg shrink-0">
             {/* Warning si falta saldo */}
             {!isSufficientFunds && selectedPackage && !circuitBreakerActive && (
-              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center gap-1.5">
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300 text-xs font-medium flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>Te faltan ${missingDollars} para vender este paquete</span>
               </div>
             )}
 
             {/* Pausa preventiva alerta */}
             {circuitBreakerActive && (
-              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300 text-xs font-medium flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>Reposición de inventario con proveedor en curso.</span>
               </div>
             )}
 
             {/* Resumen de orden */}
             {selectedPackage && (
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1 text-xs">
-                <div className="flex items-center justify-between text-slate-600">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-1 text-xs">
+                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                   <span>Paquete</span>
-                  <span className="font-bold text-slate-900">{selectedPackage.name}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{selectedPackage.name}</span>
                 </div>
                 {isCashierMode ? (
-                  <div className="flex items-center justify-between text-slate-500 text-[11px]">
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[11px]">
                     <span>Estado de Recarga</span>
-                    <span className={`font-bold font-mono ${isSufficientFunds ? 'text-emerald-600' : 'text-red-500'}`}>
+                    <span className={`font-bold font-mono ${isSufficientFunds ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
                       {isSufficientFunds ? '✓ Saldo Operativo Disponible' : '⚠ Saldo Insuficiente'}
                     </span>
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center justify-between text-slate-500 text-[11px]">
+                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[11px]">
                       <span>Saldo actual</span>
-                      <span>$ {(wallet.available_balance_cents / 100).toFixed(2)}</span>
+                      <span className="font-mono text-slate-900 dark:text-slate-200">$ {(wallet.available_balance_cents / 100).toFixed(2)}</span>
                     </div>
-                    <div className="flex items-center justify-between text-slate-500 text-[11px]">
+                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[11px]">
                       <span>Costo Mayorista</span>
-                      <span>$ {(selectedPackage.price_cents / 100).toFixed(2)}</span>
+                      <span className="font-mono text-slate-900 dark:text-slate-200">$ {(selectedPackage.price_cents / 100).toFixed(2)}</span>
                     </div>
                   </>
                 )}
-                <div className="flex items-center justify-between pt-1 border-t border-slate-200 text-slate-900 font-extrabold text-sm">
+                <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-extrabold text-sm">
                   <span>Cobrar al cliente</span>
-                  <span className="text-indigo-600 font-black">$ {(selectedPvpCents / 100).toFixed(2)}</span>
+                  <span className="text-indigo-600 dark:text-indigo-400 font-black font-mono">$ {(selectedPvpCents / 100).toFixed(2)}</span>
                 </div>
               </div>
             )}
@@ -724,7 +724,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                     onClose();
                     navigate('/wallet/deposit');
                   }}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-[#6d5dfc] hover:bg-[#5c4ce3] text-white font-bold text-sm shadow-md active:scale-98 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-md shadow-indigo-500/25 active:scale-98 transition-all flex items-center justify-center gap-2"
                 >
                   <Wallet className="w-4 h-4" />
                   <span>Cargar saldo · faltan ${missingDollars}</span>
@@ -734,7 +734,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                   type="button"
                   onClick={handleDirectBuy}
                   disabled={!canProceed || isOrdering}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-[#6d5dfc] hover:bg-[#5c4ce3] disabled:opacity-50 text-white font-bold text-sm shadow-md active:scale-98 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 text-white font-bold text-sm shadow-md shadow-indigo-500/25 active:scale-98 transition-all flex items-center justify-center gap-2"
                 >
                   <Zap className="w-4 h-4" />
                   <span>
@@ -751,7 +751,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                 type="button"
                 onClick={handleAddToCart}
                 disabled={!selectedPackage || !isPlayerValid}
-                className="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700/80 disabled:opacity-50 active:scale-[0.98]"
               >
                 <ShoppingCart className="w-3.5 h-3.5" />
                 <span>Agregar al Carrito</span>
@@ -762,21 +762,21 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* VISTA ESCRITORIO (hidden md:flex): Modal Gamer Original Intacto           */}
+      {/* VISTA ESCRITORIO (hidden md:flex): Modal Gamer Responsivo Dual Theme      */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md items-center justify-center p-3 sm:p-6 animate-fade-in">
-      <div className="relative w-full max-w-3xl bg-[#0b0f19] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+      <div className="hidden md:flex fixed inset-0 z-50 overflow-y-auto bg-black/60 dark:bg-black/80 backdrop-blur-md items-center justify-center p-3 sm:p-6 animate-fade-in">
+      <div className="relative w-full max-w-3xl bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/60 hover:bg-slate-800 text-slate-300 hover:text-white transition-all backdrop-blur-md border border-white/10"
+          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-all backdrop-blur-md border border-white/20 active:scale-95"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header Banner */}
         {isLoadingGame || !game ? (
-          <div className="h-44 bg-slate-900 animate-pulse" />
+          <div className="h-44 bg-slate-100 dark:bg-slate-900 animate-pulse" />
         ) : (
           <div className="relative h-44 sm:h-52 w-full overflow-hidden shrink-0">
             <img
@@ -784,7 +784,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
               alt={game.name}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f19] via-[#0b0f19]/70 to-black/50" />
+            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-[#0b0f19] dark:via-[#0b0f19]/70 dark:to-black/50" />
 
             <div className="absolute bottom-4 left-5 right-12 flex items-end justify-between">
               <div className="space-y-1">
@@ -793,16 +793,16 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                     {game.category_label}
                   </Badge>
                   {game.can_verify_player && (
-                    <span className="inline-flex items-center gap-1 bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-300">
+                    <span className="inline-flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-500/40 px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
                       <ShieldCheck className="w-3 h-3" />
                       ID Verificable
                     </span>
                   )}
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-white font-['Rajdhani'] uppercase tracking-wide">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-['Rajdhani'] uppercase tracking-wide">
                   {game.name}
                 </h2>
-                <p className="text-xs text-slate-300 line-clamp-1 max-w-xl">
+                <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-1 max-w-xl">
                   {game.description}
                 </p>
               </div>
@@ -814,19 +814,19 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
         <div className="p-5 sm:p-7 overflow-y-auto space-y-6 flex-1">
           {isLoadingGame || !game ? (
             <div className="py-16 text-center space-y-3">
-              <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs text-slate-400">Cargando catálogo en vivo de {gameId}...</p>
+              <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs text-slate-500 dark:text-slate-400">Cargando catálogo en vivo de {gameId}...</p>
             </div>
           ) : (
             <>
               {/* Success Message Banner if order was placed */}
               {orderSuccessMsg && (
-                <div className="p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/50 flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-500/50 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
+                    <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <div>
-                      <h4 className="text-sm font-bold text-white">¡Recarga Procesada!</h4>
-                      <p className="text-xs text-emerald-300">{orderSuccessMsg}</p>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">¡Recarga Procesada!</h4>
+                      <p className="text-xs text-emerald-700 dark:text-emerald-300">{orderSuccessMsg}</p>
                     </div>
                   </div>
                   <Button variant="outline" size="sm" onClick={onClose}>
@@ -837,9 +837,9 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
 
               {/* Error Message Banner */}
               {orderErrorMsg && (
-                <div className="p-4 rounded-2xl bg-red-950/60 border border-red-500/50 flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
-                  <p className="text-xs text-red-200">{orderErrorMsg}</p>
+                <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/60 border border-red-300 dark:border-red-500/50 flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
+                  <p className="text-xs text-red-700 dark:text-red-200">{orderErrorMsg}</p>
                 </div>
               )}
 
@@ -849,20 +849,20 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                   <div className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">
                     1
                   </div>
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-white">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
                     {game.requires_player_id ? 'Ingresa los Datos de tu Cuenta' : 'Información de Entrega'}
                   </h3>
                 </div>
 
                 {hasRequiredFields && selectedPackage?.required_fields ? (
-                  <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 space-y-4">
                     {selectedPackage.delivery?.mode === 'human' && (
-                      <div className="p-3 rounded-xl bg-cyan-950/50 border border-cyan-500/40 flex items-center justify-between text-xs text-cyan-300">
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-cyan-950/50 border border-amber-200 dark:border-cyan-500/40 flex items-center justify-between text-xs text-amber-800 dark:text-cyan-300">
                         <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-cyan-400 shrink-0" />
+                          <Clock className="w-4 h-4 text-amber-600 dark:text-cyan-400 shrink-0" />
                           <span>Entrega Manual por Operador ({selectedPackage.delivery.hours || '10:00 - 22:00 Lima'})</span>
                         </div>
-                        <span className="text-[10px] bg-cyan-900/80 px-2 py-0.5 rounded text-cyan-200 font-semibold">Supercell ID</span>
+                        <span className="text-[10px] bg-amber-200 dark:bg-cyan-900/80 px-2 py-0.5 rounded text-amber-900 dark:text-cyan-200 font-semibold">Supercell ID</span>
                       </div>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -883,7 +883,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                     </div>
                   </div>
                 ) : game.requires_player_id ? (
-                  <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Player ID Input */}
                       <div>
@@ -922,10 +922,10 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                     </div>
 
                     {!game.can_verify_player && (
-                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-300">
-                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                         <div>
-                          <span className="font-bold block text-amber-200">Verificación de nombre no disponible</span>
+                          <span className="font-bold block text-amber-900 dark:text-amber-200">Verificación de nombre no disponible</span>
                           Revisa con atención que tu ID sea exacto antes de continuar. Este juego no permite comprobar el nombre y las recargas enviadas a cuentas equivocadas no son reembolsables.
                         </div>
                       </div>
@@ -933,7 +933,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
 
                     {/* Verification Button for verifiable games */}
                     {game.can_verify_player && (
-                      <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-slate-800/80">
+                      <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-800/80">
                         <Button
                           type="button"
                           variant={verifiedName ? 'secondary' : 'outline'}
@@ -948,15 +948,15 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
 
                         {/* Verified Nickname Chip */}
                         {verifiedName && (
-                          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs font-bold animate-fade-in shadow-glow-primary">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/90 border border-emerald-300 dark:border-emerald-500/50 text-emerald-800 dark:text-emerald-300 text-xs font-bold animate-fade-in shadow-xs">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                             <span>
                               Jugador:{' '}
-                              <span className="text-white font-extrabold text-sm tracking-wide">
+                              <span className="text-emerald-950 dark:text-white font-extrabold text-sm tracking-wide">
                                 {verifiedName}
                               </span>
                               {verifiedRegion && (
-                                <span className="ml-2 text-[10px] text-emerald-400 font-semibold px-1.5 py-0.5 rounded bg-emerald-900/60 border border-emerald-500/30">
+                                <span className="ml-2 text-[10px] text-emerald-800 dark:text-emerald-400 font-semibold px-1.5 py-0.5 rounded bg-emerald-200 dark:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-500/30">
                                   {verifiedRegion.toUpperCase()}
                                 </span>
                               )}
@@ -967,10 +967,10 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                     )}
                   </div>
                 ) : (
-                  <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 flex items-start gap-3">
-                    <Sparkles className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
-                    <div className="text-xs text-slate-300 space-y-1">
-                      <p className="font-bold text-white">Entrega de Código Digital Instantáneo</p>
+                  <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-500/30 flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-indigo-600 dark:text-cyan-400 shrink-0 mt-0.5" />
+                    <div className="text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                      <p className="font-bold text-slate-900 dark:text-white">Entrega de Código Digital Instantáneo</p>
                       <p>
                         Este producto no requiere ID de juego. Al completar la compra, recibirás un código alfanumérico oficial para canjear en la tienda de {game.name}.
                       </p>
@@ -981,23 +981,23 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
 
               {/* PASO 2: Selecciona la Recarga (Denominaciones en Cuadrícula 4 Columnas) */}
               <section className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">
                       2
                     </div>
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-white">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
                       Paquete · {game.name}
                     </h3>
-                    <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold">
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
                       {visiblePackages.length} disponibles
                     </span>
                   </div>
 
                   {/* Selector de Región / Servidor cuando aplica */}
                   {game.regions && game.regions.length > 1 && (
-                    <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/90 border border-slate-800 self-start sm:self-auto">
-                      <Globe className="w-3.5 h-3.5 text-slate-400 ml-1.5" />
+                    <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 self-start sm:self-auto">
+                      <Globe className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ml-1.5" />
                       {game.regions.map((reg) => (
                         <button
                           key={reg.id}
@@ -1005,8 +1005,8 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                           onClick={() => handleSelectRegion(reg.id)}
                           className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                             selectedRegion === reg.id
-                              ? 'bg-indigo-600 text-white shadow-glow-primary'
-                              : 'text-slate-400 hover:text-white'
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                           }`}
                         >
                           {reg.label}
@@ -1019,7 +1019,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                 {/* Subsección: DIAMANTES / MONEDAS (Cuadrícula 4 Columnas Estilo Proveedor) */}
                 {diamondPackages.length > 0 && (
                   <div className="space-y-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block px-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block px-1">
                       {subscriptionPackages.length > 0
                         ? game.id === 'bs'
                           ? 'Gemas'
@@ -1044,22 +1044,22 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                             type="button"
                             disabled={!isAvailable}
                             onClick={() => isAvailable && setSelectedPackage(pkg)}
-                            className={`relative text-left p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between min-h-[92px] ${
+                            className={`gamer-card relative text-left p-3.5 rounded-2xl border transition-all flex flex-col justify-between min-h-[92px] ${
                               !isAvailable
-                                ? 'opacity-40 bg-slate-950/80 border-slate-900 cursor-not-allowed'
+                                ? 'opacity-40 bg-slate-100 dark:bg-slate-950/80 border-slate-200 dark:border-slate-900 cursor-not-allowed'
                                 : isSelected
-                                ? 'bg-indigo-600/20 border-cyan-400 shadow-glow-primary ring-2 ring-cyan-400/40 scale-[1.02]'
-                                : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'
+                                ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50/90 dark:bg-indigo-950/40 ring-2 ring-indigo-500/80 scale-[1.02] shadow-sm'
+                                : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40 shadow-2xs'
                             }`}
                           >
                             {isSelected && isAvailable && (
-                              <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center">
+                              <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-indigo-600 dark:bg-indigo-500 text-white flex items-center justify-center">
                                 <Check className="w-3 h-3 stroke-[3]" />
                               </span>
                             )}
 
                             {!isAvailable && (
-                              <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 text-[9px] font-black uppercase">
+                              <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/30 text-[9px] font-black uppercase">
                                 Agotado
                               </span>
                             )}
@@ -1070,35 +1070,35 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                                   Más pedido
                                 </span>
                               )}
-                              <span className="text-xs font-bold text-white line-clamp-1 block">
+                              <span className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1 block">
                                 {pkg.name}
                               </span>
                             </div>
 
-                            <div className="mt-2 pt-1.5 border-t border-slate-800/60">
+                            <div className="mt-2 pt-1.5 border-t border-slate-200 dark:border-slate-800/60">
                               {isCashierMode ? (
                                 <div className="text-center">
-                                  <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold block">
                                     Precio al Cliente
                                   </span>
-                                  <span className="text-sm font-black text-cyan-300 block font-mono">
+                                  <span className="text-sm font-black text-indigo-600 dark:text-cyan-300 block font-mono">
                                     $ {(resellerPvpCents / 100).toFixed(2)} USD
                                   </span>
                                 </div>
                               ) : (
                                 <div>
                                   <div className="flex items-baseline justify-between">
-                                    <span className="text-sm font-black text-cyan-300 block">
+                                    <span className="text-sm font-black text-slate-900 dark:text-cyan-300 block font-mono">
                                       $ {(resellerPvpCents / 100).toFixed(2)}
                                     </span>
                                     {resellerProfitCents > 0 && (
-                                      <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                      <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/20">
                                         +{marginPercent}%
                                       </span>
                                     )}
                                   </div>
-                                  <span className="text-[10px] text-slate-400 font-medium block truncate">
-                                    Costo: ${(platformCostCents / 100).toFixed(2)} · <span className="text-emerald-400 font-bold">+${(resellerProfitCents / 100).toFixed(2)}</span>
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block truncate">
+                                    Costo: ${(platformCostCents / 100).toFixed(2)} · <span className="text-emerald-600 dark:text-emerald-400 font-bold">+${(resellerProfitCents / 100).toFixed(2)}</span>
                                   </span>
                                 </div>
                               )}
@@ -1113,7 +1113,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                 {/* Subsección: PASES Y SUSCRIPCIONES (Cuadrícula 4 Columnas) */}
                 {subscriptionPackages.length > 0 && (
                   <div className="space-y-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block px-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block px-1">
                       Pases y Suscripciones
                     </span>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -1132,22 +1132,22 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                             type="button"
                             disabled={!isAvailable}
                             onClick={() => isAvailable && setSelectedPackage(pkg)}
-                            className={`relative text-left p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between min-h-[92px] ${
+                            className={`gamer-card relative text-left p-3.5 rounded-2xl border transition-all flex flex-col justify-between min-h-[92px] ${
                               !isAvailable
-                                ? 'opacity-40 bg-slate-950/80 border-slate-900 cursor-not-allowed'
+                                ? 'opacity-40 bg-slate-100 dark:bg-slate-950/80 border-slate-200 dark:border-slate-900 cursor-not-allowed'
                                 : isSelected
-                                ? 'bg-indigo-600/20 border-cyan-400 shadow-glow-primary ring-2 ring-cyan-400/40 scale-[1.02]'
-                                : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'
+                                ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50/90 dark:bg-indigo-950/40 ring-2 ring-indigo-500/80 scale-[1.02] shadow-sm'
+                                : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40 shadow-2xs'
                             }`}
                           >
                             {isSelected && isAvailable && (
-                              <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center">
+                              <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-indigo-600 dark:bg-indigo-500 text-white flex items-center justify-center">
                                 <Check className="w-3 h-3 stroke-[3]" />
                               </span>
                             )}
 
                             {!isAvailable && (
-                              <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 text-[9px] font-black uppercase">
+                              <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/30 text-[9px] font-black uppercase">
                                 Agotado
                               </span>
                             )}
@@ -1158,35 +1158,35 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                                   Más pedido
                                 </span>
                               )}
-                              <span className="text-xs font-bold text-white line-clamp-1 block">
+                              <span className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1 block">
                                 {pkg.name} 💎
                               </span>
                             </div>
 
-                            <div className="mt-2 pt-1.5 border-t border-slate-800/60">
+                            <div className="mt-2 pt-1.5 border-t border-slate-200 dark:border-slate-800/60">
                               {isCashierMode ? (
                                 <div className="text-center">
-                                  <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold block">
                                     Precio al Cliente
                                   </span>
-                                  <span className="text-sm font-black text-cyan-300 block font-mono">
+                                  <span className="text-sm font-black text-indigo-600 dark:text-cyan-300 block font-mono">
                                     $ {(resellerPvpCents / 100).toFixed(2)} USD
                                   </span>
                                 </div>
                               ) : (
                                 <div>
                                   <div className="flex items-baseline justify-between">
-                                    <span className="text-sm font-black text-cyan-300 block">
+                                    <span className="text-sm font-black text-slate-900 dark:text-cyan-300 block font-mono">
                                       $ {(resellerPvpCents / 100).toFixed(2)}
                                     </span>
                                     {resellerProfitCents > 0 && (
-                                      <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                      <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/20">
                                         +{marginPercent}%
                                       </span>
                                     )}
                                   </div>
-                                  <span className="text-[10px] text-slate-400 font-medium block truncate">
-                                    Costo: ${(platformCostCents / 100).toFixed(2)} · <span className="text-emerald-400 font-bold">+${(resellerProfitCents / 100).toFixed(2)}</span>
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block truncate">
+                                    Costo: ${(platformCostCents / 100).toFixed(2)} · <span className="text-emerald-600 dark:text-emerald-400 font-bold">+${(resellerProfitCents / 100).toFixed(2)}</span>
                                   </span>
                                 </div>
                               )}
@@ -1200,18 +1200,18 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
               </section>
 
               {/* PASO 3: Saldo y Confirmación */}
-              <section className="space-y-3 pt-2 border-t border-slate-800">
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
+              <section className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
+                    <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400">
                       <Wallet className="w-5 h-5" />
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">
                         {isCashierMode ? 'Estado Operativo' : 'Saldo Virtual Disponible'}
                       </span>
                       {isCashierMode ? (
-                        <span className={`text-xs font-bold font-mono ${isSufficientFunds ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <span className={`text-xs font-bold font-mono ${isSufficientFunds ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
                           {isSufficientFunds ? '✓ Saldo Operativo Disponible' : '⚠ Saldo Insuficiente'}
                         </span>
                       ) : (
@@ -1219,32 +1219,32 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                           cents={wallet.available_balance_cents}
                           currency={wallet.currency}
                           size="md"
-                          className="text-white"
+                          className="text-slate-900 dark:text-white"
                         />
                       )}
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">
                       {isCashierMode ? 'Cobro al Cliente' : 'Precio al Cliente (PVP)'}
                     </span>
                     {selectedPackage ? (
-                      <span className="text-lg text-cyan-400 font-black font-mono">
+                      <span className="text-lg text-indigo-600 dark:text-cyan-400 font-black font-mono">
                         ${(selectedPvpCents / 100).toFixed(2)} USD
                       </span>
                     ) : (
-                      <span className="text-slate-500 text-sm">-</span>
+                      <span className="text-slate-400 text-sm">-</span>
                     )}
                   </div>
                 </div>
 
                 {/* Circuit Breaker Restocking Warning */}
                 {circuitBreakerActive && (
-                  <div className="p-3.5 rounded-xl bg-amber-950/60 border border-amber-500/50 flex items-start gap-2.5 text-xs text-amber-200 shadow-md">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-500/50 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-200 shadow-sm">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div>
-                      <strong className="block font-bold text-amber-300">Pausa Preventiva de Inventario</strong>
+                      <strong className="block font-bold text-amber-900 dark:text-amber-300">Pausa Preventiva de Inventario</strong>
                       <span>
                         {circuitBreakerMessage || 'Estamos reponiendo inventario de recargas con el proveedor central. El servicio se reactivará en breves momentos.'}
                       </span>
@@ -1254,8 +1254,8 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
 
                 {/* Insufficient Funds Warning */}
                 {!isSufficientFunds && selectedPackage && !circuitBreakerActive && (
-                  <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/40 flex items-center gap-2.5 text-xs text-amber-200">
-                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/40 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-200">
+                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                     <span>
                       Saldo insuficiente. Necesitas{' '}
                       <strong>
@@ -1272,9 +1272,9 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
 
         {/* Modal Footer Actions */}
         {game && (
-          <div className="p-4 sm:p-5 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="text-xs text-slate-400 flex items-center gap-1.5">
-              <Info className="w-4 h-4 text-slate-500 shrink-0" />
+          <div className="p-4 sm:p-5 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <Info className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
               <span>Entrega inmediata debitada de tu saldo virtual.</span>
             </div>
 

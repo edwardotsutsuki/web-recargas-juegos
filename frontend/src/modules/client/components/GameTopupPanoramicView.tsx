@@ -739,7 +739,8 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                 isLoading={isSubmitting}
                 disabled={!selectedPackage || !isPlayerValid || circuitBreakerActive}
                 onClick={handleBuyNow}
-                className="w-full text-xs font-bold shadow-glow-primary"
+                glow={!circuitBreakerActive}
+                className="w-full text-xs font-bold"
               >
                 {circuitBreakerActive ? (
                   'Pausa Preventiva'
@@ -755,7 +756,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                 type="button"
                 onClick={handleAddToCart}
                 disabled={!selectedPackage || !isPlayerValid}
-                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700/80 disabled:opacity-50"
+                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700/80 disabled:opacity-50 active:scale-[0.98]"
               >
                 <ShoppingCart className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                 <span>Agregar al Carrito</span>
@@ -813,11 +814,11 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                   onClick={() => setActiveCategoryTab('all')}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                     activeCategoryTab === 'all'
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/25 ring-1 ring-indigo-400/40'
+                      : 'bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white active:scale-95'
                   }`}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                   <span>Todos ({regionPackages.length})</span>
                 </button>
 
@@ -826,8 +827,8 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                   onClick={() => setActiveCategoryTab('diamonds')}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                     activeCategoryTab === 'diamonds'
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/25 ring-1 ring-indigo-400/40'
+                      : 'bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white active:scale-95'
                   }`}
                 >
                   <span>💎 Diamantes y Monedas ({diamondPackages.length})</span>
@@ -838,8 +839,8 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                   onClick={() => setActiveCategoryTab('passes')}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                     activeCategoryTab === 'passes'
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/25 ring-1 ring-indigo-400/40'
+                      : 'bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white active:scale-95'
                   }`}
                 >
                   <span>🎟️ Pases y Suscripciones ({subscriptionPackages.length})</span>
@@ -862,14 +863,14 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                     key={pkg.id}
                     type="button"
                     onClick={() => setSelectedPackage(pkg)}
-                    className={`relative p-3 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[96px] sm:min-h-[105px] group active:scale-[0.98] ${
+                    className={`gamer-card relative p-3 sm:p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[96px] sm:min-h-[105px] group ${
                       isSelected
-                        ? 'bg-cyan-50/90 dark:bg-indigo-950/70 border-cyan-500 dark:border-cyan-400 ring-2 ring-cyan-500/20 shadow-md dark:shadow-glow-primary'
-                        : 'bg-slate-50/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-900'
+                        ? 'bg-indigo-50/90 dark:bg-indigo-950/70 border-indigo-600 dark:border-indigo-500 ring-2 ring-indigo-500/80 shadow-md shadow-indigo-500/10'
+                        : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800/80 hover:border-indigo-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40 shadow-2xs'
                     }`}
                   >
                     {isPopular && (
-                      <span className="absolute -top-2 left-2.5 px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-xs">
+                      <span className="absolute -top-2 left-2.5 px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-xs">
                         Más pedido
                       </span>
                     )}
@@ -879,8 +880,8 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                         {pkg.name}
                       </span>
                       {isSelected && (
-                        <div className="w-4 h-4 rounded-full bg-cyan-500 dark:bg-cyan-400 flex items-center justify-center shrink-0 shadow-xs">
-                          <Check className="w-2.5 h-2.5 text-white dark:text-slate-950 stroke-[3]" />
+                        <div className="w-4 h-4 rounded-full bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center shrink-0 shadow-xs">
+                          <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
                         </div>
                       )}
                     </div>
@@ -890,7 +891,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">
                           PVP
                         </span>
-                        <div className="text-base sm:text-lg font-black text-cyan-600 dark:text-cyan-300 font-mono">
+                        <div className="text-base sm:text-lg font-black text-indigo-600 dark:text-cyan-300 font-mono">
                           ${(resellerPvpCents / 100).toFixed(2)} <span className="text-[10px] font-bold">USD</span>
                         </div>
                       </div>
@@ -904,15 +905,15 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                             </div>
                           </div>
                           <div className="text-right">
-                            <span className="text-[9px] text-indigo-600 dark:text-indigo-300 font-bold block">Tu PVP:</span>
-                            <div className="text-xs font-black text-cyan-600 dark:text-cyan-300 font-mono">
+                            <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-bold block">Tu PVP:</span>
+                            <div className="text-xs font-black text-indigo-600 dark:text-cyan-300 font-mono">
                               ${(resellerPvpCents / 100).toFixed(2)}
                             </div>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between gap-1 pt-0.5">
-                          <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/20 truncate">
+                          <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/20 truncate">
                             +{marginPercent}% (+${(resellerProfitCents / 100).toFixed(2)})
                           </span>
 
@@ -924,7 +925,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                               setTempPvpInput((resellerPvpCents / 100).toFixed(2));
                             }}
                             title="Personalizar tu precio de venta final (PVP)"
-                            className="p-1 rounded-md bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors shrink-0"
+                            className="p-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-300 transition-colors shrink-0"
                           >
                             <Edit3 className="w-3 h-3" />
                           </button>

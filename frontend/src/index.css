@@ -55,12 +55,48 @@ html.light ::-webkit-scrollbar-track {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+html.light .glass-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 4px 15px -2px rgba(0, 0, 0, 0.05);
+}
+
 .glass-panel-glow {
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(99, 102, 241, 0.25);
   box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.15);
+}
+
+html.light .glass-panel-glow {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 20px -3px rgba(99, 102, 241, 0.15);
+}
+
+/* Microinteracciones gamer fluidas */
+.gamer-card {
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.gamer-card:hover {
+  transform: translateY(-2px);
+}
+
+.gamer-card:active {
+  transform: scale(0.98);
+}
+
+.gamer-tab-active {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
+  border: 1px solid rgba(165, 180, 252, 0.4);
 }
 
 /* Mobile & Native App Optimization (Scoped to mobile & native without affecting desktop) */
