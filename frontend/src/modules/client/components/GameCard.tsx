@@ -1,7 +1,6 @@
 import React from 'react';
 import { GameSummary } from '../../../types';
 import { Badge } from '../../../components/atoms/Badge';
-import { PriceDisplay } from '../../../components/molecules/PriceDisplay';
 import { ShieldCheck, Zap, Sparkles, Layers } from 'lucide-react';
 
 interface GameCardProps {
@@ -13,7 +12,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game, onSelect }) => {
   return (
     <div
       onClick={() => onSelect(game)}
-      className="group relative cursor-pointer glass-panel rounded-2xl overflow-hidden border border-slate-800/80 hover:border-indigo-500/50 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1.5 hover:shadow-glow-primary"
+      className="group relative cursor-pointer bg-white dark:bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800/80 hover:border-indigo-500/50 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1.5 shadow-sm dark:hover:shadow-glow-primary"
     >
       {/* Cover Image & Badges */}
       <div className="relative h-48 w-full overflow-hidden bg-slate-900">
@@ -70,30 +69,22 @@ export const GameCard: React.FC<GameCardProps> = ({ game, onSelect }) => {
       {/* Content Info */}
       <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
         <div>
-          <h3 className="text-base font-black text-white font-['Rajdhani'] uppercase tracking-wide group-hover:text-cyan-300 transition-colors line-clamp-1">
+          <h3 className="text-base font-black text-slate-900 dark:text-white font-['Rajdhani'] uppercase tracking-wide group-hover:text-indigo-600 dark:group-hover:text-cyan-300 transition-colors line-clamp-1">
             {game.name}
           </h3>
-          <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+          <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mt-1 line-clamp-2 leading-relaxed">
             {game.description}
           </p>
         </div>
 
         {/* Pricing & CTA */}
-        <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">
-              Desde
-            </span>
-            <PriceDisplay
-              cents={game.min_price_cents}
-              currency={game.currency}
-              size="md"
-              className="text-white group-hover:text-cyan-400 transition-colors"
-            />
-          </div>
+        <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+            {game.packages_count} {game.packages_count === 1 ? 'paquete' : 'paquetes'}
+          </span>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/20 group-hover:bg-indigo-600 border border-indigo-500/30 text-indigo-300 group-hover:text-white text-xs font-bold transition-all">
-            <Zap className="w-3.5 h-3.5 text-cyan-400 group-hover:text-white" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 group-hover:bg-indigo-600 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 group-hover:text-white text-xs font-bold transition-all shadow-xs">
+            <Zap className="w-3.5 h-3.5 text-indigo-600 dark:text-cyan-400 group-hover:text-white" />
             Recargar
           </div>
         </div>

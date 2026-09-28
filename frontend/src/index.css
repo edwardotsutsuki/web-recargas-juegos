@@ -6,12 +6,22 @@
   color-scheme: dark;
 }
 
+html.light {
+  color-scheme: light;
+}
+
 body {
   margin: 0;
   background-color: #080c14;
   color: #f1f5f9;
   font-family: 'Outfit', sans-serif;
   overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html.light body {
+  background-color: #f1f5f9;
+  color: #0f172a;
 }
 
 /* Custom gamer scrollbar */
@@ -22,6 +32,10 @@ body {
 
 ::-webkit-scrollbar-track {
   background: #080c14;
+}
+
+html.light ::-webkit-scrollbar-track {
+  background: #e2e8f0;
 }
 
 ::-webkit-scrollbar-thumb {

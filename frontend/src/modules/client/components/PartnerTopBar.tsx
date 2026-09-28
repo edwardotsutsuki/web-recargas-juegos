@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Gamepad2, Wallet, RefreshCw, ShoppingBag, Plus, LogOut, ShieldCheck, Lock } from 'lucide-react';
+import { Gamepad2, Wallet, RefreshCw, ShoppingBag, Plus, LogOut, ShieldCheck, Lock, Sun, Moon } from 'lucide-react';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { useCartStore } from '../../../store/useCartStore';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useCashierStore } from '../../../store/useCashierStore';
+import { useThemeStore } from '../../../store/useThemeStore';
 import { PriceDisplay } from '../../../components/molecules/PriceDisplay';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,6 +18,7 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
   const { items, toggleCart } = useCartStore();
   const { logout, operatorName, isCashier, storeSlug } = useAuthStore();
   const { isCashierMode, openPinModal } = useCashierStore();
+  const { theme, toggleTheme } = useThemeStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const totalCartCount = items.reduce((acc, item) => acc + item.quantity, 0);
@@ -49,7 +51,7 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
   // VISTA DEDICADA PARA EL CAJERO (Sin menús, sin botón PIN engañoso, botón de Cerrar Turno prominente)
   if (isCashier) {
     return (
-      <header className="sticky top-0 z-30 w-full h-16 bg-[#080d18]/95 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-30 w-full h-16 bg-white/95 dark:bg-[#080d18]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 flex items-center justify-between gap-4 transition-colors">
         {/* Identificador de Local y Cajero */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-glow-primary shrink-0">
@@ -57,44 +59,59 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-black text-white font-['Rajdhani'] uppercase tracking-wide truncate">
+              <span className="text-xs font-black text-slate-900 dark:text-white font-['Rajdhani'] uppercase tracking-wide truncate">
                 {storeSlug ? `Local: ${storeSlug.toUpperCase()}` : 'Terminal POS'}
               </span>
-              <span className="px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-[9px] font-black text-emerald-300">
+              <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-500/40 text-[9px] font-black text-emerald-800 dark:text-emerald-300">
                 MOSTRADOR
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
               <span>Cajero:</span>
-              <span className="text-cyan-400 font-bold capitalize">{operatorName || 'Operador'}</span>
+              <span className="text-indigo-600 dark:text-cyan-400 font-bold capitalize">{operatorName || 'Operador'}</span>
             </div>
           </div>
         </div>
 
-        {/* Acciones de Cajero: Estado Operativo + Carrito + Botón Cerrar Turno */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* Acciones de Cajero: Modo Claro/Oscuro + Estado Operativo + Carrito + Botón Cerrar Turno */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Botón Alternar Tema Claro / Oscuro */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
+            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-amber-400 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs cursor-pointer active:scale-95"
+            aria-label="Alternar tema"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-600" />
+            )}
+          </button>
+
           {/* Widget de Estado Operativo */}
-          <div className="hidden sm:flex items-center gap-2 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5">
-            <div className="p-1 rounded-lg bg-emerald-500/10 text-emerald-400">
+          <div className="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5">
+            <div className="p-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <Wallet className="w-3.5 h-3.5" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider leading-none">
+              <span className="text-[9px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider leading-none">
                 Estado Sistema
               </span>
-              <span className="text-emerald-400 font-bold text-xs mt-0.5">Operativo 24/7</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs mt-0.5">Operativo 24/7</span>
             </div>
           </div>
 
           {/* Botón Carrito de Recargas */}
           <button
             onClick={toggleCart}
-            className="relative p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-colors"
+            className="relative p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700 transition-colors cursor-pointer"
             aria-label="Ver carrito"
           >
             <ShoppingBag className="w-4 h-4" />
             {totalCartCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-cyan-500 text-slate-950 text-xs font-black flex items-center justify-center shadow-glow-accent animate-pulse">
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-indigo-600 dark:bg-cyan-500 text-white dark:text-slate-950 text-xs font-black flex items-center justify-center shadow-xs animate-pulse">
                 {totalCartCount}
               </span>
             )}
@@ -106,9 +123,9 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
             onClick={handleShiftChange}
             disabled={isLoggingOut}
             title="Cerrar turno de cajero y regresar al Terminal POS"
-            className="px-3.5 py-2 rounded-xl bg-red-950/70 hover:bg-red-900 border border-red-500/50 text-red-200 hover:text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg cursor-pointer active:scale-95 disabled:opacity-50"
+            className="px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/70 dark:hover:bg-red-900 border border-red-200 dark:border-red-500/50 text-red-700 dark:text-red-200 hover:text-red-900 dark:hover:text-white text-xs font-bold transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
           >
-            <LogOut className={`w-3.5 h-3.5 text-red-400 ${isLoggingOut ? 'animate-spin' : ''}`} />
+            <LogOut className={`w-3.5 h-3.5 text-red-500 dark:text-red-400 ${isLoggingOut ? 'animate-spin' : ''}`} />
             <span className="font-['Rajdhani'] uppercase tracking-wider font-bold">
               {isLoggingOut ? 'Cerrando...' : 'Cerrar Turno'}
             </span>
@@ -120,17 +137,17 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
 
   // VISTA COMPLETA PARA EL DUEÑO / ADMINISTRADOR
   return (
-    <header className="sticky top-0 z-30 w-full h-16 bg-[#080d18]/90 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 w-full h-16 bg-white/95 dark:bg-[#080d18]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 flex items-center justify-between gap-4 transition-colors">
       {/* Left: Brand Badge & Platform Title */}
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-glow-primary sm:hidden">
           <Gamepad2 className="w-4 h-4 text-white" />
         </div>
         <div>
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block leading-none">
+          <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider block leading-none">
             Plataforma B2B
           </span>
-          <span className="text-xs font-black text-white uppercase tracking-wide">
+          <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wide">
             Panel de Revendedor
           </span>
         </div>
@@ -209,15 +226,30 @@ export const PartnerTopBar: React.FC<PartnerTopBarProps> = () => {
           )}
         </div>
 
+        {/* Botón Alternar Tema Claro / Oscuro (Dueño) */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
+          className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-amber-400 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs cursor-pointer active:scale-95"
+          aria-label="Alternar tema"
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4 text-amber-400" />
+          ) : (
+            <Moon className="w-4 h-4 text-indigo-600" />
+          )}
+        </button>
+
         {/* Cart Drawer Button */}
         <button
           onClick={toggleCart}
-          className="relative p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-colors cursor-pointer"
+          className="relative p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700 transition-colors cursor-pointer"
           aria-label="Ver carrito"
         >
           <ShoppingBag className="w-4 h-4" />
           {totalCartCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-cyan-500 text-slate-950 text-xs font-black flex items-center justify-center shadow-glow-accent animate-pulse">
+            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-indigo-600 dark:bg-cyan-500 text-white dark:text-slate-950 text-xs font-black flex items-center justify-center shadow-xs animate-pulse">
               {totalCartCount}
             </span>
           )}

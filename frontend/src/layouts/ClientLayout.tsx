@@ -45,7 +45,7 @@ export const ClientLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#080d18] text-slate-100 flex overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#080d18] text-slate-900 dark:text-slate-100 flex overflow-x-hidden transition-colors">
       {/* Vertical Gamer Sidebar (Completamente invisible para cajeros) */}
       {!isCashier && (
         <PartnerSidebar

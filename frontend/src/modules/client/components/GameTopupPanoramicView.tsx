@@ -54,6 +54,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   const [isLoadingGame, setIsLoadingGame] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<GamePackage | null>(null);
+  const [activeCategoryTab, setActiveCategoryTab] = useState<'all' | 'diamonds' | 'passes'>('all');
 
   // Precios personalizados de reventa (PVP fijado por el revendedor)
   const [customPricesMap, setCustomPricesMap] = useState<Record<string, number>>({});
@@ -75,36 +76,22 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   const [orderSuccessMsg, setOrderSuccessMsg] = useState<string | null>(null);
   const [orderErrorMsg, setOrderErrorMsg] = useState<string | null>(null);
 
-  // Cargar precios personalizados del revendedor (PVP de la tienda) con reintento de seguridad
+  // Cargar precios personalizados del revendedor (PVP de la tienda)
   useEffect(() => {
-    let isMounted = true;
-
-    const loadPrices = () => {
-      resellerService
-        .getCustomPrices()
-        .then((prices: CustomPrice[]) => {
-          if (!isMounted) return;
-          if (Array.isArray(prices) && prices.length > 0) {
-            const map: Record<string, number> = {};
-            for (const cp of prices) {
-              map[cp.sku] = cp.custom_pvp_cents;
-            }
-            setCustomPricesMap(map);
+    resellerService
+      .getCustomPrices()
+      .then((prices: CustomPrice[]) => {
+        if (Array.isArray(prices)) {
+          const map: Record<string, number> = {};
+          for (const cp of prices) {
+            map[cp.sku] = cp.custom_pvp_cents;
           }
-        })
-        .catch((err) => {
-          console.warn('No se pudieron cargar precios PVP del revendedor:', err);
-        });
-    };
-
-    loadPrices();
-    // Reintento a los 1200ms por si el token de terminal tardó en hidratarse
-    const retryTimer = setTimeout(loadPrices, 1200);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(retryTimer);
-    };
+          setCustomPricesMap(map);
+        }
+      })
+      .catch((err) => {
+        console.warn('No se pudieron cargar precios PVP del revendedor:', err);
+      });
   }, [user?.id, isCashierMode]);
 
   const handleSaveCustomPvp = async (sku: string, pvpDecimalStr: string) => {
@@ -283,7 +270,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
     return (
       <div className="py-24 text-center space-y-4">
         <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-sm font-semibold text-slate-400">Cargando catálogo oficial de recargas...</p>
+        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Cargando catálogo oficial de recargas...</p>
       </div>
     );
   }
@@ -295,7 +282,16 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
 
   const isPassOrSubscription = (pkg: GamePackage) => {
     const n = pkg.name.toLowerCase();
-    return n.includes('pase') || n.includes('semanal') || n.includes('mensual') || n.includes('suscrip');
+    return (
+      n.includes('pase') ||
+      n.includes('semanal') ||
+      n.includes('mensual') ||
+      n.includes('suscrip') ||
+      n.includes('tarjeta') ||
+      n.includes('vip') ||
+      n.includes('membership') ||
+      n.includes('pass')
+    );
   };
 
   const isPopularPackage = (pkg: GamePackage, index: number) => {
@@ -311,6 +307,13 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   const diamondPackages = regionPackages.filter((p) => !isPassOrSubscription(p));
   const subscriptionPackages = regionPackages.filter((p) => isPassOrSubscription(p));
 
+  const displayedPackages =
+    activeCategoryTab === 'diamonds'
+      ? diamondPackages
+      : activeCategoryTab === 'passes'
+      ? subscriptionPackages
+      : regionPackages;
+
   const currentPriceCents = selectedPackage ? selectedPackage.price_cents : 0;
   const selectedPvpCents = selectedPackage
     ? customPricesMap[selectedPackage.sku] || Math.round(selectedPackage.price_cents * 1.15)
@@ -323,20 +326,19 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
   return (
     <div className="space-y-5 animate-fade-in">
       {/* ========================================================================= */}
-      {/* BARRA SUPERIOR DE ACCIÓN (Estilo B2B Proveedor): Volver + Datos del Juego */}
-      {/* El saldo está centralizado de forma limpia en el header principal         */}
+      {/* BARRA SUPERIOR DE ACCIÓN: Volver + Datos del Juego (Modo Claro & Oscuro) */}
       {/* ========================================================================= */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-md">
         <div className="flex items-center gap-3.5">
           <button
             onClick={onBack}
-            className="px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 text-xs font-bold transition-all flex items-center gap-2 border border-slate-700/60 active:scale-95 shadow-xs"
+            className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all flex items-center gap-2 border border-slate-200 dark:border-slate-700/60 active:scale-95 shadow-xs"
           >
-            <ArrowLeft className="w-4 h-4 text-cyan-400" />
+            <ArrowLeft className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
             <span>Volver a Juegos</span>
           </button>
 
-          <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-slate-700">
+          <div className="w-11 h-11 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700">
             <img
               src={game.image_url}
               alt={game.name}
@@ -345,22 +347,22 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
           </div>
 
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-black text-white font-['Rajdhani'] uppercase tracking-wide">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white font-['Rajdhani'] uppercase tracking-wide">
                 {game.name}
               </h2>
-              {game.is_featured && <Star className="w-4 h-4 text-amber-400 fill-amber-400" />}
-              <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase">
+              {game.is_featured && <Star className="w-4 h-4 text-amber-500 fill-amber-500" />}
+              <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-transparent text-[10px] font-bold uppercase">
                 {game.category_label}
               </span>
               {game.can_verify_player && (
-                <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-bold flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-transparent text-[10px] font-bold flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   ID Verificable
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 font-medium">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               {game.subtitle || game.description}
             </p>
           </div>
@@ -369,16 +371,16 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
 
       {/* Alerta de Pausa Preventiva / Freno de Emergencia */}
       {circuitBreakerActive && (
-        <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 flex items-start gap-3 shadow-lg">
-          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/40 flex items-start gap-3 shadow-md">
+          <AlertTriangle className="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <h3 className="text-xs font-bold text-white uppercase font-['Rajdhani'] flex items-center gap-2">
+            <h3 className="text-xs font-bold text-amber-900 dark:text-white uppercase font-['Rajdhani'] flex items-center gap-2">
               Reposición de Inventario de Recargas en Curso
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-sans font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-amber-200 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[9px] font-sans font-bold">
                 Pausa Preventiva
               </span>
             </h3>
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-amber-800 dark:text-slate-300">
               {circuitBreakerMessage ||
                 'Estamos reponiendo inventario de recargas. El servicio se reactivará automáticamente en unos momentos.'}
             </p>
@@ -388,27 +390,27 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
 
       {/* Banners de Confirmación o Error */}
       {orderSuccessMsg && (
-        <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/50 space-y-3 shadow-lg">
-          <div className="flex items-center justify-between text-xs text-emerald-300">
+        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-500/50 space-y-3 shadow-md">
+          <div className="flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
             <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-              <span className="font-semibold text-white">{orderSuccessMsg}</span>
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="font-semibold text-emerald-900 dark:text-white">{orderSuccessMsg}</span>
             </div>
             <button
               onClick={() => setOrderSuccessMsg(null)}
-              className="text-emerald-400 hover:text-white font-bold underline text-xs"
+              className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-white font-bold underline text-xs"
             >
               Cerrar
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-emerald-800/60">
-            <div className="text-xs text-emerald-200">
-              <span>Cobrado al cliente: <strong className="text-white">${(selectedPvpCents / 100).toFixed(2)} USD</strong></span>
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-emerald-200 dark:border-emerald-800/60">
+            <div className="text-xs text-emerald-800 dark:text-emerald-200">
+              <span>Cobrado al cliente: <strong className="text-emerald-950 dark:text-white">${(selectedPvpCents / 100).toFixed(2)} USD</strong></span>
               {!isCashierMode && (
                 <>
                   <span className="mx-2">·</span>
-                  <span>Tu ganancia neta: <strong className="text-emerald-400">+${(selectedProfitCents / 100).toFixed(2)} USD ({selectedMarginPercent}%)</strong></span>
+                  <span>Tu ganancia neta: <strong className="text-emerald-600 dark:text-emerald-400">+${(selectedProfitCents / 100).toFixed(2)} USD ({selectedMarginPercent}%)</strong></span>
                 </>
               )}
             </div>
@@ -436,25 +438,25 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
       )}
 
       {orderErrorMsg && (
-        <div className="p-4 rounded-2xl bg-red-950/70 border border-red-500/50 flex items-center gap-3 text-xs text-red-200 shadow-lg">
-          <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+        <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/70 border border-red-300 dark:border-red-500/50 flex items-center gap-3 text-xs text-red-700 dark:text-red-200 shadow-md">
+          <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 shrink-0" />
           <span className="font-semibold">{orderErrorMsg}</span>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* CUERPO PANORÁMICO DE 2 COLUMNAS (Estilo Widescreen B2B)                     */}
+      {/* CUERPO PANORÁMICO DE 2 COLUMNAS (Estilo Widescreen B2B & Móvil)           */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* COLUMNA IZQUIERDA: Formulario de Jugador + Resumen de Orden (Sticky) */}
         <div className="lg:col-span-4 xl:col-span-4 2xl:col-span-3 space-y-4 lg:sticky lg:top-20">
           {/* PASO 1: Datos de la Cuenta */}
-          <div className="p-5 rounded-2xl bg-[#0b0f19] border border-slate-800 shadow-lg space-y-4">
-            <div className="flex items-center gap-2 border-b border-slate-800/80 pb-3">
-              <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-lg space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+              <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-black flex items-center justify-center">
                 1
               </span>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">
                 Datos de la Cuenta
               </h3>
             </div>
@@ -462,10 +464,10 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
             {/* Campos condicionales según tipo de entrega */}
             {selectedPackage?.delivery?.mode === 'human' ? (
               <div className="space-y-3">
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2 text-xs text-amber-300">
-                  <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300">
+                  <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-amber-200 block">Atención Manual de Operadores</span>
+                    <span className="font-bold text-amber-900 dark:text-amber-200 block">Atención Manual de Operadores</span>
                     Horario de entrega: {selectedPackage.delivery.hours || '10:00 - 22:00 Lima'}
                   </div>
                 </div>
@@ -515,8 +517,8 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                 )}
 
                 {!game.can_verify_player && (
-                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 flex items-start gap-2">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <span>Verificación de nombre no disponible. Comprueba tu ID antes de enviar.</span>
                   </div>
                 )}
@@ -537,13 +539,13 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                     </Button>
 
                     {verifiedName && (
-                      <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-between">
+                      <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center justify-between shadow-xs">
                         <span className="flex items-center gap-1.5 truncate">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span className="text-white truncate">{verifiedName}</span>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span className="text-emerald-950 dark:text-white truncate">{verifiedName}</span>
                         </span>
                         {verifiedRegion && (
-                          <span className="text-[10px] bg-emerald-900/60 px-1.5 py-0.5 rounded text-emerald-400 uppercase">
+                          <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded text-emerald-800 dark:text-emerald-400 uppercase font-mono">
                             {verifiedRegion}
                           </span>
                         )}
@@ -553,11 +555,11 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                 )}
               </div>
             ) : (
-              <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-slate-300 space-y-1">
-                <span className="font-bold text-white flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> Código Digital Directo
+              <div className="p-3.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-500/30 text-xs text-indigo-900 dark:text-slate-300 space-y-1">
+                <span className="font-bold text-indigo-950 dark:text-white flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" /> Código Digital Directo
                 </span>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   No requiere ID. Recibirás tu código oficial al instante tras completar la orden.
                 </p>
               </div>
@@ -565,13 +567,13 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
           </div>
 
           {/* Resumen de Orden B2B */}
-          <div className="p-5 rounded-2xl bg-[#0b0f19] border border-slate-800 shadow-lg space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-lg space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3">
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">
                 Resumen de Orden
               </h3>
               {selectedPackage && (
-                <span className="text-[11px] font-bold text-indigo-400 truncate max-w-[150px]">
+                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 truncate max-w-[150px]">
                   {selectedPackage.name}
                 </span>
               )}
@@ -580,74 +582,74 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
             <div className="space-y-2.5 text-xs">
               {isCashierMode ? (
                 <>
-                  <div className="flex items-center justify-between p-3 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 text-xs shadow-inner">
-                    <span className="text-cyan-300 font-bold flex items-center gap-1.5">
-                      <Tag className="w-4 h-4 text-cyan-400" /> Precio de Venta al Cliente
+                  <div className="flex items-center justify-between p-3.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-500/40 shadow-inner">
+                    <span className="text-cyan-800 dark:text-cyan-300 font-bold flex items-center gap-1.5 text-xs">
+                      <Tag className="w-4 h-4 text-cyan-600 dark:text-cyan-400" /> Precio de Venta al Cliente
                     </span>
-                    <span className="font-black text-cyan-300 text-base font-mono">
+                    <span className="font-black text-cyan-700 dark:text-cyan-300 text-lg font-mono">
                       ${(selectedPvpCents / 100).toFixed(2)} USD
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-slate-400 pt-1">
+                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 pt-1">
                     <span>Estado de Recarga</span>
-                    <span className={`font-bold font-mono text-xs ${hasEnoughBalance ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <span className={`font-bold font-mono text-xs ${hasEnoughBalance ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
                       {hasEnoughBalance ? '✓ Saldo Operativo Disponible' : '⚠ Saldo Insuficiente'}
                     </span>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
                     <div>
-                      <span className="font-black text-xs uppercase text-white block">Cobro al Cliente</span>
-                      <span className="text-[10px] text-slate-400">Precio final fijado por tienda</span>
+                      <span className="font-black text-xs uppercase text-slate-900 dark:text-white block">Cobro al Cliente</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">Precio final fijado por tienda</span>
                     </div>
-                    <span className="font-black text-base text-cyan-400 font-mono">
+                    <span className="font-black text-lg text-cyan-600 dark:text-cyan-400 font-mono">
                       ${(selectedPvpCents / 100).toFixed(2)} USD
                     </span>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="flex items-center justify-between text-slate-400">
+                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                     <span>Costo Plataforma</span>
-                    <span className="font-bold text-white">
+                    <span className="font-bold text-slate-900 dark:text-white">
                       ${(currentPriceCents / 100).toFixed(2)} USD
                     </span>
                   </div>
 
                   {/* PVP al Cliente Final */}
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800 text-xs">
-                    <span className="text-indigo-300 font-bold flex items-center gap-1.5">
-                      <Tag className="w-3.5 h-3.5 text-indigo-400" /> Tu PVP al Cliente
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                    <span className="text-indigo-700 dark:text-indigo-300 font-bold flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" /> Tu PVP al Cliente
                     </span>
-                    <span className="font-black text-indigo-300 text-sm">
+                    <span className="font-black text-indigo-700 dark:text-indigo-300 text-sm font-mono">
                       ${(selectedPvpCents / 100).toFixed(2)} USD
                     </span>
                   </div>
 
                   {/* Ganancia Neta Estimada */}
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs">
-                    <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 text-xs">
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5">
                       <TrendingUp className="w-3.5 h-3.5" /> Tu Ganancia Neta
                     </span>
-                    <span className="font-black text-emerald-400 text-sm">
+                    <span className="font-black text-emerald-700 dark:text-emerald-400 text-sm font-mono">
                       +${(selectedProfitCents / 100).toFixed(2)} USD ({selectedMarginPercent}%)
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-slate-400 pt-1">
+                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 pt-1">
                     <span>Tu saldo disponible</span>
-                    <span className={`font-bold ${hasEnoughBalance ? 'text-slate-300' : 'text-amber-400'}`}>
+                    <span className={`font-bold font-mono ${hasEnoughBalance ? 'text-slate-800 dark:text-slate-300' : 'text-amber-600 dark:text-amber-400'}`}>
                       ${(wallet.available_balance_cents / 100).toFixed(2)} USD
                     </span>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
                     <div>
-                      <span className="font-black text-xs uppercase text-white block">Total a Pagar</span>
-                      <span className="text-[10px] text-slate-400">Débito directo de tu billetera</span>
+                      <span className="font-black text-xs uppercase text-slate-900 dark:text-white block">Total a Pagar</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">Débito directo de tu billetera</span>
                     </div>
-                    <span className="font-black text-base text-cyan-400 font-mono">
+                    <span className="font-black text-lg text-cyan-600 dark:text-cyan-400 font-mono">
                       ${(currentPriceCents / 100).toFixed(2)} USD
                     </span>
                   </div>
@@ -680,9 +682,9 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                 type="button"
                 onClick={handleAddToCart}
                 disabled={!selectedPackage || !isPlayerValid}
-                className="w-full py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-2 border border-slate-700/80 disabled:opacity-50"
+                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700/80 disabled:opacity-50"
               >
-                <ShoppingCart className="w-3.5 h-3.5 text-slate-400" />
+                <ShoppingCart className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                 <span>Agregar al Carrito</span>
               </button>
             </div>
@@ -690,30 +692,37 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
         </div>
 
         {/* COLUMNA DERECHA: Denominaciones y Paquetes (Fluida con Grilla Auto-Adaptable) */}
-        <div className="lg:col-span-8 xl:col-span-8 2xl:col-span-9 space-y-6">
-          <div className="p-5 rounded-2xl bg-[#0b0f19] border border-slate-800 shadow-lg space-y-6">
-            {/* Header del Paso 2: Selector de Región / Servidor */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">
+        <div className="lg:col-span-8 xl:col-span-8 2xl:col-span-9 space-y-4">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-lg space-y-4">
+            
+            {/* Header del Paso 2: Título + Región */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-black flex items-center justify-center shrink-0 shadow-xs">
                   2
                 </span>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                  Selecciona la Denominación ({regionPackages.length} paquetes disponibles)
-                </h3>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">
+                    Selecciona la Denominación
+                  </h3>
+                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    {displayedPackages.length} de {regionPackages.length} opciones disponibles
+                  </span>
+                </div>
               </div>
 
+              {/* Selector de Región (Píldoras) */}
               {game.regions && game.regions.length > 1 && (
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold">
-                  <Globe className="w-3.5 h-3.5 text-slate-400 ml-1.5" />
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold self-start sm:self-auto">
+                  <Globe className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ml-1.5 mr-0.5" />
                   {game.regions.map((reg) => (
                     <button
                       key={reg.id}
                       onClick={() => handleSelectRegion(reg.id)}
-                      className={`px-3 py-1 rounded-lg transition-all ${
+                      className={`px-3 py-1 rounded-lg transition-all text-xs font-bold ${
                         selectedRegion === reg.id
                           ? 'bg-indigo-600 text-white shadow-xs'
-                          : 'text-slate-400 hover:text-white'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       {reg.label}
@@ -723,211 +732,142 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
               )}
             </div>
 
-            {/* SECCIÓN 1: Diamantes y Monedas */}
-            {diamondPackages.length > 0 && (
-              <div className="space-y-3">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Diamantes y Monedas
-                </span>
+            {/* BARRA DE PESTAÑAS (TABS) ERGONÓMICAS PARA OPTIMIZAR ESPACIO */}
+            {(diamondPackages.length > 0 && subscriptionPackages.length > 0) && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setActiveCategoryTab('all')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                    activeCategoryTab === 'all'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
+                  <span>Todos ({regionPackages.length})</span>
+                </button>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
-                  {diamondPackages.map((pkg, idx) => {
-                    const isSelected = selectedPackage?.id === pkg.id;
-                    const platformCostCents = pkg.price_cents;
-                    const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.15);
-                    const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
-                    const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
-                    const isPopular = isPopularPackage(pkg, idx);
+                <button
+                  type="button"
+                  onClick={() => setActiveCategoryTab('diamonds')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                    activeCategoryTab === 'diamonds'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span>💎 Diamantes y Monedas ({diamondPackages.length})</span>
+                </button>
 
-                    return (
-                      <button
-                        key={pkg.id}
-                        type="button"
-                        onClick={() => setSelectedPackage(pkg)}
-                        className={`relative p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[135px] group ${
-                          isSelected
-                            ? 'bg-indigo-950/70 border-cyan-400 shadow-glow-primary'
-                            : 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
-                        }`}
-                      >
-                        {isPopular && (
-                          <span className="absolute -top-2 left-3 px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-xs">
-                            Más pedido
-                          </span>
-                        )}
-
-                        <div className="flex items-start justify-between gap-1 w-full">
-                          <span className="font-extrabold text-white text-xs tracking-tight line-clamp-2">
-                            {pkg.name}
-                          </span>
-                          {isSelected && (
-                            <div className="w-4 h-4 rounded-full bg-cyan-400 flex items-center justify-center shrink-0">
-                              <Check className="w-2.5 h-2.5 text-slate-950 stroke-[3]" />
-                            </div>
-                          )}
-                        </div>
-
-                        {isCashierMode ? (
-                          <div className="mt-2 w-full pt-1.5 border-t border-slate-800/80 text-center">
-                            <span className="text-[10px] text-slate-400 uppercase font-bold block">
-                              Precio al Cliente
-                            </span>
-                            <div className="text-sm font-black text-cyan-300 font-mono">
-                              ${(resellerPvpCents / 100).toFixed(2)} USD
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-1 mt-2 w-full">
-                            <div className="flex items-baseline justify-between gap-1">
-                              <div>
-                                <span className="text-[10px] text-slate-400 font-medium block">Costo:</span>
-                                <div className="text-xs font-black text-white">
-                                  ${(platformCostCents / 100).toFixed(2)}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-[10px] text-indigo-300 font-bold block">Tu PVP:</span>
-                                <div className="text-xs font-black text-cyan-300">
-                                  ${(resellerPvpCents / 100).toFixed(2)}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/60">
-                              <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20 truncate">
-                                +{marginPercent}% (+${(resellerProfitCents / 100).toFixed(2)})
-                              </span>
-
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingPvpSku(pkg.sku);
-                                  setTempPvpInput((resellerPvpCents / 100).toFixed(2));
-                                }}
-                                title="Personalizar tu precio de venta final (PVP)"
-                                className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-cyan-300 transition-colors shrink-0"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                              </button>
-                            </div>
-
-                            {role === 'admin' && (pkg.wholesale_cents || 0) > 0 && (
-                              <div className="text-[9px] text-slate-500 font-mono truncate">
-                                API: ${((pkg.wholesale_cents || 0) / 100).toFixed(2)}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveCategoryTab('passes')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                    activeCategoryTab === 'passes'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span>🎟️ Pases y Suscripciones ({subscriptionPackages.length})</span>
+                </button>
               </div>
             )}
 
-            {/* SECCIÓN 2: Pases y Suscripciones */}
-            {subscriptionPackages.length > 0 && (
-              <div className="space-y-3 pt-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Pases y Suscripciones
-                </span>
+            {/* GRILLA COMPACTA Y ULTRA-LEGIBLE */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5 sm:gap-3 pt-1">
+              {displayedPackages.map((pkg, idx) => {
+                const isSelected = selectedPackage?.id === pkg.id;
+                const platformCostCents = pkg.price_cents;
+                const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.15);
+                const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
+                const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
+                const isPopular = isPopularPackage(pkg, idx);
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
-                  {subscriptionPackages.map((pkg, idx) => {
-                    const isSelected = selectedPackage?.id === pkg.id;
-                    const platformCostCents = pkg.price_cents;
-                    const resellerPvpCents = customPricesMap[pkg.sku] || Math.round(platformCostCents * 1.15);
-                    const resellerProfitCents = Math.max(0, resellerPvpCents - platformCostCents);
-                    const marginPercent = platformCostCents > 0 ? Math.round((resellerProfitCents / platformCostCents) * 100) : 0;
-                    const isPopular = isPopularPackage(pkg, idx);
+                return (
+                  <button
+                    key={pkg.id}
+                    type="button"
+                    onClick={() => setSelectedPackage(pkg)}
+                    className={`relative p-3 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[96px] sm:min-h-[105px] group active:scale-[0.98] ${
+                      isSelected
+                        ? 'bg-cyan-50/90 dark:bg-indigo-950/70 border-cyan-500 dark:border-cyan-400 ring-2 ring-cyan-500/20 shadow-md dark:shadow-glow-primary'
+                        : 'bg-slate-50/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-900'
+                    }`}
+                  >
+                    {isPopular && (
+                      <span className="absolute -top-2 left-2.5 px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-xs">
+                        Más pedido
+                      </span>
+                    )}
 
-                    return (
-                      <button
-                        key={pkg.id}
-                        type="button"
-                        onClick={() => setSelectedPackage(pkg)}
-                        className={`relative p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[135px] group ${
-                          isSelected
-                            ? 'bg-indigo-950/70 border-cyan-400 shadow-glow-primary'
-                            : 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
-                        }`}
-                      >
-                        {isPopular && (
-                          <span className="absolute -top-2 left-3 px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-xs">
-                            Más pedido
-                          </span>
-                        )}
+                    <div className="flex items-start justify-between gap-1 w-full">
+                      <span className="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm tracking-tight line-clamp-2 leading-tight">
+                        {pkg.name}
+                      </span>
+                      {isSelected && (
+                        <div className="w-4 h-4 rounded-full bg-cyan-500 dark:bg-cyan-400 flex items-center justify-center shrink-0 shadow-xs">
+                          <Check className="w-2.5 h-2.5 text-white dark:text-slate-950 stroke-[3]" />
+                        </div>
+                      )}
+                    </div>
 
-                        <div className="flex items-start justify-between gap-1 w-full">
-                          <span className="font-extrabold text-white text-xs tracking-tight line-clamp-2">
-                            {pkg.name}
-                          </span>
-                          {isSelected && (
-                            <div className="w-4 h-4 rounded-full bg-cyan-400 flex items-center justify-center shrink-0">
-                              <Check className="w-2.5 h-2.5 text-slate-950 stroke-[3]" />
+                    {isCashierMode ? (
+                      <div className="mt-2 w-full pt-1.5 border-t border-slate-200/80 dark:border-slate-800/80 flex items-baseline justify-between">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">
+                          PVP
+                        </span>
+                        <div className="text-base sm:text-lg font-black text-cyan-600 dark:text-cyan-300 font-mono">
+                          ${(resellerPvpCents / 100).toFixed(2)} <span className="text-[10px] font-bold">USD</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1 mt-2 w-full pt-1.5 border-t border-slate-200/80 dark:border-slate-800/60">
+                        <div className="flex items-baseline justify-between gap-1">
+                          <div>
+                            <span className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold block">Costo:</span>
+                            <div className="text-xs font-black text-slate-900 dark:text-white font-mono">
+                              ${(platformCostCents / 100).toFixed(2)}
                             </div>
-                          )}
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9px] text-indigo-600 dark:text-indigo-300 font-bold block">Tu PVP:</span>
+                            <div className="text-xs font-black text-cyan-600 dark:text-cyan-300 font-mono">
+                              ${(resellerPvpCents / 100).toFixed(2)}
+                            </div>
+                          </div>
                         </div>
 
-                        {isCashierMode ? (
-                          <div className="mt-2 w-full pt-1.5 border-t border-slate-800/80 text-center">
-                            <span className="text-[10px] text-slate-400 uppercase font-bold block">
-                              Precio al Cliente
-                            </span>
-                            <div className="text-sm font-black text-cyan-300 font-mono">
-                              ${(resellerPvpCents / 100).toFixed(2)} USD
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-1 mt-2 w-full">
-                            <div className="flex items-baseline justify-between gap-1">
-                              <div>
-                                <span className="text-[10px] text-slate-400 font-medium block">Costo:</span>
-                                <div className="text-xs font-black text-white">
-                                  ${(platformCostCents / 100).toFixed(2)}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-[10px] text-indigo-300 font-bold block">Tu PVP:</span>
-                                <div className="text-xs font-black text-cyan-300">
-                                  ${(resellerPvpCents / 100).toFixed(2)}
-                                </div>
-                              </div>
-                            </div>
+                        <div className="flex items-center justify-between gap-1 pt-0.5">
+                          <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/20 truncate">
+                            +{marginPercent}% (+${(resellerProfitCents / 100).toFixed(2)})
+                          </span>
 
-                            <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/60">
-                              <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20 truncate">
-                                +{marginPercent}% (+${(resellerProfitCents / 100).toFixed(2)})
-                              </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingPvpSku(pkg.sku);
+                              setTempPvpInput((resellerPvpCents / 100).toFixed(2));
+                            }}
+                            title="Personalizar tu precio de venta final (PVP)"
+                            className="p-1 rounded-md bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors shrink-0"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                        </div>
 
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingPvpSku(pkg.sku);
-                                  setTempPvpInput((resellerPvpCents / 100).toFixed(2));
-                                }}
-                                title="Personalizar tu precio de venta final (PVP)"
-                                className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-cyan-300 transition-colors shrink-0"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                              </button>
-                            </div>
-
-                            {role === 'admin' && (pkg.wholesale_cents || 0) > 0 && (
-                              <div className="text-[9px] text-slate-500 font-mono truncate">
-                                API: ${((pkg.wholesale_cents || 0) / 100).toFixed(2)}
-                              </div>
-                            )}
+                        {role === 'admin' && (pkg.wholesale_cents || 0) > 0 && (
+                          <div className="text-[9px] text-slate-400 dark:text-slate-500 font-mono truncate">
+                            API: ${((pkg.wholesale_cents || 0) / 100).toFixed(2)}
                           </div>
                         )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -939,34 +879,34 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
           onClick={() => setEditingPvpSku(null)}
         >
           <div
-            className="bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-2xl"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <Tag className="w-4 h-4 text-cyan-400" />
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Tag className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
                 Ajustar Tu Precio de Venta (PVP)
               </h4>
               <button
                 onClick={() => setEditingPvpSku(null)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="text-xs text-slate-300 space-y-2">
+            <div className="text-xs text-slate-600 dark:text-slate-300 space-y-2">
               <p>Define cuánto le cobrarás a tu cliente final por este paquete. Tu ganancia neta se calculará en vivo.</p>
               {selectedPackage && (
-                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Costo Plataforma:</span>
-                  <span className="font-bold text-white">${(selectedPackage.price_cents / 100).toFixed(2)} USD</span>
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs">
+                  <span className="text-slate-500 dark:text-slate-400">Costo Plataforma:</span>
+                  <span className="font-bold text-slate-900 dark:text-white font-mono">${(selectedPackage.price_cents / 100).toFixed(2)} USD</span>
                 </div>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-400 uppercase">
+              <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase">
                 Tu PVP al Cliente Final (USD)
               </label>
               <div className="relative">
@@ -981,7 +921,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
                     if (!isNaN(num) && num > 0) setTempPvpInput(num.toFixed(2));
                   }}
                   placeholder="0.00"
-                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white font-mono text-sm font-bold focus:outline-none focus:border-cyan-400"
+                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm font-bold focus:outline-none focus:border-cyan-500"
                   autoFocus
                 />
               </div>
@@ -991,7 +931,7 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
               <button
                 type="button"
                 onClick={() => setEditingPvpSku(null)}
-                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
+                className="flex-1 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all"
               >
                 Cancelar
               </button>
@@ -1013,4 +953,3 @@ export const GameTopupPanoramicView: React.FC<GameTopupPanoramicViewProps> = ({
     </div>
   );
 };
-
