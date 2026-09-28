@@ -60,7 +60,7 @@ export const MobileAdminBottomNav: React.FC = () => {
 
   return (
     <nav className="fixed bottom-3 inset-x-3 z-40 md:hidden pointer-events-auto">
-      <div className="glass-dock rounded-[28px] px-3 py-2 flex items-center justify-around shadow-2xl border border-indigo-900/60 bg-[#090e1a]/95 backdrop-blur-xl">
+      <div className="glass-dock rounded-[28px] px-3 py-2 flex items-center justify-around shadow-2xl border border-slate-200 dark:border-indigo-900/60 bg-white/95 dark:bg-[#090e1a]/95 backdrop-blur-xl transition-colors">
         {navItems.map((item, idx) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
@@ -71,19 +71,19 @@ export const MobileAdminBottomNav: React.FC = () => {
               to={item.path}
               className={`flex flex-col items-center justify-center py-1 px-2 rounded-2xl transition-all duration-200 active:scale-90 ${
                 isActive
-                  ? 'text-indigo-400 font-bold'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <div className="relative">
-                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px] scale-110 text-indigo-400' : 'stroke-[1.75px]'}`} />
+                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px] scale-110 text-indigo-600 dark:text-indigo-400' : 'stroke-[1.75px]'}`} />
                 {item.badge !== undefined && (
                   <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[10px] font-black min-w-4 h-4 px-1 rounded-full flex items-center justify-center shadow-lg shadow-red-500/50 animate-bounce">
                     {item.badge}
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] mt-1 tracking-tight ${isActive ? 'text-indigo-300' : 'text-slate-400'}`}>
+              <span className={`text-[10px] mt-1 tracking-tight ${isActive ? 'text-indigo-600 dark:text-indigo-300 font-bold' : 'text-slate-500 dark:text-slate-400'}`}>
                 {item.label}
               </span>
             </NavLink>

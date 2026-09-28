@@ -77,11 +77,11 @@ export const GlobalOrdersPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white font-['Rajdhani'] uppercase tracking-wider flex items-center gap-2">
-            <ShoppingBag className="w-7 h-7 text-cyan-400" />
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-['Rajdhani'] uppercase tracking-wider flex items-center gap-2">
+            <ShoppingBag className="w-7 h-7 text-cyan-500 dark:text-cyan-400" />
             Monitoreo de Órdenes Globales
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Auditoría en tiempo real de compras, revendedores y despacho de recargas gamer.
           </p>
         </div>
@@ -92,17 +92,17 @@ export const GlobalOrdersPage: React.FC = () => {
             onClick={() => setAutoRefresh(!autoRefresh)}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
               autoRefresh
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white shadow-sm'
             }`}
           >
-            <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+            <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-500 dark:bg-emerald-400 animate-pulse' : 'bg-slate-400 dark:bg-slate-500'}`} />
             {autoRefresh ? 'En Vivo (15s)' : 'Pausado'}
           </button>
 
           <button
             onClick={() => loadOrders(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors shadow-sm"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             Refrescar
@@ -111,7 +111,7 @@ export const GlobalOrdersPage: React.FC = () => {
       </div>
 
       {/* Barra de Filtros y Búsqueda */}
-      <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-3">
+      <div className="glass-panel p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
         <div className="flex flex-col md:flex-row gap-3">
           {/* Buscador */}
           <div className="flex-1 relative">
@@ -121,7 +121,7 @@ export const GlobalOrdersPage: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por ID, juego, jugador, revendedor..."
-              className="w-full pl-9 pr-3 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500 shadow-sm"
             />
           </div>
 
@@ -131,7 +131,7 @@ export const GlobalOrdersPage: React.FC = () => {
             <select
               value={selectedGame}
               onChange={(e) => setSelectedGame(e.target.value)}
-              className="w-full py-2 px-3 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400"
+              className="w-full py-2 px-3 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 shadow-sm"
             >
               <option value="all">Todos los Juegos ({uniqueGames.length})</option>
               {uniqueGames.map((game) => (
@@ -144,13 +144,13 @@ export const GlobalOrdersPage: React.FC = () => {
         </div>
 
         {/* Pestañas de Estado */}
-        <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-800/60">
+        <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-200 dark:border-slate-800/60">
           {(
             [
-              { id: 'all', label: 'Todas', count: countByStatus.all, color: 'text-slate-300' },
-              { id: 'completed', label: 'Completadas', count: countByStatus.completed, color: 'text-emerald-400' },
-              { id: 'processing', label: 'En Proceso', count: countByStatus.processing, color: 'text-amber-400' },
-              { id: 'failed', label: 'Fallidas', count: countByStatus.failed, color: 'text-red-400' },
+              { id: 'all', label: 'Todas', count: countByStatus.all, color: 'text-slate-700 dark:text-slate-300' },
+              { id: 'completed', label: 'Completadas', count: countByStatus.completed, color: 'text-emerald-600 dark:text-emerald-400' },
+              { id: 'processing', label: 'En Proceso', count: countByStatus.processing, color: 'text-amber-600 dark:text-amber-400' },
+              { id: 'failed', label: 'Fallidas', count: countByStatus.failed, color: 'text-red-600 dark:text-red-400' },
             ] as const
           ).map((tab) => (
             <button
@@ -158,12 +158,12 @@ export const GlobalOrdersPage: React.FC = () => {
               onClick={() => setStatusFilter(tab.id)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                 statusFilter === tab.id
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs'
-                  : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:border-slate-700'
+                  ? 'bg-cyan-50 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/40 shadow-xs'
+                  : 'bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
               <span>{tab.label}</span>
-              <span className={`px-1.5 py-0.2 rounded-md bg-slate-800 text-[10px] font-mono ${tab.color}`}>
+              <span className={`px-1.5 py-0.2 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-mono ${tab.color}`}>
                 {tab.count}
               </span>
             </button>
@@ -173,14 +173,14 @@ export const GlobalOrdersPage: React.FC = () => {
 
       {/* Orders View */}
       {isLoading ? (
-        <div className="p-12 text-center text-xs text-slate-400 glass-panel rounded-2xl border border-slate-800 flex items-center justify-center gap-2">
-          <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+        <div className="p-12 text-center text-xs text-slate-500 dark:text-slate-400 glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
+          <RefreshCw className="w-4 h-4 animate-spin text-cyan-500 dark:text-cyan-400" />
           Cargando historial global de órdenes...
         </div>
       ) : filteredOrders.length === 0 ? (
-        <div className="p-12 text-center glass-panel rounded-2xl border border-slate-800">
-          <ShoppingBag className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-          <p className="text-sm font-bold text-slate-300">No se encontraron órdenes con estos filtros.</p>
+        <div className="p-12 text-center glass-panel rounded-2xl border border-slate-200 dark:border-slate-800">
+          <ShoppingBag className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-2" />
+          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No se encontraron órdenes con estos filtros.</p>
         </div>
       ) : (
         <>
@@ -189,11 +189,11 @@ export const GlobalOrdersPage: React.FC = () => {
             {filteredOrders.map((order) => (
               <div
                 key={order.id}
-                className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 shadow-sm"
+                className="p-4 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm"
               >
                 {/* Top: ID & Status */}
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs text-slate-400 font-semibold">
+                  <span className="font-mono text-xs text-slate-500 dark:text-slate-400 font-semibold">
                     {order.id.slice(0, 12)}...
                   </span>
                   <Badge
@@ -214,51 +214,51 @@ export const GlobalOrdersPage: React.FC = () => {
                 </div>
 
                 {/* Revendedor */}
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <User className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                  <User className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
                   <span className="font-mono truncate">{order.user_email || 'Revendedor'}</span>
                 </div>
 
                 {/* Product & Game */}
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-wider block">
+                    <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">
                       {order.game}
                     </span>
-                    <h4 className="font-bold text-sm text-white">{order.product_name}</h4>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">{order.product_name}</h4>
                   </div>
                   <PriceDisplay
                     cents={order.amount_cents}
                     currency={order.currency}
                     size="md"
-                    className="text-emerald-400 font-black"
+                    className="text-emerald-600 dark:text-emerald-400 font-black"
                   />
                 </div>
 
                 {/* Player info or Code */}
-                <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60 flex items-center justify-between text-xs">
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-xs">
                   {order.player_id ? (
-                    <div className="flex items-center gap-1.5 text-slate-300">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       <span>
-                        ID: <strong className="text-white">{order.player_id}</strong>
+                        ID: <strong className="text-slate-900 dark:text-white">{order.player_id}</strong>
                         {order.player_server && (
-                          <span className="text-slate-400"> ({order.player_server})</span>
+                          <span className="text-slate-500 dark:text-slate-400"> ({order.player_server})</span>
                         )}
                         {order.player_name && (
-                          <span className="text-slate-400"> - {order.player_name}</span>
+                          <span className="text-slate-500 dark:text-slate-400"> - {order.player_name}</span>
                         )}
                       </span>
                     </div>
                   ) : order.digital_code ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-400 text-[11px]">Pin:</span>
-                      <code className="text-xs font-mono font-bold text-cyan-300 bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/30">
+                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">Pin:</span>
+                      <code className="text-xs font-mono font-bold text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-200 dark:border-cyan-500/30">
                         {order.digital_code}
                       </code>
                     </div>
                   ) : (
-                    <span className="text-slate-500">Recarga Directa</span>
+                    <span className="text-slate-400 dark:text-slate-500">Recarga Directa</span>
                   )}
 
                   <span className="text-[11px] text-slate-500 font-mono">
@@ -282,11 +282,11 @@ export const GlobalOrdersPage: React.FC = () => {
           </div>
 
           {/* Desktop Table (hidden md:block) */}
-          <div className="hidden md:block glass-panel rounded-2xl border border-slate-800 overflow-hidden">
+          <div className="hidden md:block glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-800/80 bg-slate-950/60 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <tr className="border-b border-slate-200 dark:border-slate-800/80 bg-slate-100/90 dark:bg-slate-950/60 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                     <th className="p-4">ID Orden</th>
                     <th className="p-4">Revendedor / Cliente</th>
                     <th className="p-4">Producto & Juego</th>
@@ -297,47 +297,47 @@ export const GlobalOrdersPage: React.FC = () => {
                     <th className="p-4">Fecha</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 text-sm">
+                <tbody className="divide-y divide-slate-200/80 dark:divide-slate-800/60 text-sm">
                   {filteredOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-slate-900/40 transition-colors">
-                      <td className="p-4 font-mono text-xs text-slate-400 font-semibold">
+                    <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
+                      <td className="p-4 font-mono text-xs text-slate-500 dark:text-slate-400 font-semibold">
                         <span title={order.id}>{order.id.slice(0, 10)}...</span>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-300">
-                          <User className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                          <span className="font-mono text-xs text-white" title={order.user_email}>
+                        <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                          <User className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                          <span className="font-mono text-xs text-slate-900 dark:text-white" title={order.user_email}>
                             {order.user_email || 'Revendedor'}
                           </span>
                         </div>
                         {order.user_name && (
-                          <span className="text-[10px] text-slate-400 block ml-5">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block ml-5">
                             {order.user_name}
                           </span>
                         )}
                       </td>
                       <td className="p-4">
-                        <span className="text-[10px] font-bold text-indigo-400 uppercase block">
+                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase block">
                           {order.game}
                         </span>
-                        <span className="font-semibold text-white">{order.product_name}</span>
+                        <span className="font-semibold text-slate-900 dark:text-white">{order.product_name}</span>
                       </td>
                       <td className="p-4">
                         {order.player_id ? (
-                          <div className="flex items-center gap-1.5 text-xs text-slate-300">
-                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                             <div>
-                              <span className="font-mono font-bold text-white">ID: {order.player_id}</span>
+                              <span className="font-mono font-bold text-slate-900 dark:text-white">ID: {order.player_id}</span>
                               {order.player_server && (
-                                <span className="text-slate-400 text-[11px] block">Zona: {order.player_server}</span>
+                                <span className="text-slate-500 dark:text-slate-400 text-[11px] block">Zona: {order.player_server}</span>
                               )}
                               {order.player_name && (
-                                <span className="text-slate-400 text-[11px] block">({order.player_name})</span>
+                                <span className="text-slate-500 dark:text-slate-400 text-[11px] block">({order.player_name})</span>
                               )}
                             </div>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-500 font-mono">N/A (Pin/Código)</span>
+                          <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">N/A (Pin/Código)</span>
                         )}
                       </td>
                       <td className="p-4">
@@ -345,7 +345,7 @@ export const GlobalOrdersPage: React.FC = () => {
                           cents={order.amount_cents}
                           currency={order.currency}
                           size="sm"
-                          className="text-white font-bold"
+                          className="text-slate-900 dark:text-white font-bold"
                         />
                       </td>
                       <td className="p-4">
@@ -365,23 +365,23 @@ export const GlobalOrdersPage: React.FC = () => {
                             : 'Procesando'}
                         </Badge>
                         {order.failure_code && (
-                          <span className="text-[10px] text-red-400 font-mono block mt-1">
+                          <span className="text-[10px] text-red-600 dark:text-red-400 font-mono block mt-1">
                             {order.failure_code}
                           </span>
                         )}
                       </td>
                       <td className="p-4">
                         {order.digital_code ? (
-                          <code className="text-xs font-mono font-bold text-cyan-300 bg-slate-950 px-2 py-0.5 rounded border border-cyan-500/20">
+                          <code className="text-xs font-mono font-bold text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-slate-950 px-2 py-0.5 rounded border border-cyan-200 dark:border-cyan-500/20">
                             {order.digital_code}
                           </code>
                         ) : (
-                          <span className="text-xs text-slate-500">Directa API</span>
+                          <span className="text-xs text-slate-400 dark:text-slate-500">Directa API</span>
                         )}
                       </td>
-                      <td className="p-4 text-xs text-slate-400 whitespace-nowrap">
+                      <td className="p-4 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-slate-500" />
+                          <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                           <span>
                             {new Date(order.created_at).toLocaleString('es-ES', {
                               dateStyle: 'short',

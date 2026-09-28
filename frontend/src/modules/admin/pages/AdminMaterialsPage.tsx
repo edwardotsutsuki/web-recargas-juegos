@@ -110,28 +110,28 @@ export const AdminMaterialsPage: React.FC = () => {
   const getCategoryBadge = (cat: string) => {
     switch (cat) {
       case 'banner':
-        return <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase">Banner</span>;
+        return <span className="px-2 py-0.5 rounded bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/30 text-[10px] font-bold uppercase">Banner</span>;
       case 'guide':
-        return <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase">Guía PDF</span>;
+        return <span className="px-2 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 text-[10px] font-bold uppercase">Guía PDF</span>;
       case 'pricing_template':
-        return <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold uppercase">Plantilla PVP</span>;
+        return <span className="px-2 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30 text-[10px] font-bold uppercase">Plantilla PVP</span>;
       case 'story':
-        return <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[10px] font-bold uppercase">Historias / RRSS</span>;
+        return <span className="px-2 py-0.5 rounded bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 text-[10px] font-bold uppercase">Historias / RRSS</span>;
       default:
-        return <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-bold uppercase">General</span>;
+        return <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold uppercase">General</span>;
     }
   };
 
   return (
-    <div className="space-y-6 text-slate-100">
+    <div className="space-y-6 text-slate-900 dark:text-slate-100">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white font-['Rajdhani'] uppercase tracking-wider flex items-center gap-2">
-            <Download className="w-7 h-7 text-cyan-400" />
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-['Rajdhani'] uppercase tracking-wider flex items-center gap-2">
+            <Download className="w-7 h-7 text-cyan-600 dark:text-cyan-400" />
             Materiales Gastables & Descargas
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
             Gestiona los recursos, guías, banners y plantillas que visualizan y descargan los clientes revendedores.
           </p>
         </div>
@@ -139,7 +139,7 @@ export const AdminMaterialsPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={loadMaterials}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             Refrescar
@@ -155,11 +155,11 @@ export const AdminMaterialsPage: React.FC = () => {
       </div>
 
       {/* Materials List Table */}
-      <div className="glass-panel rounded-2xl border border-slate-800 overflow-hidden">
+      <div className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-800/80 bg-slate-950/40 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <tr className="border-b border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950/40 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 <th className="p-4">Recurso / Título</th>
                 <th className="p-4">Categoría</th>
                 <th className="p-4">Formato / Peso</th>
@@ -167,7 +167,7 @@ export const AdminMaterialsPage: React.FC = () => {
                 <th className="p-4 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-sm">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-sm">
               {isLoading ? (
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-slate-500">
@@ -182,31 +182,31 @@ export const AdminMaterialsPage: React.FC = () => {
                 </tr>
               ) : (
                 materials.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-900/40 transition-colors">
+                  <tr key={item.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-900/40 transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-xs uppercase shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400 font-bold text-xs uppercase shrink-0">
                           {item.format}
                         </div>
                         <div>
-                          <span className="font-semibold text-white block">{item.title}</span>
-                          <span className="text-xs text-slate-400 line-clamp-1">{item.description}</span>
+                          <span className="font-semibold text-slate-900 dark:text-white block">{item.title}</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{item.description}</span>
                         </div>
                       </div>
                     </td>
                     <td className="p-4">
                       {getCategoryBadge(item.category)}
                     </td>
-                    <td className="p-4 font-mono text-xs text-slate-300">
+                    <td className="p-4 font-mono text-xs text-slate-600 dark:text-slate-300">
                       {item.format} • {item.file_size_mb} MB
                     </td>
                     <td className="p-4">
                       {item.is_active ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-semibold">
+                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
                           <CheckCircle2 className="w-3.5 h-3.5" /> Visible
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-500 font-semibold">
+                        <span className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 font-semibold">
                           <XCircle className="w-3.5 h-3.5" /> Oculto
                         </span>
                       )}
@@ -218,21 +218,21 @@ export const AdminMaterialsPage: React.FC = () => {
                           target="_blank"
                           rel="noreferrer"
                           title="Probar enlace de descarga"
-                          className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-cyan-400 border border-slate-800 transition-colors"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 border border-slate-200 dark:border-slate-800 transition-colors"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                         <button
                           onClick={() => openEditModal(item)}
                           title="Editar material"
-                          className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-colors"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 transition-colors"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDelete(item.id, item.title)}
                           title="Eliminar material"
-                          className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-red-400 border border-slate-800 transition-colors"
+                          className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-rose-600 dark:text-slate-400 hover:text-rose-700 dark:hover:text-red-400 border border-rose-200 dark:border-slate-800 transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -248,24 +248,24 @@ export const AdminMaterialsPage: React.FC = () => {
 
       {/* Modal Crear / Editar */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 text-slate-100 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 text-slate-900 dark:text-slate-100 relative">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-5 right-5 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"
+              className="absolute top-5 right-5 p-1.5 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <X className="w-4 h-4" />
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+              <div className="w-10 h-10 rounded-2xl bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
                 <Download className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-white">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
                   {editingItem ? 'Editar Recurso Promocional' : 'Publicar Nuevo Recurso'}
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Visible en la sección Descargas para todos los socios revendedores.
                 </p>
               </div>
@@ -273,36 +273,36 @@ export const AdminMaterialsPage: React.FC = () => {
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Título del Recurso</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Título del Recurso</label>
                 <input
                   type="text"
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Ej: Pack Banners Redes Sociales Free Fire"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-cyan-500 shadow-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Descripción</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Descripción</label>
                 <textarea
                   required
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Breve explicación de cómo usar el recurso..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-cyan-500 shadow-sm"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Categoría</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
                   <select
                     value={category}
                     onChange={(e: any) => setCategory(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 shadow-sm"
                   >
                     <option value="banner">Banner Publicitario</option>
                     <option value="guide">Guía de Revendedor (PDF)</option>
@@ -313,21 +313,21 @@ export const AdminMaterialsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Formato de Archivo</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Formato de Archivo</label>
                   <input
                     type="text"
                     required
                     value={format}
                     onChange={(e) => setFormat(e.target.value.toUpperCase())}
                     placeholder="ZIP, PDF, XLSX, PNG"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white uppercase focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white uppercase focus:outline-none focus:border-cyan-500 shadow-sm"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Tamaño Estimado (MB)</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Tamaño Estimado (MB)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -335,32 +335,32 @@ export const AdminMaterialsPage: React.FC = () => {
                     required
                     value={fileSizeMb}
                     onChange={(e) => setFileSizeMb(parseFloat(e.target.value) || 0.1)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 shadow-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Orden de Presentación</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Orden de Presentación</label>
                   <input
                     type="number"
                     min="1"
                     required
                     value={sortOrder}
                     onChange={(e) => setSortOrder(parseInt(e.target.value) || 1)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 shadow-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">URL de Descarga Directa</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">URL de Descarga Directa</label>
                 <input
                   type="url"
                   required
                   value={fileUrl}
                   onChange={(e) => setFileUrl(e.target.value)}
                   placeholder="https://servidor-descargas.com/recursos/kit.zip"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white font-mono placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-cyan-500 shadow-sm"
                 />
               </div>
 
@@ -369,16 +369,16 @@ export const AdminMaterialsPage: React.FC = () => {
                   type="checkbox"
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="rounded border-slate-700 text-cyan-600 focus:ring-cyan-500 bg-slate-950"
+                  className="rounded border-slate-300 dark:border-slate-700 text-cyan-600 focus:ring-cyan-500 bg-white dark:bg-slate-950"
                 />
-                <span className="text-xs text-slate-300 font-medium">Activo y disponible para descarga de clientes</span>
+                <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">Activo y disponible para descarga de clientes</span>
               </label>
 
               <div className="flex gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs"
                 >
                   Cancelar
                 </button>

@@ -103,10 +103,10 @@ export const AdminSettingsPage: React.FC = () => {
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black text-white font-['Rajdhani'] uppercase tracking-wide flex items-center gap-2">
-          Control de Seguridad & Saldo del Proveedor <ShieldAlert className="w-5 h-5 text-amber-400" />
+        <h1 className="text-2xl font-black text-slate-900 dark:text-white font-['Rajdhani'] uppercase tracking-wide flex items-center gap-2">
+          Control de Seguridad & Saldo del Proveedor <ShieldAlert className="w-5 h-5 text-amber-500" />
         </h1>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
           Monitorea en tiempo real el saldo de Canjea API, configura el Freno de Emergencia (Circuit Breaker) y gestiona los módulos de la tienda.
         </p>
       </div>
@@ -114,15 +114,15 @@ export const AdminSettingsPage: React.FC = () => {
       {/* Tarjeta de Saldo del Proveedor Canjea */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card 1: Saldo Canjea en Vivo */}
-        <div className="glass-panel p-5 rounded-3xl border border-slate-800 relative overflow-hidden flex flex-col justify-between">
+        <div className="glass-panel p-5 rounded-3xl border border-slate-200 dark:border-slate-800 relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-emerald-400" /> Saldo Canjea API
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+              <DollarSign className="w-4 h-4 text-emerald-500 dark:text-emerald-400" /> Saldo Canjea API
             </span>
             <button
               type="button"
               onClick={() => fetchStatus(true)}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors border border-slate-200 dark:border-transparent"
               title="Actualizar saldo ahora"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshingBalance ? 'animate-spin' : ''}`} />
@@ -130,13 +130,13 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
 
           <div className="my-3">
-            <div className="text-3xl font-black text-white font-['Rajdhani'] tracking-tight">
+            <div className="text-3xl font-black text-slate-900 dark:text-white font-['Rajdhani'] tracking-tight">
               ${systemStatus?.canjea_balance || '0.00'}{' '}
-              <span className="text-sm font-sans font-bold text-slate-400">
+              <span className="text-sm font-sans font-bold text-slate-500 dark:text-slate-400">
                 {systemStatus?.currency || 'USD'}
               </span>
             </div>
-            <span className="text-[10px] text-slate-500 block mt-1">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-1">
               Última sincronización: {systemStatus?.last_checked ? new Date(systemStatus.last_checked).toLocaleTimeString() : 'Ahora'}
             </span>
           </div>
@@ -144,20 +144,20 @@ export const AdminSettingsPage: React.FC = () => {
           {/* Badge de Nivel de Alerta */}
           <div>
             {systemStatus?.alert_level === 'critical' && (
-              <div className="px-3 py-1 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center gap-1.5">
+              <div className="px-3 py-1 rounded-xl bg-rose-50 dark:bg-rose-500/20 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
                 Saldo Crítico: Freno Automático
               </div>
             )}
             {systemStatus?.alert_level === 'warning' && (
-              <div className="px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5">
+              <div className="px-3 py-1 rounded-xl bg-amber-50 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-amber-400" />
                 Alerta Preventiva de Saldo
               </div>
             )}
             {systemStatus?.alert_level === 'normal' && (
-              <div className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <div className="px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 Operación Normal
               </div>
             )}
@@ -165,61 +165,61 @@ export const AdminSettingsPage: React.FC = () => {
         </div>
 
         {/* Card 2: Estado del Freno de Emergencia */}
-        <div className="glass-panel p-5 rounded-3xl border border-slate-800 flex flex-col justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-            <Zap className="w-4 h-4 text-cyan-400" /> Estado de la Tienda
+        <div className="glass-panel p-5 rounded-3xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+            <Zap className="w-4 h-4 text-cyan-500 dark:text-cyan-400" /> Estado de la Tienda
           </span>
 
           <div className="my-3">
             {systemStatus?.circuit_breaker_active ? (
               <div>
-                <div className="text-xl font-bold text-amber-400 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+                <div className="text-xl font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
                   Pausa Preventiva Activa
                 </div>
-                <p className="text-xs text-slate-300 mt-1">
+                <p className="text-xs text-slate-700 dark:text-slate-300 mt-1">
                   Las compras de los revendedores están pausadas temporalmente para evitar cobros de saldo sin stock.
                 </p>
               </div>
             ) : (
               <div>
-                <div className="text-xl font-bold text-emerald-400 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
                   Tienda 100% Operativa
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Los revendedores pueden procesar recargas inmediatas con despacho 24/7.
                 </p>
               </div>
             )}
           </div>
 
-          <span className="text-[11px] text-slate-500 font-mono">
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
             Modo: <strong>{circuitBreakerOverride.toUpperCase()}</strong>
           </span>
         </div>
 
         {/* Card 3: Mensaje que visualiza el Cliente */}
-        <div className="glass-panel p-5 rounded-3xl border border-slate-800 flex flex-col justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-            <Activity className="w-4 h-4 text-indigo-400" /> Aviso a los Revendedores
+        <div className="glass-panel p-5 rounded-3xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+            <Activity className="w-4 h-4 text-indigo-500 dark:text-indigo-400" /> Aviso a los Revendedores
           </span>
 
-          <div className="my-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 italic">
+          <div className="my-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 italic">
             "{systemStatus?.alert_message || 'Servicio operando con normalidad.'}"
           </div>
 
-          <span className="text-[10px] text-slate-500">
+          <span className="text-[10px] text-slate-500 dark:text-slate-400">
             Protección de reputación: No arriesga el saldo de tus socios ni genera reclamos.
           </span>
         </div>
       </div>
 
       {/* Formulario de Configuración de Umbrales */}
-      <form onSubmit={handleSave} className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-4">
-          <Sliders className="w-5 h-5 text-indigo-400" />
-          <h2 className="text-base font-bold text-white uppercase font-['Rajdhani']">
+      <form onSubmit={handleSave} className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-6">
+        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
+          <Sliders className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+          <h2 className="text-base font-bold text-slate-900 dark:text-white uppercase font-['Rajdhani']">
             Ajustes de Umbrales y Automatización
           </h2>
         </div>
@@ -254,7 +254,7 @@ export const AdminSettingsPage: React.FC = () => {
 
         {/* Override Modo Selector */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">
             Comportamiento del Circuit Breaker (Freno)
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -280,34 +280,34 @@ export const AdminSettingsPage: React.FC = () => {
                 onClick={() => setCircuitBreakerOverride(opt.id as any)}
                 className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                   circuitBreakerOverride === opt.id
-                    ? 'border-indigo-500 bg-indigo-950/40 shadow-glow-primary'
-                    : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 shadow-glow-primary'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-white">{opt.title}</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">{opt.title}</span>
                   {circuitBreakerOverride === opt.id && (
-                    <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 dark:bg-indigo-400" />
                   )}
                 </div>
-                <p className="text-[11px] text-slate-400">{opt.desc}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">{opt.desc}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Sección: Recompensas y Referidos */}
-        <div className="border-t border-slate-800 pt-6 space-y-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
-            <Gift className="w-4 h-4 text-pink-400" /> Módulos de Crecimiento & Revendedores
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-6 space-y-4">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+            <Gift className="w-4 h-4 text-pink-500 dark:text-pink-400" /> Módulos de Crecimiento & Revendedores
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             {/* Switch Recompensas */}
-            <div className="p-4 rounded-2xl border border-slate-800 bg-slate-900/60 flex items-center justify-between">
+            <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-white block">Sistema Modular de Recompensas</span>
-                <span className="text-[11px] text-slate-400 block mt-0.5">
+                <span className="text-xs font-bold text-slate-900 dark:text-white block">Sistema Modular de Recompensas</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
                   Permite a los socios revendedores desbloquear bonos y metas por volumen.
                 </span>
               </div>
@@ -318,7 +318,7 @@ export const AdminSettingsPage: React.FC = () => {
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                   rewardsEnabled
                     ? 'bg-emerald-600 text-white shadow-glow-primary'
-                    : 'bg-slate-800 text-slate-400'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                 }`}
               >
                 <Power className="w-3.5 h-3.5" />
@@ -327,12 +327,12 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
 
             {/* Comisión Referidos */}
-            <div className="p-4 rounded-2xl border border-slate-800 bg-slate-900/60 space-y-2">
+            <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-cyan-400" /> Comisión por Referidos (%)
+                <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-cyan-500 dark:text-cyan-400" /> Comisión por Referidos (%)
                 </span>
-                <span className="text-xs font-mono font-bold text-cyan-300">{referralPercent}%</span>
+                <span className="text-xs font-mono font-bold text-cyan-600 dark:text-cyan-300">{referralPercent}%</span>
               </div>
               <input
                 type="range"
@@ -341,9 +341,9 @@ export const AdminSettingsPage: React.FC = () => {
                 step="0.25"
                 value={referralPercent}
                 onChange={(e) => setReferralPercent(e.target.value)}
-                className="w-full accent-cyan-400 cursor-pointer"
+                className="w-full accent-cyan-500 cursor-pointer"
               />
-              <span className="text-[10px] text-slate-500 block">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
                 Porcentaje de bono en saldo que recibe el socio que invita por cada recarga de sus amigos.
               </span>
             </div>
@@ -351,14 +351,14 @@ export const AdminSettingsPage: React.FC = () => {
         </div>
 
         {/* Sección: Canal de Notificaciones & Email */}
-        <div className="border-t border-slate-800 pt-6 space-y-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
-            <Mail className="w-4 h-4 text-cyan-400" /> Canal de Notificaciones & Correos Salientes
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-6 space-y-4">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+            <Mail className="w-4 h-4 text-cyan-500 dark:text-cyan-400" /> Canal de Notificaciones & Correos Salientes
           </h3>
 
-          <div className="p-4 sm:p-5 rounded-2xl border border-slate-800 bg-slate-900/60 max-w-xl space-y-3">
+          <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 max-w-xl space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Correo Remitente Oficial (Sender Email)
               </label>
               <input
@@ -367,10 +367,10 @@ export const AdminSettingsPage: React.FC = () => {
                 value={notificationSenderEmail}
                 onChange={(e) => setNotificationSenderEmail(e.target.value)}
                 placeholder="notificaciones@recargasjuegospro.cloud"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white font-mono placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-cyan-500 shadow-sm"
               />
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
               Dirección utilizada como remitente para avisos de restablecimiento de contraseña, confirmación de depósitos bancarios y alertas de soporte. Configurable para tu dominio personalizado.
             </p>
           </div>

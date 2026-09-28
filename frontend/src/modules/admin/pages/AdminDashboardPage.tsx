@@ -177,20 +177,20 @@ export const AdminDashboardPage: React.FC = () => {
         {/* Encabezado de Bienvenida Móvil */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black text-white font-['Rajdhani'] uppercase tracking-wide flex items-center gap-1.5">
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white font-['Rajdhani'] uppercase tracking-wide flex items-center gap-1.5">
               ¡Hola, {displayName}! <span className="text-xl">👑</span>
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
               Panel Administrador Pro · Canjea Gateway
             </p>
           </div>
           <button
             onClick={() => loadData(true)}
             disabled={isRefreshing}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white active:scale-95 transition-all shadow-sm"
+            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all shadow-xs"
             title="Sincronizar todo"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-cyan-600 dark:text-cyan-400' : ''}`} />
           </button>
         </div>
 
@@ -303,8 +303,8 @@ export const AdminDashboardPage: React.FC = () => {
         {/* SECCIÓN: ACCESOS RÁPIDOS (Estilo Squircle Icons similar a panel clientes) */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5 font-['Rajdhani']">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-300 flex items-center gap-1.5 font-['Rajdhani']">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
               <span>Accesos Rápidos de Administración</span>
             </h4>
             <span className="text-[10px] text-slate-500 font-mono">12 Módulos</span>
@@ -317,10 +317,10 @@ export const AdminDashboardPage: React.FC = () => {
                 <button
                   key={idx}
                   onClick={() => navigate(item.path)}
-                  className={`relative flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900/80 border active:scale-95 transition-all shadow-sm group ${
+                  className={`gamer-card relative flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white dark:bg-slate-900/80 border active:scale-95 transition-all shadow-xs group ${
                     item.highlight
                       ? 'border-emerald-500/60 shadow-emerald-500/20 shadow-md'
-                      : 'border-slate-800 hover:border-indigo-500/50'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-indigo-500/50'
                   }`}
                 >
                   {item.badge !== null && item.badge !== undefined && (
@@ -332,7 +332,7 @@ export const AdminDashboardPage: React.FC = () => {
                   <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${item.color} flex items-center justify-center text-white shadow-md mb-1.5 group-hover:scale-105 transition-transform`}>
                     <Icon className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-[10px] font-bold text-slate-300 text-center leading-tight line-clamp-1">
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 text-center leading-tight line-clamp-1">
                     {item.label}
                   </span>
                 </button>
@@ -343,40 +343,40 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* SECCIÓN: RESUMEN DE MÉTRICAS MÓVIL */}
         <div className="space-y-3">
-          <h4 className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5 font-['Rajdhani']">
-            <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
+          <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-300 flex items-center gap-1.5 font-['Rajdhani']">
+            <TrendingUp className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
             <span>Métricas Operativas</span>
           </h4>
 
           <div className="grid grid-cols-3 gap-2">
-            <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block truncate">
+            <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-1 shadow-xs">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block truncate">
                 Ventas
               </span>
-              <div className="text-sm font-black text-white truncate font-mono">
+              <div className="text-sm font-black text-slate-900 dark:text-white truncate font-mono">
                 ${((metrics?.total_sales_cents || 0) / 100).toFixed(0)}
               </div>
-              <span className="text-[9px] text-emerald-400 block font-bold">+14.2%</span>
+              <span className="text-[9px] text-emerald-600 dark:text-emerald-400 block font-bold">+14.2%</span>
             </div>
 
-            <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block truncate">
+            <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-1 shadow-xs">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block truncate">
                 Órdenes
               </span>
-              <div className="text-sm font-black text-cyan-400 truncate font-mono">
+              <div className="text-sm font-black text-indigo-600 dark:text-cyan-400 truncate font-mono">
                 {metrics?.active_orders_count || 0}
               </div>
-              <span className="text-[9px] text-cyan-400 block font-bold">100% OK</span>
+              <span className="text-[9px] text-indigo-600 dark:text-cyan-400 block font-bold">100% OK</span>
             </div>
 
-            <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block truncate">
+            <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-1 shadow-xs">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block truncate">
                 Clientes
               </span>
-              <div className="text-sm font-black text-purple-300 truncate font-mono">
+              <div className="text-sm font-black text-purple-600 dark:text-purple-300 truncate font-mono">
                 {metrics?.total_users_count || 0}
               </div>
-              <span className="text-[9px] text-purple-400 block font-bold">Activos</span>
+              <span className="text-[9px] text-purple-600 dark:text-purple-400 block font-bold">Activos</span>
             </div>
           </div>
         </div>
@@ -389,11 +389,11 @@ export const AdminDashboardPage: React.FC = () => {
         {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white font-['Rajdhani'] uppercase tracking-wider flex items-center gap-2">
-            <TrendingUp className="w-7 h-7 text-indigo-400" />
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-['Rajdhani'] uppercase tracking-wider flex items-center gap-2">
+            <TrendingUp className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
             Dashboard de Control Central
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
             Monitoreo en tiempo real de ventas, usuarios, billeteras y saldo con el proveedor Canjea.
           </p>
         </div>
@@ -401,7 +401,7 @@ export const AdminDashboardPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <Link
             to="/sys-admin-auth/users"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors shadow-glow-primary"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold transition-all shadow-md active:scale-95"
           >
             <Users className="w-4 h-4" />
             Asignar Saldo a Usuario
@@ -412,10 +412,10 @@ export const AdminDashboardPage: React.FC = () => {
       {/* Metrics Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Metric 1: Total Sales */}
-        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between text-slate-400">
+        <div className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-xs font-bold uppercase tracking-wider">Ventas Totales</span>
-            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
@@ -424,58 +424,58 @@ export const AdminDashboardPage: React.FC = () => {
               cents={metrics?.total_sales_cents || 0}
               currency={metrics?.currency || 'USD'}
               size="xl"
-              className="text-white font-extrabold"
+              className="text-slate-900 dark:text-white font-extrabold"
             />
-            <span className="text-[11px] text-emerald-400 block mt-1">
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 block mt-1 font-semibold">
               +14.2% respecto al mes anterior
             </span>
           </div>
         </div>
 
         {/* Metric 2: Active Orders */}
-        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between text-slate-400">
+        <div className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-xs font-bold uppercase tracking-wider">Órdenes Procesadas</span>
-            <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400">
+            <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <span className="text-2xl sm:text-3xl font-black text-white font-mono">
+            <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono">
               {metrics?.active_orders_count || 0}
             </span>
-            <span className="text-[11px] text-cyan-400 block mt-1">
+            <span className="text-[11px] text-cyan-600 dark:text-cyan-400 block mt-1 font-semibold">
               100% liquidadas con idempotencia
             </span>
           </div>
         </div>
 
         {/* Metric 3: Total Users */}
-        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between text-slate-400">
+        <div className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-xs font-bold uppercase tracking-wider">Clientes con Billetera</span>
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+            <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <span className="text-2xl sm:text-3xl font-black text-white font-mono">
+            <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono">
               {metrics?.total_users_count || 0}
             </span>
-            <span className="text-[11px] text-slate-400 block mt-1">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-1">
               Perfiles sincronizados con Auth
             </span>
           </div>
         </div>
 
         {/* Metric 4: Supplier Balance (Canjea) */}
-        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3 relative overflow-hidden">
+        <div className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 relative overflow-hidden shadow-xs">
           <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
-          <div className="flex items-center justify-between text-slate-400">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-xs font-bold uppercase tracking-wider">
               Saldo Proveedor ({metrics?.supplier_name?.split(' ')[0] || 'Canjea'})
             </span>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <Server className="w-4 h-4" />
             </div>
           </div>
@@ -484,10 +484,10 @@ export const AdminDashboardPage: React.FC = () => {
               cents={metrics?.supplier_balance_cents || 0}
               currency={metrics?.currency || 'USD'}
               size="xl"
-              className="text-emerald-400 font-extrabold"
+              className="text-emerald-600 dark:text-emerald-400 font-extrabold"
             />
-            <span className="text-[11px] text-emerald-300 flex items-center gap-1 mt-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-300 flex items-center gap-1 mt-1 font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Conexión Operativa (5000ms timeout)
             </span>
           </div>
@@ -496,7 +496,7 @@ export const AdminDashboardPage: React.FC = () => {
 
       {/* Quick Access Tiles */}
       <div className="space-y-4">
-        <h2 className="text-lg font-black text-white font-['Rajdhani'] uppercase tracking-wider">
+        <h2 className="text-lg font-black text-slate-900 dark:text-white font-['Rajdhani'] uppercase tracking-wider">
           Módulos de Administración Rápida
         </h2>
 
@@ -504,115 +504,115 @@ export const AdminDashboardPage: React.FC = () => {
           {/* Tile 1: Vouchers */}
           <Link
             to="/sys-admin-auth/deposits"
-            className="glass-panel p-5 rounded-2xl border border-slate-800 hover:border-emerald-500/50 transition-all group flex items-start justify-between"
+            className="gamer-card glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 transition-all group flex items-start justify-between shadow-xs"
           >
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-emerald-400" />
-                <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">
+                <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">
                   Validar Depósitos & Vouchers
                 </h3>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Audita pagos bancarios y Binance con zoom en alta resolución y acreditación atómica.
               </p>
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2" />
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2" />
           </Link>
 
           {/* Tile 2: Catálogo y Portadas */}
           <Link
             to="/sys-admin-auth/catalog"
-            className="glass-panel p-5 rounded-2xl border border-slate-800 hover:border-indigo-500/50 transition-all group flex items-start justify-between"
+            className="gamer-card glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 transition-all group flex items-start justify-between shadow-xs"
           >
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <Palette className="w-5 h-5 text-indigo-400" />
-                <h3 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">
+                <Palette className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
                   Personalizar Portadas & Juegos
                 </h3>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Cambia portadas, banners panorámicos, badges (HOT, VIP) y visibilidad de los 34 juegos.
               </p>
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2" />
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2" />
           </Link>
 
           {/* Tile 3: Promociones */}
           <Link
             to="/sys-admin-auth/promotions"
-            className="glass-panel p-5 rounded-2xl border border-slate-800 hover:border-pink-500/50 transition-all group flex items-start justify-between"
+            className="gamer-card glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-pink-500/50 transition-all group flex items-start justify-between shadow-xs"
           >
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <Megaphone className="w-5 h-5 text-pink-400" />
-                <h3 className="text-sm font-bold text-white group-hover:text-pink-300 transition-colors">
+                <Megaphone className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-300 transition-colors">
                   Promociones & Avisos Web
                 </h3>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Gestiona marquesinas y avisos flotantes en la cabecera de la tienda de recargas.
               </p>
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-pink-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2" />
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-pink-600 dark:group-hover:text-pink-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2" />
           </Link>
 
           {/* Tile 4: Circuit Breaker & Umbrales */}
           <Link
             to="/sys-admin-auth/settings"
-            className="glass-panel p-5 rounded-2xl border border-slate-800 hover:border-amber-500/50 transition-all group flex items-start justify-between"
+            className="gamer-card glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 transition-all group flex items-start justify-between shadow-xs"
           >
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-amber-400" />
-                <h3 className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
+                <Sliders className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-300 transition-colors">
                   Circuit Breaker & Umbrales
                 </h3>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Monitorea el saldo Canjea en vivo y ajusta los límites de alerta ($50) y pausa ($5).
               </p>
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2" />
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2" />
           </Link>
 
           {/* Tile 5: Retos y Recompensas */}
           <Link
             to="/sys-admin-auth/rewards"
-            className="glass-panel p-5 rounded-2xl border border-slate-800 hover:border-purple-500/50 transition-all group flex items-start justify-between"
+            className="gamer-card glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-purple-500/50 transition-all group flex items-start justify-between shadow-xs"
           >
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <Gift className="w-5 h-5 text-purple-400" />
-                <h3 className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">
+                <Gift className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                   Retos & Recompensas
                 </h3>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Crea campañas de ventas personalizadas con bonos acreditables en saldo virtual.
               </p>
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-purple-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2" />
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2" />
           </Link>
 
           {/* Tile 6: Gestión de Usuarios */}
           <Link
             to="/sys-admin-auth/users"
-            className="glass-panel p-5 rounded-2xl border border-slate-800 hover:border-cyan-500/50 transition-all group flex items-start justify-between"
+            className="gamer-card glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 transition-all group flex items-start justify-between shadow-xs"
           >
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
+                <Users className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors">
                   Gestión de Socios & Saldo
                 </h3>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Directorio de cuentas registradas, saldos disponibles y asignación manual directa.
               </p>
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2" />
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 ml-2" />
           </Link>
         </div>
       </div>

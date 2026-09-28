@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, RefreshCw, LogOut, Server, AlertTriangle, CheckCircle2, Smartphone, CreditCard, Headphones } from 'lucide-react';
+import { Shield, RefreshCw, LogOut, Server, AlertTriangle, CheckCircle2, Smartphone, CreditCard, Headphones, Sun, Moon } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useThemeStore } from '../../store/useThemeStore';
 import { adminService } from '../../services/api/admin.service';
 
 export const AdminTopBar: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const [providerBalance, setProviderBalance] = useState<string>('0.00');
   const [currency, setCurrency] = useState<string>('USD');
   const [circuitBreaker, setCircuitBreaker] = useState<boolean>(false);
@@ -73,56 +75,56 @@ export const AdminTopBar: React.FC = () => {
   const getStatusBadge = () => {
     if (circuitBreaker || alertLevel === 'critical') {
       return (
-        <span className="flex items-center gap-1 text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse">
-          <AlertTriangle className="w-3 h-3" /> Canjea Crítico / Detenido
+        <span className="flex items-center gap-1 text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-500/40 animate-pulse">
+          <AlertTriangle className="w-3 h-3" /> Canjea Crítico
         </span>
       );
     }
     if (alertLevel === 'warning') {
       return (
-        <span className="flex items-center gap-1 text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">
+        <span className="flex items-center gap-1 text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-500/40">
           <AlertTriangle className="w-3 h-3" /> Saldo Bajo
         </span>
       );
     }
     return (
-      <span className="flex items-center gap-1 text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+      <span className="flex items-center gap-1 text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/40">
         <CheckCircle2 className="w-3 h-3" /> Proveedor Online
       </span>
     );
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800">
+    <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
         {/* Brand & Badge */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Link to="/sys-admin-auth" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform shrink-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform shrink-0">
               <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-white text-sm sm:text-base tracking-tight">
+                <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base tracking-tight">
                   <span className="hidden sm:inline">Recargas Juegos Online</span>
                   <span className="sm:hidden">Admin Pro</span>
                 </span>
-                <span className="text-[9px] sm:text-[10px] uppercase font-black px-1.5 sm:px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <span className="text-[9px] sm:text-[10px] uppercase font-black px-1.5 sm:px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
                   SYS
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400 hidden sm:block">Centro de Control y Monitoreo</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">Centro de Control y Monitoreo</span>
             </div>
           </Link>
         </div>
 
         {/* Live Canjea Provider Balance Widget */}
-        <div className="flex items-center gap-2 sm:gap-6">
+        <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
           {/* Mobile compact balance */}
-          <div className="sm:hidden bg-slate-900/90 border border-slate-800 rounded-xl px-2 py-1 flex items-center gap-1.5 shadow-inner">
+          <div className="sm:hidden bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-1 flex items-center gap-1.5 shadow-inner">
             <div className="flex flex-col">
-              <span className="text-[8px] uppercase font-bold text-slate-400 leading-none">Proveedor</span>
-              <span className="text-xs font-black text-emerald-400 font-mono leading-tight">
+              <span className="text-[8px] uppercase font-bold text-slate-500 dark:text-slate-400 leading-none">Proveedor</span>
+              <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 font-mono leading-tight">
                 ${Number(providerBalance).toFixed(2)}
               </span>
             </div>
@@ -130,35 +132,35 @@ export const AdminTopBar: React.FC = () => {
               onClick={() => fetchProviderStatus(true)}
               disabled={isRefreshing}
               title="Sincronizar"
-              className="p-1 text-slate-400 hover:text-cyan-400 active:scale-95"
+              className="p-1 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400 active:scale-95"
             >
-              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
+              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-indigo-600 dark:text-cyan-400' : ''}`} />
             </button>
           </div>
 
           {/* Desktop full balance widget */}
-          <div className="hidden sm:flex bg-slate-900/90 border border-slate-800 rounded-2xl px-3.5 py-1.5 items-center gap-3 shadow-inner">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+          <div className="hidden sm:flex bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl px-3.5 py-1.5 items-center gap-3 shadow-inner">
+            <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
               <Server className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Saldo Proveedor (Canjea)
                 </span>
                 {getStatusBadge()}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-black tracking-tight text-white">
-                  ${Number(providerBalance).toFixed(2)} <span className="text-xs font-normal text-slate-400">{currency}</span>
+                <span className="text-base font-black tracking-tight text-slate-900 dark:text-white font-mono">
+                  ${Number(providerBalance).toFixed(2)} <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{currency}</span>
                 </span>
                 <button
                   onClick={() => fetchProviderStatus(true)}
                   disabled={isRefreshing}
                   title="Sincronizar saldo con API de Canjea"
-                  className="p-1 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors disabled:opacity-50"
+                  className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-600 dark:text-cyan-400' : ''}`} />
                 </button>
               </div>
             </div>
@@ -169,9 +171,9 @@ export const AdminTopBar: React.FC = () => {
             <Link
               to="/sys-admin-auth/deposits"
               title={pendingDeposits > 0 ? `${pendingDeposits} depósito(s) pendientes de aprobación` : 'Ver Depósitos y Vouchers'}
-              className="relative p-2 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-800 transition-all text-slate-300 hover:text-white"
+              className="relative p-2 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 hover:bg-slate-200 dark:hover:bg-slate-800 transition-all text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
             >
-              <CreditCard className="w-4 h-4 text-amber-400" />
+              <CreditCard className="w-4 h-4 text-amber-500 dark:text-amber-400" />
               {pendingDeposits > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-amber-500 text-slate-950 font-black text-[9px] animate-pulse shadow-md shadow-amber-500/50">
                   {pendingDeposits}
@@ -182,24 +184,39 @@ export const AdminTopBar: React.FC = () => {
             <Link
               to="/sys-admin-auth/support"
               title={pendingTickets > 0 ? `${pendingTickets} ticket(s) de soporte pendientes` : 'Ver Tickets de Soporte'}
-              className="relative p-2 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 transition-all text-slate-300 hover:text-white"
+              className="relative p-2 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 hover:bg-slate-200 dark:hover:bg-slate-800 transition-all text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
             >
-              <Headphones className="w-4 h-4 text-indigo-400" />
+              <Headphones className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               {pendingTickets > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-indigo-500 text-white font-black text-[9px] animate-pulse shadow-md shadow-indigo-500/50">
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-indigo-600 text-white font-black text-[9px] animate-pulse shadow-md shadow-indigo-500/50">
                   {pendingTickets}
                 </span>
               )}
             </Link>
+
+            {/* Botón Alternar Tema Modo Claro / Modo Oscuro */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-amber-400 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs cursor-pointer active:scale-95"
+              aria-label="Alternar modo claro y oscuro"
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-600" />
+              )}
+            </button>
           </div>
 
           {/* Admin User Info & Actions */}
-          <div className="flex items-center gap-2 sm:gap-3 border-l border-slate-800 pl-2 sm:pl-6">
+          <div className="flex items-center gap-2 sm:gap-3 border-l border-slate-200 dark:border-slate-800 pl-2 sm:pl-4 lg:pl-6">
             <div className="hidden lg:flex flex-col text-right">
-              <span className="text-xs font-bold text-slate-200">
+              <span className="text-xs font-bold text-slate-900 dark:text-slate-200">
                 {user?.fullName || 'Super Admin'}
               </span>
-              <span className="text-[10px] text-cyan-400 font-mono">
+              <span className="text-[10px] text-indigo-600 dark:text-cyan-400 font-mono">
                 {user?.email || 'b.edumalta@gmail.com'}
               </span>
             </div>
@@ -208,18 +225,18 @@ export const AdminTopBar: React.FC = () => {
               href="/downloads/recargas-admin.apk"
               download="RecargasAdmin-Pro.apk"
               title="Descargar APK de Administrador para tu celular Android"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-500/40 text-xs font-bold text-purple-300 hover:text-purple-200 transition-colors shadow-sm"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-500/40 text-xs font-bold text-purple-700 dark:text-purple-300 transition-colors shadow-xs"
             >
-              <Smartphone className="w-3.5 h-3.5 text-purple-400" />
+              <Smartphone className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
               <span>App Admin</span>
-              <span className="px-1 py-0.2 rounded text-[9px] font-black bg-purple-500/40 text-purple-200 uppercase">APK</span>
+              <span className="px-1 py-0.2 rounded text-[9px] font-black bg-purple-200 dark:bg-purple-500/40 text-purple-800 dark:text-purple-200 uppercase">APK</span>
             </a>
 
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
               title="Cerrar sesión de Administrador"
-              className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-xs font-semibold text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-200 dark:border-red-500/30 text-xs font-semibold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors disabled:opacity-50 cursor-pointer"
             >
               <LogOut className={`w-3.5 h-3.5 ${isLoggingOut ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">{isLoggingOut ? 'Saliendo...' : 'Salir'}</span>

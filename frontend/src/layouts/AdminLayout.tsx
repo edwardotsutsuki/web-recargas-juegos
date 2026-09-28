@@ -32,7 +32,7 @@ export const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#080c14] text-slate-100 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#080c14] text-slate-900 dark:text-slate-100 overflow-x-hidden transition-colors duration-200">
       <AdminTopBar />
 
       <div className="flex-1 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">

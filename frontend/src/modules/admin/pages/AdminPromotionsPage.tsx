@@ -137,10 +137,10 @@ export const AdminPromotionsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white font-['Rajdhani'] uppercase tracking-wide flex items-center gap-2">
-            Avisos de Promociones & Campañas <Megaphone className="w-5 h-5 text-amber-400" />
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white font-['Rajdhani'] uppercase tracking-wide flex items-center gap-2">
+            Avisos de Promociones & Campañas <Megaphone className="w-5 h-5 text-amber-500 dark:text-amber-400" />
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
             Publica banners y anuncios emergentes para avisar descuentos, bonos relámpago o novedades a todos tus revendedores.
           </p>
         </div>
@@ -148,7 +148,7 @@ export const AdminPromotionsPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchPromotions}
-            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors"
+            className="p-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-transparent text-xs font-bold transition-colors shadow-sm"
             title="Refrescar"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -167,46 +167,48 @@ export const AdminPromotionsPage: React.FC = () => {
 
       {/* Lista de Promociones */}
       {loading ? (
-        <div className="p-16 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-          <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
+        <div className="p-16 text-center text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
+          <RefreshCw className="w-4 h-4 animate-spin text-indigo-500 dark:text-indigo-400" />
           Cargando promociones...
         </div>
       ) : promotions.length === 0 ? (
-        <div className="p-12 text-center glass-panel rounded-3xl border border-slate-800">
-          <Megaphone className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-          <p className="text-sm font-bold text-slate-300">No hay promociones registradas.</p>
-          <p className="text-xs text-slate-500 mt-1">Crea tu primer anuncio para avisar ofertas a tus clientes.</p>
+        <div className="p-12 text-center rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <Megaphone className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-2" />
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-300">No hay promociones registradas.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Crea tu primer anuncio para avisar ofertas a tus clientes.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {promotions.map((promo) => (
             <div
               key={promo.id}
-              className={`glass-panel p-5 rounded-3xl border transition-all flex flex-col justify-between space-y-4 ${
-                promo.is_active ? 'border-indigo-500/40 bg-indigo-950/20' : 'border-slate-800 opacity-60'
+              className={`p-5 rounded-3xl border transition-all flex flex-col justify-between space-y-4 shadow-sm ${
+                promo.is_active
+                  ? 'border-indigo-200 dark:border-indigo-500/40 bg-indigo-50/50 dark:bg-indigo-950/20'
+                  : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 opacity-60'
               }`}
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
                     <Flame className="w-3 h-3" />
                     {promo.badge_text}
                   </span>
-                  <span className="text-[10px] text-slate-400 font-mono">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                     Ubicación: <strong>{promo.placement}</strong>
                   </span>
                 </div>
 
-                <h3 className="text-base font-bold text-white font-['Rajdhani']">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-['Rajdhani']">
                   {promo.title}
                 </h3>
 
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                   {promo.message}
                 </p>
 
                 {promo.action_url && (
-                  <div className="text-[11px] text-cyan-400 font-bold flex items-center gap-1 pt-1">
+                  <div className="text-[11px] text-indigo-600 dark:text-cyan-400 font-bold flex items-center gap-1 pt-1">
                     <span>Enlace: {promo.action_url} ({promo.action_label})</span>
                     <ExternalLink className="w-3 h-3" />
                   </div>
@@ -214,14 +216,14 @@ export const AdminPromotionsPage: React.FC = () => {
               </div>
 
               {/* Botones de Control */}
-              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => handleToggleActive(promo)}
                   className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                     promo.is_active
-                      ? 'bg-emerald-600/80 text-white hover:bg-emerald-500'
-                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                      ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-500'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <Power className="w-3 h-3" />
@@ -232,7 +234,7 @@ export const AdminPromotionsPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleOpenEdit(promo)}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
                     title="Editar"
                   >
                     <Edit className="w-3.5 h-3.5" />
@@ -241,7 +243,7 @@ export const AdminPromotionsPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleDelete(promo.id)}
-                    className="p-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900 border border-rose-800/40 text-rose-300 transition-colors"
+                    className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900 border border-rose-200 dark:border-rose-800/40 text-rose-600 dark:text-rose-300 transition-colors"
                     title="Eliminar"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -256,21 +258,21 @@ export const AdminPromotionsPage: React.FC = () => {
       {/* Modal Crear / Editar */}
       {isModalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/60 dark:bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setIsModalOpen(false)}
         >
           <div
-            className="max-w-lg w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl space-y-4"
+            className="max-w-lg w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-2xl space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-sm font-bold text-white uppercase font-['Rajdhani'] flex items-center gap-2">
-                <Megaphone className="w-4 h-4 text-amber-400" />
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase font-['Rajdhani'] flex items-center gap-2">
+                <Megaphone className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                 {editingPromoId ? 'Editar Promoción' : 'Nueva Promoción para Revendedores'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-xs text-slate-400 hover:text-white"
+                className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               >
                 Cerrar
               </button>
@@ -288,14 +290,14 @@ export const AdminPromotionsPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                   Mensaje / Detalle del Anuncio
                 </label>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={3}
-                  className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500 resize-none"
+                  className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none shadow-sm"
                   placeholder="Explica la promoción, los porcentajes de descuento o el beneficio..."
                   required
                 />
@@ -312,13 +314,13 @@ export const AdminPromotionsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                     Ubicación
                   </label>
                   <select
                     value={placement}
                     onChange={(e) => setPlacement(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 shadow-sm"
                   >
                     <option value="top_banner">Barra Superior (Marquee)</option>
                     <option value="hero">Tarjeta Hero Destacada</option>
@@ -346,16 +348,16 @@ export const AdminPromotionsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-white block">Estado de la Campaña</span>
-                  <span className="text-[10px] text-slate-400">Publicar de inmediato en la plataforma</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block">Estado de la Campaña</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Publicar de inmediato en la plataforma</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsActive(!isActive)}
                   className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                    isActive ? 'bg-emerald-600 text-white shadow-glow-primary' : 'bg-slate-800 text-slate-400'
+                    isActive ? 'bg-emerald-600 text-white shadow-glow-primary' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                   }`}
                 >
                   {isActive ? 'Activo' : 'Pausado'}
@@ -366,7 +368,7 @@ export const AdminPromotionsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold hover:bg-slate-700"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold"
                 >
                   Cancelar
                 </button>
