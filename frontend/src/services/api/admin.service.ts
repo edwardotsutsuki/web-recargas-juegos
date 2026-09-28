@@ -295,6 +295,12 @@ export const adminService = {
     });
   },
 
+  async deleteTicket(id: string): Promise<any> {
+    return apiClient<any>(`/admin/tickets/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   // --- Monitoreo de Depósitos en Tiempo Real ---
   async getPendingDepositsCount(): Promise<{ pending_count: number }> {
     try {

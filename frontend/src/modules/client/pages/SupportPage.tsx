@@ -12,6 +12,8 @@ import {
   User,
   RefreshCw,
   X,
+  Trash2,
+  XCircle,
 } from 'lucide-react';
 import { Button } from '../../../components/atoms/Button';
 import { apiClient } from '../../../services/api/client';
@@ -140,6 +142,17 @@ export const SupportPage: React.FC = () => {
     }
   };
 
+  const handleDeleteTicket = async (ticketId: string) => {
+    if (!confirm('¿Deseas eliminar este ticket de tu historial?')) return;
+    try {
+      await apiClient(`/tickets/${ticketId}`, { method: 'DELETE' });
+      showToast('Ticket eliminado de tu historial', 'success');
+      loadTickets(false);
+    } catch (err: any) {
+      showToast(err.message || 'Error al eliminar ticket', 'error');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'resolved':
@@ -152,6 +165,12 @@ export const SupportPage: React.FC = () => {
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold">
             <Clock className="w-3.5 h-3.5" /> En Revisión
+          </span>
+        );
+      case 'closed':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-xs font-semibold">
+            <XCircle className="w-3.5 h-3.5 text-slate-500" /> Cerrado
           </span>
         );
       default:
@@ -375,6 +394,13 @@ export const SupportPage: React.FC = () => {
                       <span className="text-[11px] text-slate-400 font-mono">
                         {new Date(t.created_at).toLocaleDateString()}
                       </span>
+                      <button
+                        onClick={() => handleDeleteTicket(t.id)}
+                        title="Eliminar ticket de tu lista"
+                        className="p-1 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-800/80 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
 

@@ -198,4 +198,24 @@ export const ticketRepository = {
       replies: parseReplies(data.admin_reply, data.updated_at),
     };
   },
+
+  async deleteTicket(id, userId = null) {
+    if (!isSupabaseConfigured) {
+      throw new Error('Supabase no está configurado');
+    }
+
+    let query = supabaseAdmin
+      .from('support_tickets')
+      .delete()
+      .eq('id', id);
+
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { error } = await query;
+    if (error) throw error;
+    return { success: true };
+  },
 };
+

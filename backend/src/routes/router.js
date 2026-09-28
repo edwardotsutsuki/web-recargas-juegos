@@ -378,6 +378,13 @@ export async function handleRequest(req, res) {
       return sendJson(res, 200, updated);
     }
 
+    // DELETE /tickets/:id (Cliente)
+    if (method === 'DELETE' && pathname.match(/^\/tickets\/[^/]+$/)) {
+      const ticketId = pathname.split('/')[2];
+      await ticketRepository.deleteTicket(ticketId, user.id);
+      return sendJson(res, 200, { success: true, message: 'Ticket eliminado.' });
+    }
+
     // --- Seguridad: Verificación en Dos Pasos (2FA) ---
     if (method === 'POST' && pathname === '/auth/2fa/setup') {
       const { secret, otpauthUrl, qrCodeUrl } = twoFactorService.generateSecret({
@@ -969,6 +976,13 @@ export async function handleRequest(req, res) {
         }
 
         return sendJson(res, 200, updated);
+      }
+
+      // DELETE /admin/tickets/:id
+      if (method === 'DELETE' && pathname.match(/^\/admin\/tickets\/[^/]+$/)) {
+        const ticketId = pathname.split('/')[3];
+        await ticketRepository.deleteTicket(ticketId);
+        return sendJson(res, 200, { success: true, message: 'Ticket eliminado permanentemente.' });
       }
     }
 

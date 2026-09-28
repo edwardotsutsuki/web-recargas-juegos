@@ -1,5 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Headphones, RefreshCw, MessageSquare, CheckCircle2, Clock, Send, X, User, ShieldCheck } from 'lucide-react';
+import {
+  Headphones,
+  RefreshCw,
+  MessageSquare,
+  CheckCircle2,
+  Clock,
+  Send,
+  X,
+  User,
+  ShieldCheck,
+  Trash2,
+  XCircle,
+} from 'lucide-react';
 import { SupportTicket } from '../../../types';
 import { adminService } from '../../../services/api/admin.service';
 import { useUIStore } from '../../../store/useUIStore';
@@ -12,6 +24,7 @@ export const AdminSupportPage: React.FC = () => {
   const [adminReply, setAdminReply] = useState('');
   const [newStatus, setNewStatus] = useState<string>('resolved');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { showToast } = useUIStore();
 
@@ -26,6 +39,7 @@ export const AdminSupportPage: React.FC = () => {
         const current = (data || []).find((t: SupportTicket) => t.id === activeTicket.id);
         if (current) {
           setActiveTicket(current);
+          setNewStatus(current.status);
         }
       }
     } catch (err) {
@@ -49,24 +63,69 @@ export const AdminSupportPage: React.FC = () => {
     setNewStatus(ticket.status === 'open' ? 'in_progress' : ticket.status);
   };
 
-  const handleSendReply = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeTicket || !adminReply.trim()) return;
-
-    setIsSubmitting(true);
+  const handleQuickStatusChange = async (ticketId: string, status: string) => {
     try {
-      const updated = await adminService.replyTicket(activeTicket.id, {
-        status: newStatus,
-        message: adminReply.trim(),
-      });
-      showToast('Respuesta enviada exitosamente', 'success');
-      setAdminReply('');
-      if (updated) {
+      const updated = await adminService.updateTicket(ticketId, { status });
+      showToast(`Estado del ticket cambiado a "${status}"`, 'success');
+      if (activeTicket?.id === ticketId && updated) {
         setActiveTicket(updated);
+        setNewStatus(updated.status);
       }
       loadTickets(true);
     } catch (err: any) {
-      showToast(err.message || 'Error al responder ticket', 'error');
+      showToast(err.message || 'Error al cambiar estado', 'error');
+    }
+  };
+
+  const handleDeleteTicket = async (ticketId: string) => {
+    if (!confirm('¿Estás seguro de eliminar este ticket permanentemente de la base de datos para liberar memoria? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    setDeletingId(ticketId);
+    try {
+      await adminService.deleteTicket(ticketId);
+      showToast('Ticket eliminado permanentemente para liberar memoria', 'success');
+      if (activeTicket?.id === ticketId) {
+        setActiveTicket(null);
+      }
+      loadTickets(false);
+    } catch (err: any) {
+      showToast(err.message || 'Error al eliminar ticket', 'error');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleSendReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeTicket) return;
+
+    setIsSubmitting(true);
+    try {
+      let updated;
+      if (adminReply.trim()) {
+        updated = await adminService.replyTicket(activeTicket.id, {
+          status: newStatus,
+          message: adminReply.trim(),
+        });
+        showToast('Respuesta enviada y estado actualizado exitosamente', 'success');
+      } else {
+        // Actualizar solo el estado si no se ingresó mensaje de texto
+        updated = await adminService.updateTicket(activeTicket.id, {
+          status: newStatus,
+        });
+        showToast(`Estado actualizado a "${newStatus}" exitosamente`, 'success');
+      }
+
+      setAdminReply('');
+      if (updated) {
+        setActiveTicket(updated);
+        setNewStatus(updated.status);
+      }
+      loadTickets(true);
+    } catch (err: any) {
+      showToast(err.message || 'Error al procesar solicitud', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -94,7 +153,7 @@ export const AdminSupportPage: React.FC = () => {
       case 'resolved':
         return <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> Resuelto</span>;
       case 'closed':
-        return <span className="inline-flex items-center gap-1 text-xs text-slate-500 font-semibold">Cerrado</span>;
+        return <span className="inline-flex items-center gap-1 text-xs text-slate-400 font-semibold"><XCircle className="w-3.5 h-3.5 text-slate-500" /> Cerrado</span>;
       default:
         return <span className="text-xs text-slate-400">{s}</span>;
     }
@@ -110,7 +169,7 @@ export const AdminSupportPage: React.FC = () => {
             Mesa de Ayuda & Tickets de Soporte
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Atiende consultas de recargas, verificación de IDs y dudas de los socios revendedores en tiempo real.
+            Atiende consultas, cambia estados en tiempo real o elimina tickets antiguos para liberar memoria.
           </p>
         </div>
 
@@ -157,9 +216,9 @@ export const AdminSupportPage: React.FC = () => {
                 <th className="p-4">Usuario / Contacto</th>
                 <th className="p-4">Asunto / Conversación</th>
                 <th className="p-4">Prioridad</th>
-                <th className="p-4">Estado</th>
+                <th className="p-4">Estado (Rápido)</th>
                 <th className="p-4">Fecha</th>
-                <th className="p-4 text-right">Acción</th>
+                <th className="p-4 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 text-sm">
@@ -217,19 +276,48 @@ export const AdminSupportPage: React.FC = () => {
                         {getPriorityBadge(t.priority)}
                       </td>
                       <td className="p-4">
-                        {getStatusBadge(t.status)}
+                        {/* Selector de cambio directo de estado */}
+                        <select
+                          value={t.status}
+                          onChange={(e) => handleQuickStatusChange(t.id, e.target.value)}
+                          className={`text-xs font-semibold rounded-xl px-2.5 py-1.5 border focus:outline-none transition-all cursor-pointer ${
+                            t.status === 'open'
+                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                              : t.status === 'in_progress'
+                              ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300'
+                              : t.status === 'resolved'
+                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                              : 'bg-slate-800 border-slate-700 text-slate-400'
+                          }`}
+                        >
+                          <option value="open" className="bg-slate-900 text-amber-300">Abierto</option>
+                          <option value="in_progress" className="bg-slate-900 text-cyan-300">En Proceso</option>
+                          <option value="resolved" className="bg-slate-900 text-emerald-300">Resuelto</option>
+                          <option value="closed" className="bg-slate-900 text-slate-400">Cerrado</option>
+                        </select>
                       </td>
                       <td className="p-4 text-xs font-mono text-slate-400 whitespace-nowrap">
                         {new Date(t.created_at).toLocaleDateString()}
                       </td>
                       <td className="p-4 text-right">
-                        <button
-                          onClick={() => openReplyModal(t)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-500/20 transition-all cursor-pointer"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>Ver / Responder</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => openReplyModal(t)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-500/20 transition-all cursor-pointer"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Ver / Chat</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteTicket(t.id)}
+                            disabled={deletingId === t.id}
+                            title="Eliminar ticket permanentemente para liberar memoria"
+                            className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -240,10 +328,10 @@ export const AdminSupportPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Reply Modal with Thread / Chat */}
+      {/* Reply Modal with Thread / Chat & Direct Status Changer */}
       {activeTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 text-slate-100 relative max-h-[90vh] flex flex-col my-auto">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 text-slate-100 relative max-h-[92vh] flex flex-col my-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <div className="flex items-center gap-3">
@@ -264,16 +352,62 @@ export const AdminSupportPage: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                onClick={() => setActiveTicket(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleDeleteTicket(activeTicket.id)}
+                  title="Eliminar este ticket para liberar memoria"
+                  className="p-1.5 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setActiveTicket(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Actions Bar */}
+            <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 text-xs">
+              <span className="text-slate-400 font-medium">Acción rápida:</span>
+              <div className="flex items-center gap-1.5">
+                {activeTicket.status !== 'closed' && (
+                  <button
+                    type="button"
+                    onClick={() => handleQuickStatusChange(activeTicket.id, 'closed')}
+                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <XCircle className="w-3 h-3 text-slate-400" />
+                    <span>Cerrar Ticket</span>
+                  </button>
+                )}
+                {activeTicket.status !== 'resolved' && (
+                  <button
+                    type="button"
+                    onClick={() => handleQuickStatusChange(activeTicket.id, 'resolved')}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <span>Marcar Resuelto</span>
+                  </button>
+                )}
+                {activeTicket.status !== 'open' && (
+                  <button
+                    type="button"
+                    onClick={() => handleQuickStatusChange(activeTicket.id, 'open')}
+                    className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <Clock className="w-3 h-3 text-amber-400" />
+                    <span>Reabrir</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Conversation Thread (Scrollable) */}
-            <div className="overflow-y-auto pr-1 space-y-3 flex-1 min-h-[160px] max-h-[380px]">
+            <div className="overflow-y-auto pr-1 space-y-3 flex-1 min-h-[160px] max-h-[360px]">
               {/* Initial Client Message */}
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
@@ -345,35 +479,34 @@ export const AdminSupportPage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Escribir Respuesta al Cliente
+                    Escribir Respuesta al Cliente (Opcional)
                   </label>
                   <textarea
-                    required
                     rows={2}
                     value={adminReply}
                     onChange={(e) => setAdminReply(e.target.value)}
-                    placeholder="Escribe la respuesta o solución para el cliente..."
+                    placeholder="Escribe un mensaje de respuesta para el cliente..."
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 resize-none"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Estado del Ticket
+                    Nuevo Estado
                   </label>
                   <select
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
                   >
-                    <option value="in_progress">En Proceso (Investigando)</option>
-                    <option value="resolved">Resuelto (Atendido)</option>
                     <option value="closed">Cerrado (Finalizado)</option>
+                    <option value="resolved">Resuelto (Atendido)</option>
+                    <option value="in_progress">En Proceso (Investigando)</option>
                     <option value="open">Abierto (Pendiente)</option>
                   </select>
 
                   <div className="mt-2 text-[10px] text-slate-400">
-                    Se notificará por email al revendedor al enviar.
+                    {adminReply.trim() ? 'Se enviará email al revendedor.' : 'Solo actualizará el estado.'}
                   </div>
                 </div>
               </div>
@@ -388,11 +521,17 @@ export const AdminSupportPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || !adminReply.trim()}
+                  disabled={isSubmitting}
                   className="py-2 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>{isSubmitting ? 'Enviando...' : 'Enviar Respuesta'}</span>
+                  <span>
+                    {isSubmitting
+                      ? 'Guardando...'
+                      : adminReply.trim()
+                      ? 'Enviar Respuesta & Guardar'
+                      : 'Actualizar Estado'}
+                  </span>
                 </button>
               </div>
             </form>
