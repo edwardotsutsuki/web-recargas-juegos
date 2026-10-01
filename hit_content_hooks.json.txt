@@ -1,0 +1,37 @@
+{
+  "alera-status": {
+    "PostInvocation": [
+      {
+        "command": "cmd /d /s /c \"set ALERA_AGENT_TYPE=agy&& set ALERA_AGENT_HOOK_EVENT=PostInvocation&& call \"\"C:\\Users\\edwar\\.alera/agent-hooks\\alera-runtime-agent-hook.cmd\"\"\"",
+        "timeout": 10,
+        "type": "command"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "cmd /d /s /c \"set ALERA_AGENT_TYPE=agy&& set ALERA_AGENT_HOOK_EVENT=PostToolUse&& call \"\"C:\\Users\\edwar\\.alera/agent-hooks\\alera-runtime-agent-hook.cmd\"\"\"",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "PreInvocation": [
+      {
+        "command": "cmd /d /s /c \"set ALERA_AGENT_TYPE=agy&& set ALERA_AGENT_HOOK_EVENT=PreInvocation&& call \"\"C:\\Users\\edwar\\.alera/agent-hooks\\alera-runtime-agent-hook.cmd\"\"\"",
+        "timeout": 10,
+        "type": "command"
+      }
+    ],
+    "Stop": [
+      {
+        "command": "cmd /d /s /c \"set ALERA_AGENT_TYPE=agy&& set ALERA_AGENT_HOOK_EVENT=Stop&& call \"\"C:\\Users\\edwar\\.alera/agent-hooks\\alera-runtime-agent-hook.cmd\"\"\"",
+        "timeout": 10,
+        "type": "command"
+      }
+    ]
+  }
+}

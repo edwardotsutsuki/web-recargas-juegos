@@ -1,0 +1,1353 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>API Canjea v1 — documentación para integradores</title>
+<meta name="description" content="Contrato de la API B2B de Canjea: autenticación, catálogo, compra e idempotencia.">
+<style>
+:root{
+  --brand:#5A50C4; --brand-suave:#EEEDFE; --acento:#8B1F1E;
+  --tinta:#1C1A2B; --tinta-2:#55516B; --tinta-3:#807B96;
+  --fondo:#FBFAFD; --papel:#FFFFFF; --linea:#E5E2F0; --code-bg:#F4F2FB;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --brand:#A9A2F5; --brand-suave:#2A2550; --acento:#F08C8A;
+    --tinta:#EDEBF5; --tinta-2:#B4AFC9; --tinta-3:#8A85A0;
+    --fondo:#14131C; --papel:#1B1A25; --linea:#2E2C3D; --code-bg:#22202E;
+  }
+}
+:root[data-theme="dark"]{
+  --brand:#A9A2F5; --brand-suave:#2A2550; --acento:#F08C8A;
+  --tinta:#EDEBF5; --tinta-2:#B4AFC9; --tinta-3:#8A85A0;
+  --fondo:#14131C; --papel:#1B1A25; --linea:#2E2C3D; --code-bg:#22202E;
+}
+:root[data-theme="light"]{
+  --brand:#5A50C4; --brand-suave:#EEEDFE; --acento:#8B1F1E;
+  --tinta:#1C1A2B; --tinta-2:#55516B; --tinta-3:#807B96;
+  --fondo:#FBFAFD; --papel:#FFFFFF; --linea:#E5E2F0; --code-bg:#F4F2FB;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--fondo); color:var(--tinta);
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:16px; line-height:1.65; font-variant-numeric:tabular-nums;
+}
+.envoltura{max-width:52rem;margin:0 auto;padding:3rem 1.25rem 6rem}
+.marca{
+  display:flex;align-items:baseline;gap:.6rem;margin-bottom:2.5rem;
+  padding-bottom:1rem;border-bottom:1px solid var(--linea);
+}
+.marca b{color:var(--brand);font-size:1.05rem;letter-spacing:-.01em}
+.marca span{color:var(--tinta-3);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase}
+h1{font-size:2rem;line-height:1.2;letter-spacing:-.02em;text-wrap:balance;margin:0 0 1.2rem}
+h2{
+  font-size:1.3rem;line-height:1.3;letter-spacing:-.01em;text-wrap:balance;
+  margin:3.2rem 0 1rem;padding-top:1.4rem;border-top:1px solid var(--linea);
+}
+h3{font-size:1.05rem;margin:2.2rem 0 .7rem;text-wrap:balance}
+h4{font-size:.95rem;margin:1.6rem 0 .5rem;color:var(--tinta-2)}
+p,li{color:var(--tinta-2)}
+strong{color:var(--tinta);font-weight:650}
+a{color:var(--brand);text-underline-offset:.15em}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--brand);outline-offset:3px;border-radius:3px}
+hr{border:0;border-top:1px solid var(--linea);margin:2.5rem 0}
+code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.86em;background:var(--code-bg);color:var(--tinta);
+  padding:.12em .38em;border-radius:4px;
+}
+pre{
+  background:var(--code-bg);border:1px solid var(--linea);border-radius:8px;
+  padding:1rem 1.1rem;overflow-x:auto;line-height:1.55;
+}
+pre code{background:none;padding:0;font-size:.82rem}
+blockquote{
+  margin:1.5rem 0;padding:.9rem 1.2rem;background:var(--brand-suave);
+  border-left:3px solid var(--brand);border-radius:0 6px 6px 0;
+}
+blockquote p{margin:.4rem 0;color:var(--tinta)}
+/* Las tablas del contrato son anchas: scrollean SOLAS, la página nunca
+   se mueve de lado. */
+.tabla{overflow-x:auto;margin:1.5rem 0;border:1px solid var(--linea);border-radius:8px;background:var(--papel)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:.6rem .85rem;text-align:left;vertical-align:top;border-bottom:1px solid var(--linea)}
+th{
+  background:var(--brand-suave);color:var(--tinta);font-weight:650;
+  font-size:.78rem;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;
+}
+tr:last-child td{border-bottom:0}
+td code{white-space:nowrap}
+ul,ol{padding-left:1.3rem}
+li{margin:.35rem 0}
+.pie{margin-top:4rem;padding-top:1.2rem;border-top:1px solid var(--linea);color:var(--tinta-3);font-size:.82rem}
+@media (max-width:640px){
+  .envoltura{padding:2rem 1rem 4rem}
+  h1{font-size:1.6rem} h2{font-size:1.15rem}
+}
+</style>
+</head>
+<body>
+<div class="envoltura">
+  <div class="marca"><b>Canjea</b><span>API v1</span></div>
+  <h1>API Canjea v1 — documentación para integradores</h1>
+<p><strong>Base:</strong> <code>https://api.canjea.me/api/v1</code>
+<strong>Versión:</strong> 2026-09-17 · 13569ecd</p>
+<blockquote>
+<p>La página publicada en <a href="https://docs.canjea.me">https://docs.canjea.me</a> estampa la versión al
+servirse; este archivo fuente no la lleva escrita, así que en una copia
+local esa línea aparece vacía. Si se está leyendo un PDF, una captura o
+un archivo recibido por mensaje, comparar su <code>Versión:</code> con la de la
+página: si difiere, cambió algo del contrato.</p>
+</blockquote>
+<hr>
+<h2>0. Antes de empezar</h2>
+<ol>
+<li><strong>Escribir por WhatsApp</strong> al <a href="https://wa.me/51973581378">+51 973 581 378</a>
+con el nombre del negocio y para qué se va a usar la API.</li>
+<li>Canjea crea la cuenta <strong>en producción</strong> —no hay sandbox— con <strong>S/ 3
+(o USD 1) de saldo de prueba</strong>: alcanza para ejercitar el flujo completo
+con una compra real pequeña antes de cargar saldo en serio.</li>
+<li>La clave se genera <strong>desde el propio panel del distribuidor</strong>, en
+<em>Mi cuenta → Claves de API</em>, con el PIN de la cuenta — Canjea habilita
+esa sección al crear la cuenta. Se muestra <strong>una sola vez</strong> (§2). Se
+pueden tener hasta <strong>3 activas</strong>, para rotar sin corte, y cada una se
+revoca por separado desde el mismo lugar.</li>
+<li>Con la integración lista, el saldo real se carga por los métodos
+normales del panel del distribuidor.</li>
+</ol>
+<h3>Productos de prueba</h3>
+<p>Para ejercitar el flujo completo <strong>sin entregar nada a nadie</strong>, hay dos
+skus que responden por libreto. No aparecen en <code>GET /catalog</code>: se llega a
+ellos por sku, y solo por sku. Cuestan <strong>S/ 0,10</strong> (o su equivalente en
+USD) y se cobran de verdad, para que el saldo se mueva como en una compra
+real.</p>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th>sku</th>
+<th>tipo</th>
+<th><code>requires_player_id</code></th>
+<th><code>can_verify_player</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>test-topup</code></td>
+<td>recarga por ID</td>
+<td><code>true</code></td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>test-code</code></td>
+<td>entrega de código</td>
+<td><code>false</code></td>
+<td><code>false</code></td>
+</tr>
+</tbody></table></div>
+<p>En <code>test-topup</code>, <strong>el <code>player.id</code> decide el resultado</strong>:</p>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th><code>player.id</code></th>
+<th><code>POST /verify-player</code></th>
+<th><code>POST /orders</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>1000</code></td>
+<td><code>VERIFIED</code> · «Jugador Prueba»</td>
+<td><code>200</code> · <code>COMPLETED</code></td>
+</tr>
+<tr>
+<td><code>1001</code></td>
+<td><code>INVALID_ID</code></td>
+<td><code>400 PLAYER_NOT_FOUND</code> · <code>external_id_reusable: true</code></td>
+</tr>
+<tr>
+<td><code>1002</code></td>
+<td><code>NAME_NOT_CONFIRMED</code></td>
+<td><code>200</code> · <code>COMPLETED</code></td>
+</tr>
+<tr>
+<td><code>1003</code></td>
+<td><code>VERIFIED</code></td>
+<td><code>409 OUT_OF_STOCK</code> · <code>external_id_reusable: true</code></td>
+</tr>
+<tr>
+<td><code>1004</code></td>
+<td><code>VERIFIED</code></td>
+<td><code>200</code> · <code>PROCESSING</code>, y <code>COMPLETED</code> a los 15 s (para practicar el sondeo con <code>GET /orders/{ref}</code>)</td>
+</tr>
+<tr>
+<td><code>1005</code></td>
+<td><code>VERIFIED</code></td>
+<td><code>400 ACCOUNT_RESTRICTED</code> · <code>external_id_reusable: false</code></td>
+</tr>
+<tr>
+<td><code>1006</code></td>
+<td><code>VERIFIED</code></td>
+<td><code>502 PROVIDER_REJECTED</code> · <code>external_id_reusable: false</code></td>
+</tr>
+<tr>
+<td>cualquier otro</td>
+<td><code>INVALID_ID</code></td>
+<td><code>400 PLAYER_NOT_FOUND</code> · <code>external_id_reusable: true</code></td>
+</tr>
+</tbody></table></div>
+<p><code>test-code</code> acepta cualquier compra y devuelve un <code>redeem_code</code> con la forma
+<code>TEST-XXXX-XXXX-XXXX</code>, que no se canjea en ningún lado.</p>
+<p>Los ids <code>1005</code> y <code>1006</code> dejan la referencia <strong>quemada</strong> a propósito
+(<code>external_id_reusable: false</code>): son los dos casos donde el contrato pide
+consultar <code>GET /orders/{ref}</code> en vez de reintentar, y son los que más
+cuesta practicar con productos reales. <code>ORPHANED</code> no se simula: es la
+única respuesta que requiere una persona.</p>
+<p><strong>Formato de las peticiones.</strong> Todas las que llevan cuerpo van con
+<code>Content-Type: application/json</code>. Sin esa cabecera el cuerpo no se lee, y
+el error que se recibe es el del campo que faltó, no uno de formato. Un
+cuerpo que no es JSON válido responde <code>400 INVALID_JSON</code>.</p>
+<p><strong>No hay webhooks.</strong> El estado de una orden se consulta con
+<code>GET /orders/{external_id}</code> (§7); nada llama al integrador.</p>
+<h3>Productos con entrega manual</h3>
+<p>Algunos productos los entrega una persona, no el sistema. Lo vas a ver en
+el catálogo:</p>
+<pre><code class="language-json">&quot;delivery&quot;: {
+  &quot;mode&quot;: &quot;human&quot;,
+  &quot;hours&quot;: &quot;08:00-22:00 America/Lima&quot;,
+  &quot;eta_minutes&quot;: null
+}
+</code></pre>
+<p>Cuando <code>mode</code> es <code>&quot;human&quot;</code>:</p>
+<ul>
+<li>La orden se acepta y queda en <code>PROCESSING</code> hasta que alguien la
+resuelva. <code>player</code> se ignora: estos productos no llevan id de jugador.</li>
+<li>Entregas de lunes a domingo, 08:00–22:00 hora de Lima. Fuera de ese
+horario la orden espera al siguiente. En días excepcionales puede
+demorar más.</li>
+<li><code>eta_minutes</code> es <code>null</code> hasta que tengamos una muestra suficiente para
+publicar un tiempo medido. No publicamos estimaciones sin datos.</li>
+</ul>
+<p>Esos productos piden datos del cliente final. El catálogo te dice cuáles:</p>
+<pre><code class="language-json">&quot;required_fields&quot;: [
+  { &quot;key&quot;: &quot;...&quot;, &quot;label&quot;: &quot;...&quot;, &quot;type&quot;: &quot;email|text|tel|checkbox&quot;,
+    &quot;required&quot;: true, &quot;sensitive&quot;: false, &quot;help&quot;: &quot;...&quot; }
+]
+</code></pre>
+<p>Mandalos en <code>fields</code> al crear la orden (<code>{ key: valor }</code>; un <code>checkbox</code>
+como booleano). Si falta uno recibís <code>FIELD_REQUIRED</code>; si el formato no
+corresponde (hoy: un <code>tel</code> que no es un teléfono de 9 a 15 dígitos),
+<code>FIELD_INVALID</code>. En los dos casos con <code>detail.field</code>, sin cargo, y tu
+<code>external_id</code> sigue siendo reutilizable.</p>
+<p>Los campos con <code>sensitive: true</code> se guardan cifrados de nuestro lado y se
+borran al resolverse el pedido, o a las 24 horas si nadie lo resolvió. Lo
+que hagas con esos datos de tu lado es tu responsabilidad.</p>
+<p><strong>Consultar una orden manual.</strong> Toda orden de un producto <code>human</code> —en la
+respuesta del <code>POST</code> y en <code>GET /orders/{external_id}</code>— lleva el bloque
+<code>delivery</code> con dos campos más, que cambian con el reloj:</p>
+<pre><code class="language-json">&quot;delivery&quot;: {
+  &quot;mode&quot;: &quot;human&quot;,
+  &quot;hours&quot;: &quot;08:00-22:00 America/Lima&quot;,
+  &quot;eta_minutes&quot;: null,
+  &quot;outside_hours&quot;: true,
+  &quot;resumes_at&quot;: &quot;2026-09-17T08:00:00-05:00&quot;
+}
+</code></pre>
+<ul>
+<li><code>outside_hours: true</code> → estamos fuera del horario de atención y
+<code>resumes_at</code> dice cuándo volvemos a atender. <strong>No consultes antes de esa
+hora: no va a haber cambio.</strong></li>
+<li><code>outside_hours: false</code> → estamos atendiendo. <code>resumes_at</code> es <code>null</code> si
+la orden llegó dentro del horario; si llegó de noche, es la apertura
+que ya pasó. En los dos casos, consultar cada pocos minutos alcanza.</li>
+</ul>
+<hr>
+<h2>1. Modelo</h2>
+<p>Una cuenta de API es una <strong>cuenta de distribuidor que habla HTTP</strong>: mismo
+saldo, misma moneda, mismos precios que si se comprara por el panel. No hay
+un catálogo distinto ni una lista de precios paralela.</p>
+<ul>
+<li><strong>El saldo es prepago.</strong> Cada compra lo descuenta. Si no alcanza, la
+compra se rechaza y <strong>no se cobra nada</strong>.</li>
+<li><strong>La moneda se fija al crear la cuenta</strong> (PEN o USD) y no cambia. Todos
+los precios de todas las respuestas vienen en esa moneda, y toda
+respuesta que trae un precio lo dice en <code>currency</code>. Las que no traen
+precios —<code>POST /verify-player</code> y los errores— no la incluyen.</li>
+<li><strong>Los montos son cadenas</strong>, con punto decimal y dos decimales
+(<code>&quot;4.95&quot;</code>), nunca números JSON. Ver §6.</li>
+</ul>
+<hr>
+<h2>2. Autenticación</h2>
+<p>Cabecera <code>Authorization</code> con la clave, en todas las peticiones:</p>
+<pre><code>Authorization: Bearer ck_live_xxxxxxxxxxxxxxxxxxxxxxxx
+</code></pre>
+<pre><code class="language-bash">curl -H &quot;Authorization: Bearer $CANJEA_API_KEY&quot; \
+     https://api.canjea.me/api/v1/balance
+</code></pre>
+<p>🔴 <strong>No hay entorno de pruebas.</strong> Solo existe el prefijo <code>ck_live_</code>
+porque solo existe producción: no hay sandbox ni claves de test. La
+integración se hace contra el sistema real, con una cuenta de saldo
+acotado y los <strong>productos de prueba</strong> de §0, que ejercitan cada rama del
+contrato sin entregar nada a nadie.</p>
+<p>Lo decimos de entrada porque cambia cómo se planifica el trabajo, y
+porque una recarga entregada no se puede revertir. Para probar sin
+entregar nada, <code>GET /balance</code>, <code>GET /catalog</code>, <code>GET /catalog/{sku}</code>,
+<code>GET /orders</code> y <code>POST /verify-player</code> son de solo lectura y no mueven un
+centavo. <code>GET /catalog/{sku}</code> y <code>POST /verify-player</code> sí consultan al
+proveedor, y por eso el segundo tiene su propio límite (§3, §7).</p>
+<ul>
+<li>La clave se genera desde <em>Mi cuenta → Claves de API</em> del panel del
+distribuidor, con el PIN de la cuenta, y <strong>se muestra una sola vez</strong>: no
+se puede recuperar después, solo revocar y generar otra.</li>
+<li>Una cuenta puede tener <strong>hasta 3 claves activas</strong> a la vez, lo que
+permite rotarlas sin ventana de corte: se genera la nueva, se despliega,
+y solo entonces se revoca la vieja (también desde el panel, con el PIN).</li>
+<li>La revocación es <strong>inmediata</strong> — no hay caché ni TTL que esperar.</li>
+</ul>
+<p>Sin clave, con una clave inválida, revocada o de una cuenta desactivada,
+la respuesta es siempre la misma:</p>
+<pre><code class="language-json">{ &quot;ok&quot;: false, &quot;code&quot;: &quot;UNAUTHORIZED&quot;, &quot;message&quot;: &quot;Clave de API inválida o revocada&quot; }
+</code></pre>
+<p>Los cuatro casos comparten el mismo código: la respuesta no distingue
+entre ellos. Si aparece de repente en producción, lo primero a verificar
+es si la clave fue revocada o rotada.</p>
+<hr>
+<h2>3. Límite de peticiones</h2>
+<p>El límite es <strong>por clave</strong>, no por IP, y se configura por cuenta (60 por
+minuto salvo que se acuerde otro). Cada respuesta trae las cabeceras
+estándar <code>RateLimit-Limit</code>, <code>RateLimit-Remaining</code> y <code>RateLimit-Reset</code>
+(<code>Reset</code> son <strong>segundos</strong> hasta que se reinicia la ventana, no una fecha).
+El 429 trae además <code>Retry-After</code>, en segundos.</p>
+<p>Las llamadas a <code>POST /verify-player</code> tienen un límite propio más bajo (§7)
+<strong>y también descuentan de este</strong>.</p>
+<p>Al superarlo:</p>
+<pre><code>HTTP 429
+{ &quot;ok&quot;: false, &quot;code&quot;: &quot;RATE_LIMIT_EXCEEDED&quot;, &quot;message&quot;: &quot;Superaste el límite de peticiones por minuto de tu clave&quot; }
+</code></pre>
+<p>Un 429 es <strong>transitorio</strong>: esperar los segundos de <code>Retry-After</code> (o de
+<code>RateLimit-Reset</code>) y reintentar es correcto. No hace falta espera
+exponencial: la cabecera ya dice cuánto.</p>
+<hr>
+<h2>4. Contrato de errores</h2>
+<p>Todo error tiene la misma forma:</p>
+<pre><code class="language-json">{ &quot;ok&quot;: false, &quot;code&quot;: &quot;INSUFFICIENT_BALANCE&quot;, &quot;message&quot;: &quot;...&quot;, &quot;detail&quot;: { } }
+</code></pre>
+<p>Tres reglas que conviene tener presentes al integrar:</p>
+<ol>
+<li><strong><code>code</code> es estable y es lo que hay que ramificar.</strong> No cambia sin
+aviso ni versión nueva.</li>
+<li><strong><code>message</code> es cortesía y puede cambiar en cualquier momento.</strong> Sirve
+para logs y para mostrarle algo a un humano; <strong>no</strong> para decidir.
+Nunca parsearlo.</li>
+<li><strong>El código HTTP significa algo: <code>200</code> solo si la operación salió
+bien.</strong> Nunca devolvemos 200 con un fracaso adentro. La única
+excepción deliberada es <code>POST /verify-player</code>: sus cuatro <code>result</code>
+—incluido «ese id no existe»— llegan con 200, porque la consulta
+funcionó y el resultado ES la respuesta (§7).</li>
+</ol>
+<p><code>detail</code> es opcional. Hoy solo lo trae <code>PRICE_CHANGED</code> (<code>current_price</code> y
+<code>currency</code>); ningún otro código lo incluye. Los errores que decide la
+lógica de <code>POST /orders</code> agregan además <code>external_id_reusable</code> en la raíz
+(§8).</p>
+<hr>
+<h2>5. El <code>sku</code></h2>
+<p>El identificador de un producto en el catálogo.</p>
+<p>🔴 <strong>Es opaco: no parsearlo, no derivar nada de su forma.</strong> Hoy algunos
+tienen la forma <code>producto-123</code> y otros no; eso es un detalle interno y
+puede cambiar. Tratarlo como una cadena sin estructura.</p>
+<p>Dos garantías, y las dos importan si se va a cachear el catálogo:</p>
+<ul>
+<li><strong>Un <code>sku</code> puede desaparecer</strong> — si el producto deja de venderse. A
+partir de ahí devuelve <code>404 SKU_NOT_FOUND</code>. Un sku que desaparece
+no vuelve con otro significado.</li>
+<li><strong>Un <code>sku</code> nunca cambia de significado.</strong> No se reasigna. Si responde,
+es el mismo producto que era.</li>
+</ul>
+<p>En la práctica: se puede guardar el <code>sku</code> en el sistema propio y mapearlo contra el
+catálogo propio con confianza. Lo que <strong>no</strong> se puede es deducir nada de su
+texto ni construir uno a mano.</p>
+<h3>Qué productos aparecen</h3>
+<p>El catálogo lista <strong>solo lo que la API puede entregar</strong>. Un producto cuya
+entrega necesita datos que este contrato no tiene cómo recibir (por
+ejemplo, los que se cargan entrando a la cuenta del cliente con su correo
+y contraseña) no se lista, y su sku responde <code>404 SKU_NOT_FOUND</code> en
+<code>GET /catalog/{sku}</code>, <code>POST /verify-player</code> y <code>POST /orders</code>. Lo mismo
+pasa con un producto que Canjea decide no exponer por la API. En los dos
+casos la regla es la misma: <strong>lo que el catálogo no lista, la orden no
+acepta</strong>. Si un sku que se veía deja de verse, tratarlo como discontinuado.</p>
+<hr>
+<h2>6. Precios</h2>
+<p>Cada producto trae dos números distintos:</p>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th>campo</th>
+<th>qué es</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>price</code></td>
+<td><strong>lo que se le cobra a la cuenta.</strong> Nunca es <code>null</code></td>
+</tr>
+<tr>
+<td><code>suggested_retail_price</code></td>
+<td>precio de venta al público <strong>de referencia</strong>. Puede ser <code>null</code></td>
+</tr>
+</tbody></table></div>
+<p><code>suggested_retail_price</code> es un ancla orientativa que fija Canjea, no un
+precio impuesto: se puede revender al precio que se desee.</p>
+<p><strong>Todos los montos son cadenas</strong> con punto decimal y dos decimales
+(<code>&quot;4.95&quot;</code>), tanto en las respuestas como en <code>expected_price</code>. Un número
+JSON se acepta, pero el contrato es la cadena; <code>&quot;4,95&quot;</code> con coma se
+rechaza con <code>400 INVALID_PARAMETER</code>.</p>
+<h3>De dónde sale <code>price</code>, y por qué puede ser aproximado</h3>
+<p><code>price</code> se calcula a partir del <strong>costo</strong> que el proveedor le cobra a
+Canjea. Ese costo se conoce en tres momentos distintos, y los tres pueden
+dar un número distinto para el mismo sku en el mismo minuto — <strong>ninguno
+es un error</strong>:</p>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th>momento</th>
+<th>qué costo usa</th>
+<th><code>price_is_estimated</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>GET /catalog</code></td>
+<td>el <strong>último costo guardado</strong> de cada producto. Resuelve todo el catálogo de una vez y <strong>no consulta a ningún proveedor</strong></td>
+<td>dice si ese costo guardado es exacto para ese producto. No incluye <code>price_is_estimated_reason</code>: la razón es siempre la misma, no hubo consulta</td>
+</tr>
+<tr>
+<td><code>GET /catalog/{sku}</code></td>
+<td>consulta el costo <strong>en vivo</strong> al proveedor, con una caché de 60 s (<code>cost_checked_at</code> dice cuándo). Si el proveedor no responde o no tiene consulta en vivo, cae al guardado</td>
+<td><code>false</code> si la consulta respondió; <code>true</code> si no, con la razón en <code>price_is_estimated_reason</code></td>
+</tr>
+<tr>
+<td><code>POST /orders</code></td>
+<td>el costo que <strong>tenga la compra en ese instante</strong>: en vivo si el proveedor lo da en ese momento, guardado si no</td>
+<td>no se devuelve; decide la tolerancia de <code>expected_price</code> (§7)</td>
+</tr>
+</tbody></table></div>
+<p>El guardado envejece hasta que el proveedor avisa un cambio; el vivo es el
+de ese segundo; la compra cobra lo que cuesta cuando se ejecuta.</p>
+<ul>
+<li><strong><code>false</code></strong> → el precio es <strong>exacto</strong>: es el que va a cobrar la compra si
+el costo no se mueve entre esta consulta y esa.</li>
+<li><strong><code>true</code></strong> → es <strong>aproximado</strong>. Puede moverse unos centavos.</li>
+</ul>
+<p>🔴 <strong>Pedir <code>GET /catalog/{sku}</code> NO garantiza precio exacto: hay que
+mirar <code>price_is_estimated</code>.</strong> Puede venir <code>true</code> igual, y
+<code>price_is_estimated_reason</code> dice por qué — son dos causas con acciones
+opuestas:</p>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th><code>price_is_estimated_reason</code></th>
+<th>qué pasó</th>
+<th>qué hacer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>null</code></td>
+<td>el precio es exacto</td>
+<td>usarlo como <code>expected_price</code></td>
+</tr>
+<tr>
+<td><code>consulta_en_vivo_fallida</code></td>
+<td>el proveedor no respondió; se usó el último costo guardado</td>
+<td><strong>transitorio</strong> — volver a pedirlo más tarde</td>
+</tr>
+<tr>
+<td><code>proveedor_sin_consulta_en_vivo</code></td>
+<td>ese proveedor no expone costo en vivo</td>
+<td><strong>permanente para ese sku</strong> — no volver a pedirlo aquí: <code>GET /catalog</code> da exactamente lo mismo. Conviene recordar qué skus lo devolvieron para no repetir la llamada</td>
+</tr>
+</tbody></table></div>
+<p>Ante una consulta de costo fallida devolvemos un precio aproximado en vez
+de un error, porque <strong>la compra funciona igual en ese caso</strong>: un error
+diría &quot;no se puede&quot; sobre un producto que sí se puede comprar. Por eso hay
+que mirar el flag y no asumirlo por el código HTTP.</p>
+<p><strong>Qué garantiza <code>expected_price</code>, entonces:</strong> un techo. Si el precio de la
+compra supera lo esperado más allá de la tolerancia (§7), se rechaza sin
+cobrar. No garantiza el centavo exacto: para eso está el <code>price</code> que
+devuelve la propia compra.</p>
+<hr>
+<h2>7. Endpoints</h2>
+<h3><code>GET /catalog</code></h3>
+<p>Todo el catálogo disponible para la cuenta, en la moneda de la cuenta.</p>
+<pre><code class="language-json">{
+  &quot;ok&quot;: true,
+  &quot;currency&quot;: &quot;USD&quot;,
+  &quot;products&quot;: [
+    {
+      &quot;sku&quot;: &quot;rob500&quot;,
+      &quot;name&quot;: &quot;500 Robux&quot;,
+      &quot;game&quot;: &quot;rb&quot;,
+      &quot;game_name&quot;: &quot;Roblox&quot;,
+      &quot;price&quot;: &quot;4.95&quot;,
+      &quot;suggested_retail_price&quot;: &quot;5.85&quot;,
+      &quot;price_is_estimated&quot;: true,
+      &quot;currency&quot;: &quot;USD&quot;,
+      &quot;requires_player_id&quot;: false,
+      &quot;can_verify_player&quot;: false,
+      &quot;redeem_instructions&quot;: &quot;Las tarjetas de regalo de Roblox se pueden canjear en roblox.com/redeem …&quot;,
+      &quot;delivery&quot;: { &quot;mode&quot;: &quot;instant&quot; },
+      &quot;required_fields&quot;: []
+    }
+  ]
+}
+</code></pre>
+<p><code>requires_player_id</code> indica si al comprar hay que enviar <code>player.id</code>
+(recarga directa a una cuenta) o no (entrega de un código).</p>
+<p><code>delivery</code> dice <strong>quién entrega y cuándo</strong>, antes de comprar. <code>mode</code> es
+<code>instant</code> (un proveedor o nuestro inventario, en segundos) o <code>human</code>:
+<strong>lo entrega una persona de Canjea</strong>, y ahí el bloque trae además el
+horario:</p>
+<pre><code class="language-json">&quot;delivery&quot;: { &quot;mode&quot;: &quot;human&quot;, &quot;hours&quot;: &quot;08:00-22:00 America/Lima&quot;, &quot;eta_minutes&quot;: null }
+</code></pre>
+<blockquote>
+<p>Entregas de lunes a domingo, 08:00–22:00 hora de Lima. Fuera de ese
+horario la orden <strong>se acepta y espera</strong> al siguiente horario de
+atención. En días excepcionales puede demorar más.</p>
+</blockquote>
+<p>Una orden <code>human</code> <strong>nace en <code>PROCESSING</code></strong> y así queda hasta que la
+persona la resuelva — minutos dentro del horario, o hasta la próxima
+apertura si llegó de noche. Se consulta con <code>GET /orders/{external_id}</code>,
+que en esos productos trae este mismo bloque con <code>outside_hours</code> y
+<code>resumes_at</code> (ver ese endpoint). <code>eta_minutes</code> viene <code>null</code> mientras no
+haya un tiempo medido que publicar; si algún día trae un número, es un
+promedio real dentro del horario, no una promesa.</p>
+<p><code>required_fields</code> es la lista de datos del cliente final que ese sku
+exige en <code>fields</code> al comprar (<code>POST /orders</code>). Vacía en todo lo que no
+los pide. Cada entrada:</p>
+<pre><code class="language-json">{ &quot;key&quot;: &quot;clientEmail&quot;, &quot;label&quot;: &quot;Correo de Supercell del cliente&quot;, &quot;type&quot;: &quot;email&quot;,
+  &quot;required&quot;: true, &quot;sensitive&quot;: false, &quot;help&quot;: &quot;La opción «Iniciar sesión» solo es válida para Supercell ID.&quot; }
+</code></pre>
+<p><code>type</code> es <code>email</code>, <code>text</code>, <code>tel</code> o <code>checkbox</code>. <code>sensitive: true</code> marca
+una credencial (una contraseña): Canjea la guarda <strong>cifrada y la borra
+al resolver la orden</strong> — no queda en ningún historial. Lo que el
+integrador haga con el dato de su cliente antes de enviarlo es su
+responsabilidad. <code>help</code> es el texto de ayuda que ve el distribuidor en el
+panel de Canjea al llenar ese campo; conviene mostrarlo igual.</p>
+<p><code>redeem_instructions</code> es el texto para el cliente final: <strong>cómo canjear el
+código</strong> que entrega ese producto. Viene <strong>solo en productos de código</strong>;
+en una recarga directa es <code>null</code> (no hay nada que canjear). Un producto de
+código puede traer <code>null</code> si todavía no tiene texto cargado. Está en
+español, puede tener varios párrafos separados por <code>\n</code>, y cambia poco:
+conviene guardarlo junto al sku y mostrarlo al lado del <code>redeem_code</code>. Es
+el mismo texto que ve el distribuidor en el panel de Canjea al vender.</p>
+<p><code>can_verify_player</code> indica si se puede consultar el nombre del jugador <strong>antes de
+cobrarle</strong>, con <code>POST /verify-player</code>.</p>
+<p><code>game</code> es el código estable del juego —opaco, como el sku— y <code>game_name</code>
+su nombre para mostrar. Sirven para agrupar; no hay una lista de juegos
+aparte, la lista es este catálogo.</p>
+<p><strong>Los dos campos se leen juntos</strong>, porque solos son ambiguos:</p>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th><code>requires_player_id</code></th>
+<th><code>can_verify_player</code></th>
+<th>qué significa</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>false</code></td>
+<td><code>false</code></td>
+<td>Es un código. No lleva id de jugador.</td>
+</tr>
+<tr>
+<td><code>true</code></td>
+<td><code>true</code></td>
+<td>Lleva id <strong>y</strong> es posible verificarlo antes de comprar.</td>
+</tr>
+<tr>
+<td><code>true</code></td>
+<td><code>false</code></td>
+<td>Lleva id y <strong>no</strong> hay forma de verificarlo.</td>
+</tr>
+</tbody></table></div>
+<p>La combinación <code>false</code> / <code>true</code> no existe: un código no tiene una cuenta
+que verificar.</p>
+<p>Hoy la tercera fila son 79 de los 299 productos, concentrados en nueve
+juegos de un proveedor que no expone verificación. Conviene que la
+interfaz lo contemple desde el principio en vez de descubrirlo vendiendo:
+en esos productos el id viaja tal cual y <strong>un id equivocado se entrega a
+la cuenta equivocada</strong>, sin forma de revertirlo.</p>
+<p>Un producto que no aparece en esta lista <strong>no se puede comprar</strong> con la
+cuenta. Los productos de <strong>monto libre</strong> —donde el cliente elige cuánto
+cargar, como un saldo en otra moneda— no aparecen y no se venden por la
+API: pedir su sku a mano responde <code>400 UNSUPPORTED_TYPE</code>.</p>
+<hr>
+<h3><code>GET /catalog/{sku}</code></h3>
+<p>Un solo producto, con el costo consultado <strong>en el momento</strong>.
+Es el endpoint a usar <strong>justo antes de comprar</strong> cuando se necesita el
+precio exacto.</p>
+<pre><code class="language-json">{
+  &quot;ok&quot;: true,
+  &quot;currency&quot;: &quot;USD&quot;,
+  &quot;product&quot;: {
+    &quot;sku&quot;: &quot;rob500&quot;,
+    &quot;name&quot;: &quot;500 Robux&quot;,
+    &quot;game&quot;: &quot;rb&quot;,
+    &quot;game_name&quot;: &quot;Roblox&quot;,
+    &quot;price&quot;: &quot;4.95&quot;,
+    &quot;suggested_retail_price&quot;: &quot;5.85&quot;,
+    &quot;price_is_estimated&quot;: false,
+    &quot;price_is_estimated_reason&quot;: null,
+    &quot;cost_checked_at&quot;: &quot;2026-08-05T23:20:38.958Z&quot;,
+    &quot;currency&quot;: &quot;USD&quot;,
+    &quot;requires_player_id&quot;: false,
+    &quot;can_verify_player&quot;: false,
+    &quot;redeem_instructions&quot;: &quot;Las tarjetas de regalo de Roblox se pueden canjear en roblox.com/redeem …&quot;,
+    &quot;delivery&quot;: { &quot;mode&quot;: &quot;instant&quot; },
+    &quot;required_fields&quot;: []
+  }
+}
+</code></pre>
+<p><code>delivery</code> y <code>required_fields</code> son los mismos que en <code>GET /catalog</code>
+(ver ahí qué significan y cómo se ven en un producto que entrega una
+persona).</p>
+<p><code>requires_player_id</code>, <code>can_verify_player</code> y <code>redeem_instructions</code>
+significan lo mismo que en <code>GET /catalog</code>, y los dos primeros se leen
+juntos igual — ver la tabla de más arriba.</p>
+<p><code>cost_checked_at</code> es cuándo se consultó el costo (ISO-8601,
+UTC), o <code>null</code> si no hubo consulta. Puede ser de hasta un minuto atrás:
+el costo se cachea 60 segundos. La
+diferencia real en ese lapso es de centésimas de punto porcentual.</p>
+<p>⏱️ <strong>Este endpoint puede tardar cerca de un segundo.</strong> Medido: entre
+130 ms y 900 ms según el producto. Configurar un timeout de al menos <strong>5
+segundos</strong> y tenerlo en cuenta si se lo llama dentro de un flujo donde un
+cliente final está esperando.</p>
+<p>Errores: <code>404 SKU_NOT_FOUND</code> si el sku no existe o el producto dejó de
+venderse.</p>
+<hr>
+<h3><code>POST /verify-player</code></h3>
+<p>¿Existe esta cuenta, y cómo se llama? Se responde <strong>antes</strong> de cobrar.</p>
+<pre><code class="language-json">→  { &quot;sku&quot;: &quot;ff341&quot;, &quot;player&quot;: { &quot;id&quot;: &quot;10303085282&quot; } }
+
+←  { &quot;ok&quot;: true, &quot;result&quot;: &quot;VERIFIED&quot;,
+     &quot;player&quot;: { &quot;id&quot;: &quot;10303085282&quot;, &quot;name&quot;: &quot;Okarun8828&quot; } }
+</code></pre>
+<p>Para juegos que lo necesiten, <code>player</code> acepta además <code>server</code> y <code>zone_id</code>.</p>
+<h4>Los cuatro resultados</h4>
+<p>Todos llegan con <strong><code>200</code></strong>, incluido &quot;ese id no existe&quot;. La llamada
+funcionó; el resultado es la respuesta.</p>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th><code>result</code></th>
+<th>qué hacer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>VERIFIED</code></td>
+<td>Mostrar <code>player.name</code> al usuario y continuar.</td>
+</tr>
+<tr>
+<td><code>INVALID_ID</code></td>
+<td>Esa cuenta no existe. <strong>No comprar</strong>: pedir al usuario que lo corrija. <code>message</code> trae el motivo del proveedor cuando lo envía.</td>
+</tr>
+<tr>
+<td><code>NAME_NOT_CONFIRMED</code></td>
+<td>El proveedor acepta el id pero no devolvió el nombre. <strong>No es un id inválido</strong> — pasa con cuentas reales. Pedir al usuario que lo confirme antes de seguir.</td>
+</tr>
+<tr>
+<td><code>NO_VERIFIER</code></td>
+<td>Ese juego no tiene forma de verificar. El id viaja tal cual al comprar.</td>
+</tr>
+</tbody></table></div>
+<p>Las cuatro formas, tal como llegan — solo <code>VERIFIED</code> trae <code>player</code>; en las
+otras tres el nombre no existe y no se manda ni como <code>null</code>:</p>
+<pre><code class="language-json">{ &quot;ok&quot;: true, &quot;result&quot;: &quot;VERIFIED&quot;, &quot;player&quot;: { &quot;id&quot;: &quot;10303085282&quot;, &quot;name&quot;: &quot;Okarun8828&quot; } }
+{ &quot;ok&quot;: true, &quot;result&quot;: &quot;INVALID_ID&quot;, &quot;message&quot;: &quot;Esa cuenta no existe&quot; }
+{ &quot;ok&quot;: true, &quot;result&quot;: &quot;NAME_NOT_CONFIRMED&quot;, &quot;message&quot;: &quot;El proveedor acepta el id pero no devolvió el nombre...&quot; }
+{ &quot;ok&quot;: true, &quot;result&quot;: &quot;NO_VERIFIER&quot;, &quot;message&quot;: &quot;Este juego no tiene forma de verificar la cuenta...&quot; }
+</code></pre>
+<p>🔴 <strong>No tratar <code>INVALID_ID</code> como un error de red.</strong> Es la respuesta más
+valiosa de este endpoint: es la que evita la recarga a una cuenta que no
+existe. Por eso viaja como <code>200</code> y no como error HTTP — para que no caiga
+en el mismo <code>catch</code> que un timeout.</p>
+<h4>Errores (aquí sí)</h4>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th>HTTP</th>
+<th><code>code</code></th>
+<th>cuándo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>400</code></td>
+<td><code>PLAYER_ID_REQUIRED</code></td>
+<td>falta <code>player.id</code></td>
+</tr>
+<tr>
+<td><code>400</code></td>
+<td><code>UNSUPPORTED_TYPE</code></td>
+<td>el producto es un código y no lleva id</td>
+</tr>
+<tr>
+<td><code>404</code></td>
+<td><code>SKU_NOT_FOUND</code></td>
+<td>ese sku no existe o no está activo</td>
+</tr>
+<tr>
+<td><code>429</code></td>
+<td><code>RATE_LIMIT_EXCEEDED</code></td>
+<td>ver abajo</td>
+</tr>
+<tr>
+<td><code>503</code></td>
+<td><code>SERVICE_UNAVAILABLE</code></td>
+<td>no pudimos consultar al proveedor. Intentar de nuevo. <strong>Solo en este endpoint</strong> el 503 habla del proveedor; en el resto de la API significa que no se pudo verificar la clave (§9)</td>
+</tr>
+</tbody></table></div>
+<h4>Dos cosas a tener en cuenta</h4>
+<p><strong>Tiene su propio límite, más bajo que el general.</strong> Cada llamada consulta
+al proveedor, no a nuestra base. El techo son <strong>20 por minuto</strong> (el
+general son 60), configurable por cuenta — escribir a soporte si se necesita más
+(§12). Estas llamadas descuentan <strong>también</strong> del límite general.</p>
+<p><strong>Puede tardar.</strong> Una cuenta que existe responde en menos de 2 segundos,
+pero <strong>una que no existe puede tardar hasta 20</strong>. Esa espera es la señal:
+no cortarla antes de tiempo o se perderán justamente los
+<code>INVALID_ID</code>. Usar un timeout de al menos 30 s para esta llamada.</p>
+<p><strong><code>POST /orders</code> ya valida el id por su cuenta</strong> —cuando el proveedor
+puede hacerlo, es decir con <code>can_verify_player: true</code>— y rechaza si esa
+cuenta no existe, así que verificar antes <strong>no es lo que protege de una
+recarga a un id equivocado</strong> — eso ya está cubierto. En los productos con
+<code>can_verify_player: false</code> nadie puede validarlo, ni este endpoint ni la
+compra: el id viaja tal cual (ver la tabla de <code>GET /catalog</code>).</p>
+<p>Para qué sirve entonces: para <strong>mostrarle el nombre al usuario antes de
+que pague</strong>, dentro del propio flujo. Es la diferencia entre &quot;confirma
+que eres tú&quot; y descubrir el error después.</p>
+<p>⚠️ Llamar a los dos significa preguntarle dos veces al mismo proveedor.
+Cuando la cuenta existe, la segunda consulta suma alrededor de medio
+segundo a la compra (los 20 s son solo para las que no existen, y esas la
+compra las rechaza igual). Vale la pena si el nombre se le muestra al
+usuario; no vale si solo se descarta.</p>
+<hr>
+<h3><code>GET /balance</code></h3>
+<pre><code class="language-json">{ &quot;ok&quot;: true, &quot;balance&quot;: &quot;105.00&quot;, &quot;currency&quot;: &quot;USD&quot; }
+</code></pre>
+<hr>
+<h3><code>POST /orders</code></h3>
+<p>La compra.</p>
+<pre><code class="language-json">{
+  &quot;sku&quot;: &quot;rob500&quot;,
+  &quot;external_id&quot;: &quot;PEDIDO-2026-00184&quot;,
+  &quot;expected_price&quot;: &quot;4.95&quot;
+}
+</code></pre>
+<p>Para una recarga directa (<code>requires_player_id: true</code>) se agrega <code>player</code>:</p>
+<pre><code class="language-json">{ &quot;sku&quot;: &quot;ff341&quot;, &quot;external_id&quot;: &quot;PEDIDO-2026-00185&quot;, &quot;expected_price&quot;: &quot;...&quot;,
+  &quot;player&quot;: { &quot;id&quot;: &quot;10303085282&quot; } }
+</code></pre>
+<p>En un producto de código, <code>player</code> se ignora si se envía.</p>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th>campo</th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>sku</code></td>
+<td><strong>obligatorio</strong></td>
+<td>del catálogo</td>
+</tr>
+<tr>
+<td><code>external_id</code></td>
+<td><strong>obligatorio</strong></td>
+<td>identificador único propio de este pedido. 1-80 caracteres <code>A-Z a-z 0-9 . - _</code>. Único <strong>por cuenta</strong> y <strong>sensible a mayúsculas</strong>: <code>PEDIDO-1</code> y <code>pedido-1</code> son dos pedidos distintos</td>
+</tr>
+<tr>
+<td><code>expected_price</code></td>
+<td>opcional</td>
+<td>el precio obtenido del catálogo. Ver abajo</td>
+</tr>
+<tr>
+<td><code>player.id</code></td>
+<td>obligatorio si <code>requires_player_id</code></td>
+<td>el ID de la cuenta del jugador, como cadena (un número se acepta y se convierte)</td>
+</tr>
+<tr>
+<td><code>player.server</code></td>
+<td>según el juego</td>
+<td>servidor, cuando el juego lo pide</td>
+</tr>
+<tr>
+<td><code>player.zone_id</code></td>
+<td>según el juego</td>
+<td>zona, cuando el juego la pide. Si vienen los dos, se usa <code>server</code></td>
+</tr>
+<tr>
+<td><code>fields</code></td>
+<td>obligatorio si el sku tiene <code>required_fields</code></td>
+<td>objeto <code>{ key: valor }</code> con los datos del cliente final que lista <code>required_fields</code> de ese sku en el catálogo. Un <code>checkbox</code> va como booleano. Claves que no están en la lista se ignoran</td>
+</tr>
+</tbody></table></div>
+<p>Para un producto que entrega una persona (<code>delivery.mode: human</code>), el
+cuerpo lleva <code>fields</code> en vez de <code>player</code>:</p>
+<pre><code class="language-json">{ &quot;sku&quot;: &quot;bs80&quot;, &quot;external_id&quot;: &quot;PEDIDO-2026-00190&quot;,
+  &quot;fields&quot;: { &quot;clientEmail&quot;: &quot;cliente@gmail.com&quot;, &quot;clientOtp&quot;: &quot;482913&quot;, &quot;clientWhatsapp&quot;: &quot;51999888777&quot; } }
+</code></pre>
+<p>Falta un campo requerido → <code>400 FIELD_REQUIRED</code>; un teléfono que no lo es
+→ <code>400 FIELD_INVALID</code>. En los dos, <code>detail.field</code> dice cuál, y <strong>no se
+cobró nada</strong>: la referencia se puede reusar con el cuerpo corregido. La
+orden nace en <code>PROCESSING</code> con el bloque <code>delivery</code> de la orden (ver más
+abajo), también si llegó fuera de horario — no se rechaza, espera.</p>
+<p>Respuesta exitosa:</p>
+<pre><code class="language-json">{
+  &quot;ok&quot;: true,
+  &quot;order&quot;: {
+    &quot;external_id&quot;: &quot;PEDIDO-2026-00184&quot;,
+    &quot;sku&quot;: &quot;rob500&quot;,
+    &quot;status&quot;: &quot;COMPLETED&quot;,
+    &quot;price&quot;: &quot;4.95&quot;,
+    &quot;currency&quot;: &quot;USD&quot;,
+    &quot;redeem_code&quot;: &quot;RA-7E6CZMYLVBLVAKPJ&quot;,
+    &quot;remaining_balance&quot;: &quot;100.05&quot;,
+    &quot;delivery&quot;: { &quot;mode&quot;: &quot;instant&quot; }
+  }
+}
+</code></pre>
+<p><code>delivery</code> en la orden es el mismo bloque del catálogo, y en un producto
+<code>human</code> agrega dos campos que <strong>cambian con el reloj</strong>: <code>outside_hours</code>
+(si en este momento estamos fuera del horario de atención) y
+<code>resumes_at</code> (cuándo se retoma la atención, en hora de Lima). Un
+<code>resumes_at</code> <strong>en el pasado</strong> con la orden todavía en <code>PROCESSING</code>
+significa que la atención ya se retomó y la orden sigue esperando —
+puede pasar en un día excepcional; es visible a propósito.</p>
+<pre><code class="language-json">&quot;delivery&quot;: { &quot;mode&quot;: &quot;human&quot;, &quot;hours&quot;: &quot;08:00-22:00 America/Lima&quot;,
+              &quot;outside_hours&quot;: true, &quot;resumes_at&quot;: &quot;2026-09-17T08:00:00-05:00&quot;, &quot;eta_minutes&quot;: null }
+</code></pre>
+<p><strong>Cuándo volver a preguntar</strong>, para no consultar cada 5 segundos durante
+10 horas: si <code>outside_hours</code> es <code>true</code>, no antes de <code>resumes_at</code>; dentro
+del horario, cada pocos minutos alcanza.</p>
+<p><code>redeem_code</code> viene poblado <strong>solo en productos que entregan un código</strong>. En
+una recarga directa a la cuenta del jugador es <code>null</code>, y eso es lo
+correcto: no hay ningún código que entregarle al cliente final, la recarga
+ya se acreditó.</p>
+<p>Las instrucciones de canje <strong>no viajan en la orden</strong>: están en el
+catálogo, como <code>redeem_instructions</code> de cada sku (<code>GET /catalog</code> y
+<code>GET /catalog/{sku}</code>). Son las mismas para todas las compras de ese sku,
+así que se guardan una vez junto al sku y se muestran al lado del
+<code>redeem_code</code>.</p>
+<p>Si la compra sigue en curso cuando la petición ya tiene que responder, el
+<code>POST</code> devuelve <code>200</code> con <code>status: PROCESSING</code> y <strong>el mismo objeto que una
+completada</strong>: el precio ya se cobró y el saldo ya bajó, lo único que falta
+es la confirmación del proveedor. <code>redeem_code</code> viene <code>null</code> hasta entonces.</p>
+<pre><code class="language-json">{ &quot;ok&quot;: true,
+  &quot;order&quot;: { &quot;external_id&quot;: &quot;PEDIDO-2026-00184&quot;, &quot;sku&quot;: &quot;rob500&quot;, &quot;status&quot;: &quot;PROCESSING&quot;,
+             &quot;price&quot;: &quot;4.95&quot;, &quot;currency&quot;: &quot;USD&quot;, &quot;redeem_code&quot;: null, &quot;remaining_balance&quot;: &quot;100.05&quot; } }
+</code></pre>
+<p>Y si la referencia ya se había resuelto antes, vuelve la respuesta
+original con <code>&quot;replay&quot;: true</code> <strong>en la raíz</strong>, junto a <code>ok</code> (§8).</p>
+<h4>⏱️ Tiempos de <code>POST /orders</code> — configurar el timeout alto</h4>
+<p>🔴 <strong>Es la advertencia más importante para integrar.</strong></p>
+<p>En productos con <code>requires_player_id: true</code>, la compra <strong>valida el ID
+contra el sistema del juego antes de cobrar</strong>, y esa validación puede
+tardar hasta <strong>25 segundos</strong> cuando el sistema del juego está lento.
+Sumado al resto de la compra, una petición puede tardar <strong>más de 30
+segundos</strong>.</p>
+<p><strong>Configurar el timeout del cliente HTTP en 60 segundos o más.</strong></p>
+<p>Un timeout corto es el peor escenario posible: el lado del integrador corta la conexión,
+pero <strong>la compra sigue procesándose de nuestro lado</strong>. Se queda sin
+saber si se cobró o no. Si aun así ocurre, la salida está en §8: consultar
+<code>GET /orders/{ref}</code> — <strong>nunca reintentar el POST a ciegas</strong>.</p>
+<p>Los productos de código (<code>requires_player_id: false</code>) no pasan por esa
+validación y responden mucho más rápido, pero el timeout alto conviene
+igual: el mismo cliente HTTP sirve para los dos.</p>
+<h4><code>expected_price</code> — protección contra un precio que se movió</h4>
+<p><strong>Para qué sirve:</strong> entre que se consulta el catálogo y se compra pasan
+segundos o minutos, y el precio puede haberse movido. Sin
+<code>expected_price</code>, se compraría al precio nuevo sin saberlo y el margen
+saldría distinto del calculado. Con él, la decisión de aceptar o no
+ese precio nuevo vuelve a ser del integrador.</p>
+<p>Si se envía y el precio real <strong>subió</strong> por encima de lo esperado, la
+compra se rechaza con <code>409 PRICE_CHANGED</code> y el precio actual en <code>detail</code>:</p>
+<pre><code class="language-json">{ &quot;ok&quot;: false, &quot;code&quot;: &quot;PRICE_CHANGED&quot;,
+  &quot;message&quot;: &quot;El precio cambió desde que consultaste el catálogo&quot;,
+  &quot;external_id_reusable&quot;: true,
+  &quot;detail&quot;: { &quot;current_price&quot;: &quot;5.10&quot;, &quot;currency&quot;: &quot;USD&quot; } }
+</code></pre>
+<p>Si el precio <strong>bajó</strong>, la compra sigue: nunca se rechazará una
+compra por salir más barata.</p>
+<p><strong>Se compara contra <code>price</code></strong> — lo que se le cobra a la cuenta— y no
+contra <code>suggested_retail_price</code>. Los dos vienen en la misma respuesta
+del catálogo, así que vale decirlo explícito: si se envía el sugerido, la
+comparación es contra otro número y se rechazarán compras
+legítimas.</p>
+<h4>La tolerancia la decidimos nosotros, en el momento de la compra</h4>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th>cómo resolvió el precio la compra</th>
+<th>tolerancia</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>exacto</td>
+<td><strong>estricta</strong> — cualquier subida rechaza</td>
+</tr>
+<tr>
+<td>aproximado</td>
+<td><strong>1 %</strong></td>
+</tr>
+</tbody></table></div>
+<p>El 1 % existe porque un precio aproximado se mueve por definición: sin
+tolerancia rechazaría compras legítimas de forma permanente.</p>
+<p>🔴 <strong>Lo que decide la tolerancia es el estado del costo al comprar,
+no lo que devolvió el catálogo.</strong> Son dos momentos distintos y pueden
+no coincidir: <code>GET /catalog/{sku}</code> consulta el costo en vivo y por eso
+puede devolver <code>price_is_estimated: false</code>, mientras que la compra
+resuelve con el costo guardado y aplica el 1 %.</p>
+<p><strong>Consecuencia práctica: no hay forma de garantizar comparación estricta
+desde el lado del integrador.</strong> <code>expected_price</code> es un techo con hasta 1 % de juego,
+no un precio pactado.</p>
+<p>Si importa el centavo, la respuesta de la compra trae el precio
+efectivamente cobrado y el saldo resultante — <strong>verificar ahí</strong>, no en lo
+enviado.</p>
+<p>Enviar el número tal como lo devolvió el catálogo: <code>&quot;4.95&quot;</code>, cadena con
+punto decimal. <code>&quot;4,95&quot;</code> con coma se rechaza con <code>400 INVALID_PARAMETER</code> en
+vez de ignorarse en silencio.</p>
+<hr>
+<h3><code>GET /orders/{external_id}</code></h3>
+<p>El estado de una orden por la referencia <strong>propia</strong>.</p>
+<pre><code class="language-json">{
+  &quot;ok&quot;: true,
+  &quot;order&quot;: {
+    &quot;external_id&quot;: &quot;PEDIDO-2026-00184&quot;,
+    &quot;sku&quot;: &quot;rob500&quot;,
+    &quot;name&quot;: &quot;500 Robux&quot;,
+    &quot;game&quot;: &quot;rb&quot;,
+    &quot;status&quot;: &quot;COMPLETED&quot;,
+    &quot;price&quot;: &quot;4.95&quot;,
+    &quot;currency&quot;: &quot;USD&quot;,
+    &quot;redeem_code&quot;: &quot;RA-7E6CZMYLVBLVAKPJ&quot;,
+    &quot;created_at&quot;: &quot;2026-08-05T23:20:38.958Z&quot;
+  }
+}
+</code></pre>
+<p><strong>Es el endpoint que hay que consultar si se perdió la respuesta del
+<code>POST</code></strong> — un timeout de red, un proceso que se cayó.</p>
+<h4>Las tres respuestas posibles, y qué hacer con cada una</h4>
+<p><strong>1 · La orden existe</strong> → <code>200</code> con el objeto de arriba. Revisar <code>status</code>
+(§8) y actuar según eso. Es el caso normal.</p>
+<p><strong>2 · <code>PROCESSING</code></strong> → <code>200</code>, pero con un objeto reducido: solo la
+referencia y el estado.</p>
+<pre><code class="language-json">{ &quot;ok&quot;: true, &quot;order&quot;: { &quot;external_id&quot;: &quot;PEDIDO-2026-00184&quot;, &quot;status&quot;: &quot;PROCESSING&quot; } }
+</code></pre>
+<p>La compra está siendo procesada en este mismo momento. <strong>Consultar de
+nuevo cada 5–10 segundos.</strong> Si a los <strong>5 minutos</strong> de haber salido al
+proveedor sigue sin resolverse, pasa a <code>ORPHANED</code> (abajo). No reintentar
+el <code>POST</code>: la orden está viva y un reintento no la acelera.</p>
+<p><strong>3 · <code>ORPHANED</code></strong> → <code>409</code>.</p>
+<pre><code class="language-json">{ &quot;ok&quot;: false, &quot;code&quot;: &quot;ORPHANED&quot;,
+  &quot;message&quot;: &quot;La orden quedó a mitad y necesita revisión. No reintentes con esta referencia.&quot;,
+  &quot;external_id_reusable&quot;: false }
+</code></pre>
+<p>La orden salió a procesarse y quedó sin resolver más allá del tiempo
+esperado. <strong>Requiere revisión de nuestro lado: escribir a soporte con la
+referencia</strong> por WhatsApp al <a href="https://wa.me/51973581378">+51 973 581 378</a>
+(§12).</p>
+<p>🔴 <strong>No reintentar con esa referencia ni generar una nueva para el mismo
+pedido.</strong> Podría terminar cobrándose dos veces. Es la única respuesta de
+toda la API que pide intervención humana.</p>
+<p>Y si no hay ni orden ni intento con esa referencia: <code>404 ORDER_NOT_FOUND</code> — el <code>POST</code> nunca llegó a registrarse, así que se puede
+enviarlo con esa misma referencia.</p>
+<hr>
+<h3><code>GET /orders?limit=50</code></h3>
+<p>Las órdenes de la cuenta, de la más reciente a la más vieja. <code>limit</code> va de 1 a 200
+(50 por defecto).</p>
+<pre><code class="language-json">{
+  &quot;ok&quot;: true,
+  &quot;total&quot;: 184,
+  &quot;truncated&quot;: true,
+  &quot;orders&quot;: [ { &quot;external_id&quot;: &quot;...&quot;, &quot;sku&quot;: &quot;...&quot;, &quot;name&quot;: &quot;...&quot;,
+                 &quot;game&quot;: &quot;rb&quot;, &quot;status&quot;: &quot;COMPLETED&quot;, &quot;price&quot;: &quot;4.95&quot;,
+                 &quot;currency&quot;: &quot;USD&quot;, &quot;redeem_code&quot;: null,
+                 &quot;created_at&quot;: &quot;2026-08-05T23:20:38.958Z&quot; } ]
+}
+</code></pre>
+<p><code>truncated</code> indica si hay más órdenes de las que entraron en <code>limit</code> —
+una lista truncada sin avisar es indistinguible de una lista completa.</p>
+<p>⚠️ Una orden <code>ORPHANED</code> <strong>no aparece en este listado</strong>: solo se ve
+consultándola por su referencia. Y el listado no pagina más allá de
+<code>limit</code>: para detectar un <code>REFUNDED</code> posterior a la compra hay que volver
+a consultar esa orden por referencia.</p>
+<p>⚠️ Las órdenes anteriores a que existiera esta API tienen
+<code>external_id</code> y <code>sku</code> en <code>null</code>: no se hicieron por aquí.</p>
+<hr>
+<h2>8. <code>external_id</code> e idempotencia</h2>
+<p><strong>La regla, en una línea: si no se sabe qué pasó con una orden, consultar —
+no reintentar.</strong></p>
+<blockquote>
+<p>⚠️ <strong>Si se ha trabajado con otras APIs del sector, no asumir su
+comportamiento.</strong> El nombre <code>external_id</code> es el mismo que usan otros
+proveedores de recargas, y cada uno hace algo DISTINTO al repetirlo:
+algunos rechazan la orden repetida con un error, otros devuelven la
+orden existente como si nada. <strong>Aquí ninguna de las dos</strong>: repetir un
+<code>external_id</code> resuelto devuelve <strong>la respuesta original completa</strong>
+(éxito O fallo, con <code>&quot;replay&quot;: true</code>), una en vuelo da
+<code>409 OPERATION_IN_PROGRESS</code>, y una que falló sin cargo permite
+reintentar con la misma referencia. La tabla de abajo es el contrato;
+lo aprendido en otra API no lo es.</p>
+</blockquote>
+<p>Cada <code>external_id</code> identifica <strong>un</strong> pedido propio. Si se repite un
+<code>POST /orders</code> con una referencia ya usada, <strong>no se compra dos veces</strong>:</p>
+<ul>
+<li>Si la primera se completó, se recibe <strong>la misma respuesta</strong> que entonces,
+con <code>&quot;replay&quot;: true</code> agregado. Es seguro reintentar tras un timeout de
+red: o compra, o devuelve la compra que ya existía.</li>
+<li>Si la primera falló <strong>antes</strong> de llegar al proveedor, la referencia se
+puede volver a usar.</li>
+<li>Si la primera <strong>sí llegó</strong> al proveedor y no sabemos cómo terminó, se
+rechaza y hay que consultar el estado.</li>
+</ul>
+<h3><code>external_id_reusable</code> — el campo a mirar ante un error</h3>
+<p>Todo error que decide la lógica de la orden lo trae en la raíz de la
+respuesta. Los que responde la capa de acceso <strong>antes</strong> de llegar a ella
+—<code>401 UNAUTHORIZED</code>, <code>429 RATE_LIMIT_EXCEEDED</code>, <code>503 SERVICE_UNAVAILABLE</code>
+de la clave y <code>400 INVALID_JSON</code>— no lo traen, y no hace falta: en esos
+cuatro nada llegó a registrarse y la referencia sigue libre.</p>
+<pre><code class="language-json">{ &quot;ok&quot;: false, &quot;code&quot;: &quot;PLAYER_NOT_FOUND&quot;,
+  &quot;message&quot;: &quot;La cuenta de usuario no es reconocida.&quot;,
+  &quot;external_id_reusable&quot;: true }
+</code></pre>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>true</code></td>
+<td><strong>cero cargo garantizado.</strong> Se puede corregir lo que estuvo mal (el ID del jugador, o incluso el sku) y reintentar <strong>con la misma referencia</strong></td>
+</tr>
+<tr>
+<td><code>false</code></td>
+<td>la orden llegó al proveedor. <strong>No reintentar con esta referencia</strong> — consultar <code>GET /orders/{ref}</code></td>
+</tr>
+</tbody></table></div>
+<p>Un ID de jugador mal escrito es el caso típico de <code>true</code>: se corrige y se
+reintenta con la misma referencia, sin inventar una nueva.</p>
+<p>La regla que hay detrás es una sola: <strong>la referencia es reutilizable si el
+intento nunca salió hacia el proveedor.</strong> Todo lo que se rechaza antes de
+enviar —saldo, precio, parámetros, un id inválido detectado en la
+validación previa— la deja libre. Todo lo que el proveedor ya recibió, no:
+repetirla devuelve la respuesta que ya hubo, con <code>replay: true</code>.</p>
+<h3>Estados</h3>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th>estado</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>COMPLETED</code></td>
+<td>entregada. Si el producto es de código, está en <code>redeem_code</code></td>
+</tr>
+<tr>
+<td><code>PROCESSING</code></td>
+<td>se está procesando. <strong>Consultar de nuevo; no reintentar el POST.</strong> En unos segundos si <code>delivery.mode</code> es <code>instant</code>; si es <code>human</code>, la orden espera a una persona — el bloque <code>delivery</code> de la orden dice si estamos fuera de horario y cuándo se retoma (<code>resumes_at</code>)</td>
+</tr>
+<tr>
+<td><code>FAILED</code></td>
+<td>no se completó. No se cobró</td>
+</tr>
+<tr>
+<td><code>REFUNDED</code></td>
+<td>se completó y el proveedor la revirtió después. El importe volvió al saldo de la cuenta</td>
+</tr>
+</tbody></table></div>
+<p>Y <code>ORPHANED</code>, que no es un estado de venta sino la excepción que
+pide intervención humana — ver las tres respuestas de
+<code>GET /orders/{external_id}</code> arriba.</p>
+<hr>
+<h2>9. Códigos de error</h2>
+<h3>🔴 <code>OUT_OF_STOCK</code> significa disponibilidad, y nada más</h3>
+<p>Si una orden falla por una causa que <strong>no depende del producto</strong> —saldo
+insuficiente, id inexistente, cuenta restringida— se recibe ese
+motivo, con su propio código HTTP.</p>
+<p>Importa porque <strong>la clase del código HTTP decide qué hacer</strong>:</p>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th></th>
+<th>acción</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>409 OUT_OF_STOCK</code></td>
+<td>esperar y reintentar más tarde</td>
+</tr>
+<tr>
+<td><code>402 INSUFFICIENT_BALANCE</code></td>
+<td>recargar saldo</td>
+</tr>
+<tr>
+<td><code>400 PLAYER_NOT_FOUND</code></td>
+<td>corregir el id con el usuario</td>
+</tr>
+</tbody></table></div>
+<p>Un <code>409</code> invita a reintentar; un <code>402</code> o un <code>400</code> dicen que reintentar sin
+cambiar nada va a fallar igual. Si el código del integrador ramifica por
+el código HTTP (<code>=== 409</code>), revisar que esos dos casos entren por otra rama.</p>
+<p>Un mismo sku puede tener varios proveedores detrás, y normalmente
+probamos el siguiente cuando uno no puede servirlo. <strong>Ante estas causas
+no lo hacemos</strong>: el id no se vuelve válido cambiando de proveedor, ni el
+saldo alcanza más. Por eso el rechazo llega rápido en vez de después de
+probar con todos.</p>
+<h3>🔴 Antes de la tabla: qué significa &quot;reintentar&quot;</h3>
+<p>Para todo lo que devuelve <code>POST /orders</code>, <strong>la pregunta no es &quot;¿puedo
+reintentar?&quot; sino &quot;¿puedo reintentar CON LA MISMA REFERENCIA?&quot;</strong> — y esa
+la responde <code>external_id_reusable</code>, no esta tabla.</p>
+<blockquote>
+<p><strong>Nunca generar una referencia nueva para un pedido ya intentado.</strong>
+Es la única forma de comprar dos veces lo mismo. Si <code>external_id_reusable</code>
+viene <code>false</code>, la salida no es reintentar con otra referencia: es
+consultar <code>GET /orders/{ref}</code> y ver qué pasó.</p>
+</blockquote>
+<p>La columna &quot;¿reintentar?&quot; de abajo asume <strong>siempre la misma referencia</strong>.
+Donde dice «según <code>external_id_reusable</code>» es porque el mismo código puede
+llegar antes o después de contactar al proveedor, y solo el campo lo sabe.</p>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th>código</th>
+<th>HTTP</th>
+<th></th>
+<th>¿reintentar? (misma referencia)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>UNAUTHORIZED</code></td>
+<td>401</td>
+<td>clave ausente, inválida, revocada o cuenta desactivada</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>RATE_LIMIT_EXCEEDED</code></td>
+<td>429</td>
+<td>se superó el límite por minuto</td>
+<td>sí, tras <code>RateLimit-Reset</code></td>
+</tr>
+<tr>
+<td><code>INVALID_PARAMETER</code></td>
+<td>400</td>
+<td>un campo mal formado</td>
+<td>sí, corregido</td>
+</tr>
+<tr>
+<td><code>INVALID_JSON</code></td>
+<td>400</td>
+<td>el cuerpo no es JSON válido</td>
+<td>sí, con el cuerpo corregido</td>
+</tr>
+<tr>
+<td><code>SKU_NOT_FOUND</code></td>
+<td>404</td>
+<td>el sku no existe o dejó de venderse</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>UNSUPPORTED_TYPE</code></td>
+<td>400</td>
+<td>en <code>POST /orders</code>: productos de monto libre (§7, <code>GET /catalog</code>), todavía no vendibles por API. En <code>POST /verify-player</code>: el producto es un código y no lleva id de jugador</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>PLAYER_ID_REQUIRED</code></td>
+<td>400</td>
+<td>falta <code>player.id</code></td>
+<td>sí, enviándolo</td>
+</tr>
+<tr>
+<td><code>FIELD_REQUIRED</code></td>
+<td>400</td>
+<td>falta un campo de <code>required_fields</code> (cuál, en <code>detail.field</code>). <strong>No se cobró nada</strong></td>
+<td>sí, enviándolo</td>
+</tr>
+<tr>
+<td><code>FIELD_INVALID</code></td>
+<td>400</td>
+<td>un campo de <code>fields</code> no tiene la forma esperada (hoy: un <code>tel</code> que no es un teléfono de 9 a 15 dígitos). Cuál, en <code>detail.field</code>. <strong>No se cobró nada</strong></td>
+<td>sí, corregido</td>
+</tr>
+<tr>
+<td><code>PLAYER_NOT_FOUND</code></td>
+<td>400</td>
+<td>el ID de jugador no es reconocido</td>
+<td>según <code>external_id_reusable</code>: <code>true</code> si lo detectó la validación previa (lo normal), <code>false</code> si lo dijo el proveedor</td>
+</tr>
+<tr>
+<td><code>ACCOUNT_RESTRICTED</code></td>
+<td>400</td>
+<td>la cuenta existe pero no puede recibir la recarga; el motivo del proveedor va en <code>message</code></td>
+<td>no con ese id — tratarlo como permanente para esa cuenta</td>
+</tr>
+<tr>
+<td><code>INSUFFICIENT_BALANCE</code></td>
+<td>402</td>
+<td>no alcanza el saldo. <strong>No se cobró nada</strong></td>
+<td>sí, tras recargar</td>
+</tr>
+<tr>
+<td><code>PRICE_CHANGED</code></td>
+<td>409</td>
+<td>el precio subió respecto del <code>expected_price</code> enviado</td>
+<td>sí, con el precio nuevo</td>
+</tr>
+<tr>
+<td><code>OUT_OF_STOCK</code></td>
+<td>409</td>
+<td>ese sku no se puede servir en este momento</td>
+<td>según <code>external_id_reusable</code>: <code>true</code> si nadie pudo servirlo antes de enviar, <code>false</code> si un proveedor ya lo recibió</td>
+</tr>
+<tr>
+<td><code>PROVIDER_REJECTED</code></td>
+<td>502</td>
+<td>rechazo no clasificado. El texto real va en <code>message</code></td>
+<td>⚠️ <strong>revisar <code>external_id_reusable</code></strong></td>
+</tr>
+<tr>
+<td><code>OPERATION_IN_PROGRESS</code></td>
+<td>409</td>
+<td>ya hay una compra en curso con esa referencia</td>
+<td><strong>no</strong> — consultar <code>GET /orders/{ref}</code></td>
+</tr>
+<tr>
+<td><code>ORPHANED</code></td>
+<td>409</td>
+<td>quedó a mitad, necesita revisión manual</td>
+<td><strong>no</strong> — escribir a soporte</td>
+</tr>
+<tr>
+<td><code>ORDER_NOT_FOUND</code></td>
+<td>404</td>
+<td>no hay ninguna orden con esa referencia</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>ROUTE_NOT_FOUND</code></td>
+<td>404</td>
+<td>la ruta no existe en la API v1 (con una clave válida; sin clave, toda ruta responde <code>401</code>)</td>
+<td>no — revisar la URL</td>
+</tr>
+<tr>
+<td><code>SERVICE_UNAVAILABLE</code></td>
+<td>503</td>
+<td>no pudimos verificar la clave en este momento (problema nuestro, <strong>transitorio</strong>). En <code>POST /verify-player</code> significa otra cosa: no se pudo consultar al proveedor</td>
+<td>sí — respetar <code>Retry-After</code></td>
+</tr>
+<tr>
+<td><code>INTERNAL_ERROR</code></td>
+<td>500</td>
+<td>problema nuestro</td>
+<td>⚠️ <strong>revisar <code>external_id_reusable</code></strong></td>
+</tr>
+</tbody></table></div>
+<h3><code>503</code> no es <code>500</code></h3>
+<p>Un <strong><code>503 SERVICE_UNAVAILABLE</code></strong> significa que no pudimos verificar la
+clave <strong>en este momento</strong> — se despeja solo, normalmente en segundos.
+Viene con <code>Retry-After</code> y <strong>reintentar es lo correcto</strong>: ninguna orden
+llegó a procesarse, así que la referencia sigue libre.</p>
+<p>Un <strong><code>500 INTERNAL_ERROR</code></strong> es un problema nuestro sin garantía de ser
+transitorio. Si aparece en <code>POST /orders</code>, revisar
+<code>external_id_reusable</code> antes de hacer nada.</p>
+<p>⚠️ <strong><code>PROVIDER_REJECTED</code> y <code>INTERNAL_ERROR</code> no se pueden resolver desde la
+tabla</strong>, y son los dos donde equivocarse cuesta dinero. Agrupan lo que no
+pudimos clasificar, y algunos de esos casos ocurren <strong>después</strong> de que la
+orden salió a procesarse: ahí <code>external_id_reusable</code> viene <code>false</code> y
+la salida es consultar, no reintentar.</p>
+<p><strong>Ramificar por el campo, no por el código.</strong> Si la integración solo va a
+mirar una cosa ante un error de <code>POST /orders</code>, que sea
+<code>external_id_reusable</code>.</p>
+<p>⚠️ <strong><code>PLAYER_NOT_FOUND</code> y <code>ACCOUNT_RESTRICTED</code> son distintos a propósito.</strong>
+El primero significa &quot;ese número está mal, hay que corregirlo&quot;; el segundo, &quot;el
+número está bien, pero esa cuenta no puede recibir la recarga&quot;. Tratarlos
+igual manda al cliente a revisar un ID que ya estaba correcto.</p>
+<h3><code>PROCESSING</code> y <code>OPERATION_IN_PROGRESS</code> NO son lo mismo</h3>
+<p>Se parecen y aparecen en momentos distintos:</p>
+<div class="tabla"><table>
+<thead>
+<tr>
+<th></th>
+<th>dónde aparece</th>
+<th>qué es</th>
+<th>qué hacer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong><code>PROCESSING</code></strong></td>
+<td>como <strong><code>status</code></strong> de una orden, con <code>&quot;ok&quot;: true</code></td>
+<td>la compra se está procesando ahora</td>
+<td>esperar unos segundos y volver a consultar</td>
+</tr>
+<tr>
+<td><strong><code>OPERATION_IN_PROGRESS</code></strong></td>
+<td>como <strong><code>code</code></strong> de un error <code>409</code>, con <code>&quot;ok&quot;: false</code></td>
+<td>se envió un <code>POST</code> con una referencia que <strong>ya tiene una compra en curso</strong></td>
+<td>no reintentar el <code>POST</code>: consultar <code>GET /orders/{ref}</code></td>
+</tr>
+</tbody></table></div>
+<p>La forma de distinguirlos en código es directa: <code>PROCESSING</code> viene con
+<code>ok: true</code> y dentro de <code>order.status</code>; <code>OPERATION_IN_PROGRESS</code> viene con
+<code>ok: false</code> y en <code>code</code>.</p>
+<p>El segundo <strong>no es un fracaso</strong>: es la API indicando que ya recibió ese
+pedido y lo está procesando. La compra sigue viva.</p>
+<hr>
+<h2>10. Flujo recomendado</h2>
+<pre><code>1.  GET /catalog               (una vez al día, o cuando se desee refrescar)
+        └─ guardar sku, nombre y requires_player_id
+
+2.  Al vender:
+        GET /catalog/{sku}     ← si se necesita el precio exacto
+        └─ revisar price_is_estimated
+
+3.  POST /orders  con el external_id propio y expected_price
+        ├─ 200 + COMPLETED  → entregar `redeem_code` (o confirmar la recarga)
+        ├─ 200 + PROCESSING    → consultar GET /orders/{ref} en unos segundos
+        ├─ error con external_id_reusable: true   → corregir y reintentar con LA MISMA referencia
+        ├─ error con external_id_reusable: false  → GET /orders/{ref}, NO reintentar
+        └─ timeout / sin respuesta                   → GET /orders/{ref}, NO reintentar
+</code></pre>
+<p><strong>Dos cosas que evitan casi todos los problemas de integración:</strong></p>
+<ol>
+<li><strong>Una <code>external_id</code> propia y única por pedido, siempre — y la
+misma en cada reintento de ese pedido.</strong> Es lo que hace seguro
+reintentar y lo que permite consultar qué pasó. Generar una referencia
+nueva para un pedido ya intentado es la única forma de comprar dos
+veces lo mismo.</li>
+<li><strong>Ante cualquier incertidumbre, consultar antes que reintentar.</strong></li>
+</ol>
+<hr>
+<h2>11. Dónde vive este documento</h2>
+<p><strong>Versión siempre al día:</strong> <a href="https://docs.canjea.me">https://docs.canjea.me</a>
+<strong>En Markdown:</strong> <a href="https://docs.canjea.me/canjea-api-v1.md">https://docs.canjea.me/canjea-api-v1.md</a></p>
+<p>Esa página <strong>se genera del archivo fuente en el momento de servirla</strong>: no
+es una copia que se publique aparte, así que no puede quedar de una
+versión anterior. Si se tiene un PDF, una captura o un archivo que se le
+envió por mensaje, <strong>eso sí puede estar viejo</strong> — compararlo con el
+sello <code>Versión:</code> de la página.</p>
+<hr>
+<h2>12. Soporte</h2>
+<p><strong>WhatsApp: <a href="https://wa.me/51973581378">+51 973 581 378</a></strong></p>
+<p>Escribir a soporte con la <code>external_id</code> y, si se dispone de ella, la respuesta
+completa recibida. Con eso podemos rastrear la orden de punta a
+punta.</p>
+<p>Es el mismo número al que apuntan los &quot;escribir a soporte&quot; del resto del
+documento — <code>ORPHANED</code> (§7 y §9) y el límite de <code>POST /verify-player</code>
+(§7) — que son los dos casos donde hace falta que mire una persona.</p>
+
+  <p class="pie">Versión 2026-09-17 · 13569ecd · esta página se genera del documento
+  fuente en cada actualización, no es una copia aparte.</p>
+</div>
+</body>
+</html>
