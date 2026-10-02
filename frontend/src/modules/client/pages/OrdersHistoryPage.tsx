@@ -246,16 +246,28 @@ export const OrdersHistoryPage: React.FC = () => {
     searchQuery,
   ]);
 
-  const getStatusBadge = (status: Order['status']) => {
-    switch (status) {
+  const getStatusBadge = (order: Order) => {
+    switch (order.status) {
       case 'completed':
         return <Badge variant="success">Completado</Badge>;
       case 'processing':
+      case 'pending':
+        if (order.failure_code === 'WAITING_PROVIDER_BALANCE') {
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/30 whitespace-nowrap">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              En cola de despacho
+            </span>
+          );
+        }
         return <Badge variant="warning">Procesando</Badge>;
       case 'failed':
         return <Badge variant="danger">Fallido</Badge>;
       default:
-        return <Badge variant="neutral">{status}</Badge>;
+        return <Badge variant="neutral">{order.status}</Badge>;
     }
   };
 
@@ -409,7 +421,7 @@ export const OrdersHistoryPage: React.FC = () => {
                     <span className="text-xs font-mono text-slate-500 dark:text-slate-400 font-medium">
                       Ticket #{order.id.slice(0, 10)}
                     </span>
-                    {getStatusBadge(order.status)}
+                    {getStatusBadge(order)}
                     <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {new Date(order.created_at).toLocaleString('es-ES', {

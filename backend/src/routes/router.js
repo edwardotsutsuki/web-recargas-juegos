@@ -517,6 +517,20 @@ export async function handleRequest(req, res) {
         return sendJson(res, 200, { success: true, settings: updated });
       }
 
+      // POST /admin/system/trigger-waiting (Despachar cola de órdenes en espera bajo demanda)
+      if (method === 'POST' && pathname === '/admin/system/trigger-waiting') {
+        const status = await balanceMonitorService.getStatus(true);
+        const count = await balanceMonitorService.triggerWaitingJobs();
+        return sendJson(res, 200, {
+          success: true,
+          triggered_count: count,
+          canjea_balance: status.canjea_balance,
+          message: count > 0
+            ? `Se reactivaron ${count} órdenes en cola para despacho inmediato.`
+            : 'No hay órdenes en espera de saldo en este momento.',
+        });
+      }
+
       // GET /admin/deposits/pending-count
       if (method === 'GET' && pathname === '/admin/deposits/pending-count') {
         const count = await depositService.getPendingDepositsCount();
@@ -793,6 +807,13 @@ export async function handleRequest(req, res) {
       if (method === 'GET' && pathname === '/admin/orders') {
         const globalOrders = await orderService.getGlobalOrders();
         return sendJson(res, 200, globalOrders);
+      }
+
+      // POST /admin/orders/:id/retry (Reintentar despacho de orden fallida o en espera)
+      if (method === 'POST' && pathname.match(/^\/admin\/orders\/[^/]+\/retry$/)) {
+        const orderId = pathname.split('/')[3];
+        const result = await orderService.retryOrder(orderId);
+        return sendJson(res, 200, result);
       }
 
       // --- Módulo Admin: Gestión de Promociones y Avisos ---

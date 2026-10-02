@@ -23,7 +23,7 @@ export const AccountingBookPage: React.FC = () => {
   const [book, setBook] = useState<AccountingBook | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'succeeded' | 'failed'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'succeeded' | 'processing' | 'failed'>('all');
 
   const fetchAccounting = async () => {
     setLoading(true);
@@ -141,8 +141,13 @@ export const AccountingBookPage: React.FC = () => {
   };
 
   const filteredEntries = (book?.entries || []).filter((e) => {
-    if (statusFilter === 'succeeded' && (e.is_refunded || e.status !== 'succeeded')) return false;
-    if (statusFilter === 'failed' && !e.is_refunded && e.status === 'succeeded') return false;
+    const isSuccess = e.status === 'succeeded' || e.status === 'completed';
+    const isProcessing = e.is_processing || e.status === 'processing' || e.status === 'held';
+    const isFailed = !isSuccess && !isProcessing;
+
+    if (statusFilter === 'succeeded' && !isSuccess) return false;
+    if (statusFilter === 'processing' && !isProcessing) return false;
+    if (statusFilter === 'failed' && !isFailed) return false;
 
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -274,6 +279,15 @@ export const AccountingBookPage: React.FC = () => {
               </button>
               <button
                 type="button"
+                onClick={() => setStatusFilter('processing')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
+                  statusFilter === 'processing' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-amber-400'
+                }`}
+              >
+                En cola ({book?.summary.processing_orders_count || 0})
+              </button>
+              <button
+                type="button"
                 onClick={() => setStatusFilter('failed')}
                 className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
                   statusFilter === 'failed' ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-rose-400'
@@ -334,13 +348,23 @@ export const AccountingBookPage: React.FC = () => {
                     minute: '2-digit',
                   });
 
-                  const isRefunded = item.is_refunded || item.status !== 'succeeded';
+                  const isSuccess = item.status === 'succeeded' || item.status === 'completed';
+                  const isProcessing = item.is_processing || item.status === 'processing' || item.status === 'held';
+                  const isRefunded = !isSuccess && !isProcessing;
 
                   return (
                     <tr key={item.id} className="hover:bg-slate-800/30 transition-colors">
                       <td className="py-3 px-4 text-slate-400 whitespace-nowrap">{dateFormatted}</td>
                       <td className="py-3 px-4">
-                        {isRefunded ? (
+                        {isProcessing ? (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold border border-amber-500/20 whitespace-nowrap inline-flex items-center gap-1.5">
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                            </span>
+                            En cola
+                          </span>
+                        ) : isRefunded ? (
                           <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-bold border border-rose-500/20 whitespace-nowrap">
                             Reembolsada
                           </span>

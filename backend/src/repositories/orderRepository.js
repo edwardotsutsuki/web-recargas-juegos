@@ -318,6 +318,94 @@ export const orderRepository = {
     return { success: true, order_id: orderId, status: outcome };
   },
 
+  async markWaitingProviderBalance({ orderId, currentBalance = null, requiredBalance = null, reason = null }) {
+    if (!isSupabaseConfigured) return;
+    const msg = reason || (currentBalance && requiredBalance
+      ? `En cola por saldo del proveedor ($${currentBalance} / $${requiredBalance} USD)`
+      : 'En cola inteligente esperando reposición de saldo del proveedor mayorista');
+
+    await supabaseAdmin
+      .from('orders')
+      .update({
+        status: 'processing',
+        failure_code: 'WAITING_PROVIDER_BALANCE',
+        last_error_message: msg,
+        finalized_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+  },
+
+  async retryOrder(orderId) {
+    if (!isSupabaseConfigured) return { success: false, message: 'Supabase no configurado' };
+
+    const { data: order, error: oErr } = await supabaseAdmin
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (oErr || !order) {
+      throw new Error(`Orden ${orderId} no encontrada`);
+    }
+
+    const { data: wallet, error: wErr } = await supabaseAdmin
+      .from('wallets')
+      .select('*')
+      .eq('id', order.wallet_id)
+      .single();
+
+    if (wErr || !wallet) {
+      throw new Error(`Billetera para orden ${orderId} no encontrada`);
+    }
+
+    // Si la orden estaba en estado 'failed', hay que re-retener los fondos de la billetera
+    if (order.status === 'failed') {
+      const available = Number(wallet.available_minor ?? (Number(wallet.balance_minor) - Number(wallet.held_minor || 0)));
+      if (available < Number(order.price_minor)) {
+        throw new Error(`Saldo disponible insuficiente en la billetera del cliente ($${(available/100).toFixed(2)}) para reintentar la orden de $${(Number(order.price_minor)/100).toFixed(2)}`);
+      }
+
+      const newHeld = Number(wallet.held_minor || 0) + Number(order.price_minor);
+      await supabaseAdmin
+        .from('wallets')
+        .update({
+          held_minor: newHeld,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', wallet.id);
+    }
+
+    // Actualizar orden a processing / WAITING_PROVIDER_BALANCE con finalized_at nulo
+    await supabaseAdmin
+      .from('orders')
+      .update({
+        status: 'processing',
+        failure_code: 'WAITING_PROVIDER_BALANCE',
+        last_error_message: 'Reintentando despacho automático',
+        finalized_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+
+    // Upsert o actualizar en purchase_jobs a 'ready' con available_at = now()
+    const { error: jErr } = await supabaseAdmin
+      .from('purchase_jobs')
+      .upsert({
+        order_id: orderId,
+        state: 'ready',
+        attempts: 0,
+        available_at: new Date().toISOString(),
+        lease_until: null,
+        lease_token: null,
+        last_error_code: 'INSUFFICIENT_PROVIDER_BALANCE',
+      }, { onConflict: 'order_id' });
+
+    if (jErr) throw jErr;
+
+    return { success: true, order_id: orderId, message: 'Orden reactivada y encolada para despacho' };
+  },
+
   async findByUserId(userId, limit = 100) {
     return this.getUserOrders(userId, limit);
   },

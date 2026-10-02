@@ -334,6 +334,19 @@ export const adminService = {
       method: 'DELETE',
     });
   },
+
+  // --- Encolado Inteligente & Reintentos ---
+  async retryOrder(orderId: string): Promise<{ success: boolean; message: string }> {
+    return apiClient<{ success: boolean; message: string }>(`/admin/orders/${orderId}/retry`, {
+      method: 'POST',
+    });
+  },
+
+  async triggerWaitingOrders(): Promise<{ success: boolean; triggered_count: number; message: string; canjea_balance?: string }> {
+    return apiClient<{ success: boolean; triggered_count: number; message: string; canjea_balance?: string }>('/admin/system/trigger-waiting', {
+      method: 'POST',
+    });
+  },
 };
 
 

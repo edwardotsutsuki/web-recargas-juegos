@@ -261,5 +261,9 @@ export const orderService = {
       };
     });
   },
+
+  async retryOrder(orderId) {
+    return orderRepository.retryOrder(orderId);
+  },
 };
 

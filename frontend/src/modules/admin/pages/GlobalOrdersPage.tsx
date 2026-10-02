@@ -3,11 +3,16 @@ import { Order } from '../../../types';
 import { adminService } from '../../../services/api/admin.service';
 import { PriceDisplay } from '../../../components/molecules/PriceDisplay';
 import { Badge } from '../../../components/atoms/Badge';
-import { ShoppingBag, RefreshCw, ShieldCheck, Search, Filter, User, AlertCircle, Clock } from 'lucide-react';
+import { useUIStore } from '../../../store/useUIStore';
+import { ShoppingBag, RefreshCw, ShieldCheck, Search, Filter, User, AlertCircle, Clock, Zap } from 'lucide-react';
 
 export const GlobalOrdersPage: React.FC = () => {
+  const { showToast } = useUIStore();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [providerBalance, setProviderBalance] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTriggering, setIsTriggering] = useState(false);
+  const [retryingOrderId, setRetryingOrderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'failed'>('all');
   const [selectedGame, setSelectedGame] = useState<string>('all');
@@ -16,12 +21,47 @@ export const GlobalOrdersPage: React.FC = () => {
   const loadOrders = async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     try {
-      const data = await adminService.getGlobalOrders();
+      const [data, statusData] = await Promise.all([
+        adminService.getGlobalOrders(),
+        adminService.getSystemStatus(false).catch(() => null),
+      ]);
       setOrders(data);
+      if (statusData?.canjea_balance) {
+        setProviderBalance(statusData.canjea_balance);
+      }
     } catch (err) {
       console.error('Error cargando órdenes globales:', err);
     } finally {
       if (showLoading) setIsLoading(false);
+    }
+  };
+
+  const handleRetryOrder = async (orderId: string) => {
+    try {
+      setRetryingOrderId(orderId);
+      const res = await adminService.retryOrder(orderId);
+      showToast(res.message || 'Orden reactivada en la cola', 'success');
+      await loadOrders(false);
+    } catch (err: any) {
+      showToast(err.message || 'Error al reintentar orden', 'error');
+    } finally {
+      setRetryingOrderId(null);
+    }
+  };
+
+  const handleTriggerWaiting = async () => {
+    try {
+      setIsTriggering(true);
+      const res = await adminService.triggerWaitingOrders();
+      showToast(res.message, 'success');
+      if (res.canjea_balance) {
+        setProviderBalance(res.canjea_balance);
+      }
+      await loadOrders(false);
+    } catch (err: any) {
+      showToast(err.message || 'Error al despachar cola', 'error');
+    } finally {
+      setIsTriggering(false);
     }
   };
 
@@ -106,6 +146,45 @@ export const GlobalOrdersPage: React.FC = () => {
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             Refrescar
+          </button>
+        </div>
+      </div>
+
+      {/* Banner de Saldo Proveedor Canjea y Encolado Inteligente */}
+      <div className="glass-panel p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+            <Zap className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Saldo Proveedor Canjea:
+              </span>
+              <span className="text-sm font-black text-cyan-400 font-mono">
+                ${providerBalance || '0.00'} USD
+              </span>
+              {Number(providerBalance || 0) < 10 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  Saldo Bajo
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Encolado Inteligente activo: Las órdenes sin saldo suficiente esperan automáticamente y se envían apenas recargues.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={isTriggering}
+            onClick={handleTriggerWaiting}
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isTriggering ? 'animate-spin' : ''}`} />
+            Despachar Cola Ahora
           </button>
         </div>
       </div>
@@ -271,12 +350,39 @@ export const GlobalOrdersPage: React.FC = () => {
                   </span>
                 </div>
 
-                {order.failure_code && (
-                  <div className="p-2 rounded-lg bg-red-950/40 border border-red-500/30 text-red-300 text-[11px] flex items-center gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>Error: {order.failure_code}</span>
+                {order.failure_code === 'WAITING_PROVIDER_BALANCE' ? (
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+                      <span>En cola: Esperando saldo de proveedor</span>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={retryingOrderId === order.id}
+                      onClick={() => handleRetryOrder(order.id)}
+                      className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[10px] font-bold border border-amber-500/30 flex items-center gap-1 transition-all disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${retryingOrderId === order.id ? 'animate-spin' : ''}`} />
+                      Reintentar
+                    </button>
                   </div>
-                )}
+                ) : order.failure_code ? (
+                  <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 text-xs flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Error: {order.failure_code}</span>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={retryingOrderId === order.id}
+                      onClick={() => handleRetryOrder(order.id)}
+                      className="px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-200 text-[10px] font-bold border border-red-500/30 flex items-center gap-1 transition-all disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${retryingOrderId === order.id ? 'animate-spin' : ''}`} />
+                      Reintentar
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
@@ -349,25 +455,59 @@ export const GlobalOrdersPage: React.FC = () => {
                         />
                       </td>
                       <td className="p-4">
-                        <Badge
-                          variant={
-                            order.status === 'completed'
-                              ? 'success'
-                              : order.status === 'failed' || order.status === 'cancelled'
-                              ? 'danger'
-                              : 'warning'
-                          }
-                        >
-                          {order.status === 'completed'
-                            ? 'Completado'
-                            : order.status === 'failed'
-                            ? 'Fallido'
-                            : 'Procesando'}
-                        </Badge>
-                        {order.failure_code && (
-                          <span className="text-[10px] text-red-600 dark:text-red-400 font-mono block mt-1">
-                            {order.failure_code}
-                          </span>
+                        {order.failure_code === 'WAITING_PROVIDER_BALANCE' ? (
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/30 whitespace-nowrap">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                              En cola proveedor
+                            </span>
+                            <button
+                              type="button"
+                              disabled={retryingOrderId === order.id}
+                              onClick={() => handleRetryOrder(order.id)}
+                              className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold border border-amber-500/30 flex items-center gap-1 transition-all disabled:opacity-50"
+                            >
+                              <RefreshCw className={`w-2.5 h-2.5 ${retryingOrderId === order.id ? 'animate-spin' : ''}`} />
+                              Reintentar
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <Badge
+                              variant={
+                                order.status === 'completed'
+                                  ? 'success'
+                                  : order.status === 'failed' || order.status === 'cancelled'
+                                  ? 'danger'
+                                  : 'warning'
+                              }
+                            >
+                              {order.status === 'completed'
+                                ? 'Completado'
+                                : order.status === 'failed'
+                                ? 'Fallido'
+                                : 'Procesando'}
+                            </Badge>
+                            {order.failure_code && (
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <span className="text-[10px] text-red-600 dark:text-red-400 font-mono">
+                                  {order.failure_code}
+                                </span>
+                                {order.status === 'failed' && (
+                                  <button
+                                    type="button"
+                                    disabled={retryingOrderId === order.id}
+                                    onClick={() => handleRetryOrder(order.id)}
+                                    className="px-1.5 py-0.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[9px] font-bold border border-red-500/20 flex items-center gap-0.5 transition-all disabled:opacity-50"
+                                    title="Reintentar despacho"
+                                  >
+                                    <RefreshCw className={`w-2 h-2 ${retryingOrderId === order.id ? 'animate-spin' : ''}`} />
+                                    Reenviar
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </>
                         )}
                       </td>
                       <td className="p-4">

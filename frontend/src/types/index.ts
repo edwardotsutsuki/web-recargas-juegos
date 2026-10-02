@@ -115,6 +115,7 @@ export interface Order {
   player_server?: string;
   status: OrderStatus;
   failure_code?: string | null;
+  last_error_message?: string | null;
   digital_code?: string;
   redeem_instructions?: string | null;
   operator_name?: string | null;
@@ -240,6 +241,7 @@ export interface SystemStatus {
 export interface AccountingSummary {
   total_orders_count: number;
   successful_orders_count: number;
+  processing_orders_count?: number;
   failed_orders_count?: number;
   total_wholesale_cost_usd: string;
   total_client_charged_usd: string;
@@ -268,6 +270,7 @@ export interface AccountingEntry {
   net_profit_usd: string;
   margin_percent: number;
   is_refunded?: boolean;
+  is_processing?: boolean;
 }
 
 export interface AccountingBook {

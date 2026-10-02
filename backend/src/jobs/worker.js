@@ -3,6 +3,7 @@ import { jobRepository } from '../repositories/jobRepository.js';
 import { orderRepository } from '../repositories/orderRepository.js';
 import { canjeaClient, CanjeaError } from '../providers/canjea/client.js';
 import { catalogService } from '../services/catalogService.js';
+import { balanceMonitorService } from '../services/balanceMonitorService.js';
 
 let isRunning = false;
 
@@ -30,7 +31,34 @@ export async function processNextJob() {
         }
       } catch {}
 
-      // 2. Llamar al proveedor Canjea con la referencia única (orderId)
+      // 2. Validación preventiva de saldo mayorista (Encolado Inteligente)
+      try {
+        const balanceStatus = await balanceMonitorService.getStatus(false);
+        const currentBalanceCents = balanceStatus.canjea_balance_cents || 0;
+        const requiredCents = wholesalePrice ? Math.round(Number(wholesalePrice) * 100) : 0;
+
+        if (currentBalanceCents > 0 && requiredCents > currentBalanceCents) {
+          console.warn(`[Worker] Encolado Inteligente: Saldo Canjea ($${(currentBalanceCents/100).toFixed(2)}) insuficiente para orden ${orderId} (requiere $${wholesalePrice}). Poniendo en espera para reintento automático.`);
+
+          await jobRepository.postponeJob({
+            orderId,
+            delaySeconds: 45,
+            errorCode: 'INSUFFICIENT_PROVIDER_BALANCE',
+          });
+
+          await orderRepository.markWaitingProviderBalance({
+            orderId,
+            currentBalance: (currentBalanceCents / 100).toFixed(2),
+            requiredBalance: wholesalePrice,
+          });
+
+          return true; // Trabajo gestionado limpiamente sin fallar la orden
+        }
+      } catch (balErr) {
+        console.warn('[Worker] No se pudo comprobar saldo previo:', balErr.message);
+      }
+
+      // 3. Llamar al proveedor Canjea con la referencia única (orderId)
       const hasFields = Boolean(player?.fields && Object.keys(player.fields).length > 0);
       const res = await canjeaClient.createOrder({
         sku,
@@ -40,7 +68,7 @@ export async function processNextJob() {
         fields: hasFields ? player.fields : null,
       });
 
-      // 3. Éxito confirmado por Canjea
+      // 4. Éxito confirmado por Canjea
       const digitalCode = res.order?.redeem_code || null;
       let redeemInstructions = null;
       try {
@@ -60,6 +88,32 @@ export async function processNextJob() {
       console.log(`[Worker] Orden ${orderId} liquidada con ÉXITO. Código:`, digitalCode || 'Acreditación Directa');
     } catch (err) {
       console.error(`[Worker] Error de Canjea en orden ${orderId}:`, err.message);
+
+      // Verificación de saldo insuficiente en respuesta de Canjea
+      const isBalanceError =
+        err?.code === 'INSUFFICIENT_BALANCE' ||
+        err?.code === 'LOW_BALANCE' ||
+        err?.code === 'ACCOUNT_BALANCE_LOW' ||
+        err?.message?.toLowerCase().includes('balance');
+
+      if (isBalanceError) {
+        console.warn(`[Worker] Proveedor Canjea reportó falta de saldo en orden ${orderId}. Manteniendo fondos retenidos y encolando.`);
+        
+        balanceMonitorService.getStatus(true).catch(() => {});
+
+        await jobRepository.postponeJob({
+          orderId,
+          delaySeconds: 60,
+          errorCode: 'INSUFFICIENT_PROVIDER_BALANCE',
+        });
+
+        await orderRepository.markWaitingProviderBalance({
+          orderId,
+          reason: 'En espera de recarga de saldo del proveedor mayorista',
+        });
+
+        return true;
+      }
 
       if (err instanceof CanjeaError && err.externalIdReusable) {
         // Fallo definitivo garantizado sin cargo (ej. ID de jugador inexistente, sku inactivo)

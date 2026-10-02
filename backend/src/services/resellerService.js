@@ -145,6 +145,9 @@ export const resellerService = {
         }
       }
 
+      const isProcessing = ['processing', 'held'].includes(statusNormalized);
+      const isFailed = !isSuccess && !isProcessing;
+
       return {
         id: order.id,
         order_id: order.order_id || order.id,
@@ -164,18 +167,23 @@ export const resellerService = {
         net_profit_cents: isSuccess ? netProfitCents : 0,
         net_profit_usd: isSuccess ? (netProfitCents / 100).toFixed(2) : '0.00',
         margin_percent: isSuccess ? marginPercent : 0,
-        is_refunded: !isSuccess,
+        is_refunded: isFailed,
+        is_processing: isProcessing,
       };
     });
 
     const isOrderSuccessful = (o) => ['succeeded', 'success', 'completed'].includes(String(o.status || '').toLowerCase());
+    const isOrderProcessing = (o) => ['processing', 'held'].includes(String(o.status || '').toLowerCase());
     const successfulCount = orders.filter(isOrderSuccessful).length;
+    const processingCount = orders.filter(isOrderProcessing).length;
+    const failedCount = orders.length - successfulCount - processingCount;
 
     return {
       summary: {
         total_orders_count: orders.length,
         successful_orders_count: successfulCount,
-        failed_orders_count: orders.length - successfulCount,
+        processing_orders_count: processingCount,
+        failed_orders_count: failedCount,
         total_wholesale_cost_usd: (totalWholesaleCostCents / 100).toFixed(2),
         total_client_charged_usd: (totalClientChargedCents / 100).toFixed(2),
         total_net_profit_usd: (totalNetProfitCents / 100).toFixed(2),

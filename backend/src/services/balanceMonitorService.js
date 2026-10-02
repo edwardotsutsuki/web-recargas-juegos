@@ -1,5 +1,6 @@
 import { CanjeaClient } from '../providers/canjea/client.js';
 import { supabaseAdmin, isSupabaseConfigured } from '../repositories/supabaseClient.js';
+import { jobRepository } from '../repositories/jobRepository.js';
 
 class BalanceMonitorService {
   constructor() {
@@ -210,6 +211,13 @@ class BalanceMonitorService {
       }
     }
     return true;
+  }
+
+  /**
+   * Despierta inmediatamente todas las órdenes que estaban pausadas por falta de saldo
+   */
+  async triggerWaitingJobs() {
+    return jobRepository.triggerWaitingJobs();
   }
 }
 
