@@ -335,15 +335,25 @@ export const adminService = {
     });
   },
 
-  // --- Encolado Inteligente & Reintentos ---
+  // --- Despacho y Reintento de Órdenes Gamer ---
   async retryOrder(orderId: string): Promise<{ success: boolean; message: string }> {
     return apiClient<{ success: boolean; message: string }>(`/admin/orders/${orderId}/retry`, {
       method: 'POST',
     });
   },
 
-  async triggerWaitingOrders(): Promise<{ success: boolean; triggered_count: number; message: string; canjea_balance?: string }> {
-    return apiClient<{ success: boolean; triggered_count: number; message: string; canjea_balance?: string }>('/admin/system/trigger-waiting', {
+  async triggerWaitingOrders(): Promise<{
+    success: boolean;
+    triggered_count: number;
+    canjea_balance?: string;
+    message: string;
+  }> {
+    return apiClient<{
+      success: boolean;
+      triggered_count: number;
+      canjea_balance?: string;
+      message: string;
+    }>('/admin/system/trigger-waiting', {
       method: 'POST',
     });
   },

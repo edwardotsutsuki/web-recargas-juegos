@@ -1,6 +1,5 @@
 import { CanjeaClient } from '../providers/canjea/client.js';
 import { supabaseAdmin, isSupabaseConfigured } from '../repositories/supabaseClient.js';
-import { jobRepository } from '../repositories/jobRepository.js';
 
 class BalanceMonitorService {
   constructor() {
@@ -214,10 +213,46 @@ class BalanceMonitorService {
   }
 
   /**
-   * Despierta inmediatamente todas las órdenes que estaban pausadas por falta de saldo
+   * Reactiva de inmediato todos los purchase_jobs que estaban esperando saldo o pospuestos
    */
   async triggerWaitingJobs() {
-    return jobRepository.triggerWaitingJobs();
+    if (!isSupabaseConfigured) return 0;
+    try {
+      // Buscar órdenes con failure_code = 'WAITING_PROVIDER_BALANCE' y status = 'held' o 'processing'
+      const { data: waitingOrders } = await supabaseAdmin
+        .from('orders')
+        .select('id')
+        .eq('failure_code', 'WAITING_PROVIDER_BALANCE')
+        .in('status', ['held', 'processing']);
+
+      if (!waitingOrders || waitingOrders.length === 0) {
+        return 0;
+      }
+
+      const orderIds = waitingOrders.map((o) => o.id);
+
+      // Reactivar purchase_jobs a 'ready' para que el worker los procese de inmediato
+      const { data: updatedJobs, error } = await supabaseAdmin
+        .from('purchase_jobs')
+        .update({
+          state: 'ready',
+          lease_token: null,
+          lease_expires_at: null,
+          attempts: 0,
+          updated_at: new Date().toISOString(),
+        })
+        .in('order_id', orderIds)
+        .select('id');
+
+      if (error) {
+        console.warn('[balanceMonitorService] Error reactivando purchase_jobs:', error.message);
+      }
+
+      return updatedJobs?.length || orderIds.length;
+    } catch (err) {
+      console.error('[balanceMonitorService] triggerWaitingJobs falló:', err);
+      return 0;
+    }
   }
 }
 

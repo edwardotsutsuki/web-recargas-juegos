@@ -254,7 +254,7 @@ export const orderService = {
         player_server: playerPayload.server || playerPayload.zoneId || null,
         status,
         operator_name: o.operator_name || null,
-        failure_code: o.failure_code || null,
+        failure_code: status === 'completed' ? null : (o.failure_code || null),
         digital_code: o.digital_code || null,
         redeem_instructions: o.redeem_instructions || prod?.redeem_instructions || null,
         created_at: o.created_at,
@@ -262,8 +262,79 @@ export const orderService = {
     });
   },
 
+  /**
+   * Reintenta el despacho de una orden fallida o en espera de saldo
+   */
   async retryOrder(orderId) {
-    return orderRepository.retryOrder(orderId);
+    if (!isSupabaseConfigured) {
+      return { success: false, message: 'Supabase no configurado' };
+    }
+
+    const { data: order, error } = await supabaseAdmin
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !order) {
+      const err = new Error('Orden no encontrada');
+      err.status = 404;
+      throw err;
+    }
+
+    // Protección crucial: Si ya fue completada exitosamente, no reintentar
+    if (order.status === 'succeeded' || order.status === 'completed') {
+      return {
+        success: true,
+        message: 'Esta orden ya fue completada y entregada con éxito.',
+        order,
+      };
+    }
+
+    // Resetear orden a estado de retención lista para despachar
+    await supabaseAdmin
+      .from('orders')
+      .update({
+        status: 'held',
+        failure_code: null,
+        last_error_message: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+
+    // Reactivar o insertar purchase_job
+    const { data: existingJob } = await supabaseAdmin
+      .from('purchase_jobs')
+      .select('id')
+      .eq('order_id', orderId)
+      .maybeSingle();
+
+    if (existingJob) {
+      await supabaseAdmin
+        .from('purchase_jobs')
+        .update({
+          state: 'ready',
+          lease_token: null,
+          lease_expires_at: null,
+          attempts: 0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingJob.id);
+    } else {
+      await supabaseAdmin
+        .from('purchase_jobs')
+        .insert({
+          order_id: orderId,
+          state: 'ready',
+          attempts: 0,
+        });
+    }
+
+    return {
+      success: true,
+      message: 'Orden encolada para despacho inmediato.',
+    };
   },
 };
+
 

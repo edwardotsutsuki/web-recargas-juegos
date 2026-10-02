@@ -350,7 +350,7 @@ export const GlobalOrdersPage: React.FC = () => {
                   </span>
                 </div>
 
-                {order.failure_code === 'WAITING_PROVIDER_BALANCE' ? (
+                {(order.status !== 'completed') && order.failure_code === 'WAITING_PROVIDER_BALANCE' ? (
                   <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
@@ -366,7 +366,7 @@ export const GlobalOrdersPage: React.FC = () => {
                       Reintentar
                     </button>
                   </div>
-                ) : order.failure_code ? (
+                ) : order.status !== 'completed' && order.failure_code ? (
                   <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 text-xs flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -455,7 +455,7 @@ export const GlobalOrdersPage: React.FC = () => {
                         />
                       </td>
                       <td className="p-4">
-                        {order.failure_code === 'WAITING_PROVIDER_BALANCE' ? (
+                        {(order.status !== 'completed') && order.failure_code === 'WAITING_PROVIDER_BALANCE' ? (
                           <div className="flex flex-col items-start gap-1">
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/30 whitespace-nowrap">
                               <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
@@ -488,7 +488,7 @@ export const GlobalOrdersPage: React.FC = () => {
                                 ? 'Fallido'
                                 : 'Procesando'}
                             </Badge>
-                            {order.failure_code && (
+                            {order.status !== 'completed' && order.failure_code && (
                               <div className="flex items-center gap-1.5 mt-1">
                                 <span className="text-[10px] text-red-600 dark:text-red-400 font-mono">
                                   {order.failure_code}
