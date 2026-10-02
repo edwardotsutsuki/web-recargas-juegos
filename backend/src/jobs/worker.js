@@ -73,10 +73,22 @@ export async function processNextJob() {
         console.log(`[Worker] Orden ${orderId} fallida definitivamente. Fondos liberados.`);
       } else {
         // Caso incierto: la compra pudo haber alcanzado al proveedor
-        // Consultar estado en Canjea antes de liberar
+        // Consultar estado en Canjea antes de liberar con reintentos inteligentes (3 intentos)
         try {
-          const statusRes = await canjeaClient.getOrder(orderId);
-          if (statusRes.order?.status === 'COMPLETED') {
+          let statusRes = null;
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              statusRes = await canjeaClient.getOrder(orderId);
+              if (statusRes?.order?.status) break;
+            } catch (retryErr) {
+              console.warn(`[Worker] Reintento ${attempt}/3 de consulta para orden ${orderId}:`, retryErr.message);
+              if (attempt < 3) {
+                await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+              }
+            }
+          }
+
+          if (statusRes?.order?.status === 'COMPLETED') {
             await orderRepository.settlePurchase({
               orderId,
               leaseToken,
@@ -85,7 +97,7 @@ export async function processNextJob() {
               digitalCode: statusRes.order?.redeem_code,
             });
             console.log(`[Worker] Orden ${orderId} recuperada tras consulta: ÉXITO.`);
-          } else if (statusRes.order?.status === 'FAILED') {
+          } else if (statusRes?.order?.status === 'FAILED') {
             await orderRepository.settlePurchase({
               orderId,
               leaseToken,

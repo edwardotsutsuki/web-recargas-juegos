@@ -1,5 +1,6 @@
 import { VoucherCard } from '../../../components/molecules/VoucherCard';
 import { extractOrderVoucher } from '../../../utils/voucherHelpers';
+import { supabase } from '../../../services/supabase/client';
 import React, { useEffect, useState, useMemo } from 'react';
 import { Order, CustomPrice } from '../../../types';
 import { ordersService } from '../../../services/api/orders.service';
@@ -31,7 +32,7 @@ import { ThermalTicketPreviewModal } from '../../../components/molecules/Thermal
 
 export const OrdersHistoryPage: React.FC = () => {
   const navigate = useNavigate();
-  const { isCashier, operatorName, storeSlug } = useAuthStore();
+  const { isCashier, operatorName, storeSlug, user } = useAuthStore();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customPricesMap, setCustomPricesMap] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -72,7 +73,30 @@ export const OrdersHistoryPage: React.FC = () => {
       }
     }
     loadData();
-  }, []);
+
+    // Actualización en tiempo real (Supabase Realtime)
+    if (user?.id) {
+      const channel = supabase
+        .channel(`orders-history-live-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            ordersService.getMyOrders().then((updated) => setOrders(updated)).catch(() => {});
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user?.id]);
 
   const handleCopyCode = (code: string, orderId: string) => {
     navigator.clipboard.writeText(code);

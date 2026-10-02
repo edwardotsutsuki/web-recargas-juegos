@@ -8,13 +8,17 @@ import {
   MessageCircle,
   RefreshCw,
   Zap,
+  Download,
 } from 'lucide-react';
 import { useUIStore } from '../../../store/useUIStore';
+import { useAuthStore } from '../../../store/useAuthStore';
 import { resellerService } from '../../../services/api/reseller.service';
+import { supabase } from '../../../services/supabase/client';
 import { AccountingBook, AccountingEntry } from '../../../types';
 
 export const AccountingBookPage: React.FC = () => {
   const { showToast } = useUIStore();
+  const { user } = useAuthStore();
 
   const [book, setBook] = useState<AccountingBook | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +39,85 @@ export const AccountingBookPage: React.FC = () => {
 
   useEffect(() => {
     fetchAccounting();
-  }, []);
+
+    // Actualización en Vivo (Supabase Realtime): Refresca la bitácora cuando cambia una orden
+    if (user?.id) {
+      const channel = supabase
+        .channel(`accounting-live-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            resellerService
+              .getAccountingBook()
+              .then((newData) => setBook(newData))
+              .catch(() => {});
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user?.id]);
+
+  const handleExportCSV = () => {
+    if (!book || !book.entries.length) {
+      showToast('No hay transacciones para exportar', 'info');
+      return;
+    }
+
+    const headers = [
+      'Fecha',
+      'Hora',
+      'ID Orden',
+      'Producto / Recarga',
+      'Cliente / Gamer',
+      'ID Jugador',
+      'Estado',
+      'Costo Mayorista (USD)',
+      'Venta Cobrada (USD)',
+      'Ganancia Neta (USD)',
+      'Margen (%)',
+    ];
+
+    const rows = filteredEntries.map((e) => {
+      const d = new Date(e.date);
+      const isRefunded = e.is_refunded || e.status !== 'succeeded';
+      return [
+        `"${d.toLocaleDateString('es-ES')}"`,
+        `"${d.toLocaleTimeString('es-ES')}"`,
+        `"${e.order_id}"`,
+        `"${e.product_name.replace(/"/g, '""')}"`,
+        `"${e.player_name.replace(/"/g, '""')}"`,
+        `"${e.player_id}"`,
+        `"${isRefunded ? 'Reembolsada / Devuelta' : 'Exitosa'}"`,
+        isRefunded ? '0.00' : e.wholesale_cost_usd,
+        isRefunded ? '0.00' : e.retail_pvp_usd,
+        isRefunded ? '0.00' : e.net_profit_usd,
+        isRefunded ? '0.0' : String(e.margin_percent),
+      ].join(';');
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Libro_Contable_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast('Reporte contable exportado a Excel exitosamente', 'success');
+  };
 
   const handleShareWhatsApp = (entry: AccountingEntry) => {
     if (entry.is_refunded || entry.status !== 'succeeded') return;
@@ -85,13 +167,24 @@ export const AccountingBookPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={fetchAccounting}
-          className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-2 self-start sm:self-auto transition-colors"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Refrescar Contabilidad
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={handleExportCSV}
+            className="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2 transition-colors"
+            title="Exportar bitácora a formato CSV compatible con Microsoft Excel"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-400" />
+            Exportar Excel
+          </button>
+
+          <button
+            onClick={fetchAccounting}
+            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-2 transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Refrescar
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards de Rentabilidad */}

@@ -22,28 +22,34 @@ import { AccountingBookPage } from '../modules/client/pages/AccountingBookPage';
 import { ResellerPvpPage } from '../modules/client/pages/ResellerPvpPage';
 import { StaffManagementPage } from '../modules/client/pages/StaffManagementPage';
 
-// Admin Isolated Pages
-import { AdminDashboardPage } from '../modules/admin/pages/AdminDashboardPage';
-import { UsersManagementPage } from '../modules/admin/pages/UsersManagementPage';
-import { GlobalOrdersPage } from '../modules/admin/pages/GlobalOrdersPage';
-import { AdminDepositsPage } from '../modules/admin/pages/AdminDepositsPage';
-import { AdminSettingsPage } from '../modules/admin/pages/AdminSettingsPage';
-import { AdminCatalogPage } from '../modules/admin/pages/AdminCatalogPage';
-import { AdminPromotionsPage } from '../modules/admin/pages/AdminPromotionsPage';
-import { AdminRewardsPage } from '../modules/admin/pages/AdminRewardsPage';
-import { AdminAuditLogsPage } from '../modules/admin/pages/AdminAuditLogsPage';
-import { AdminMaterialsPage } from '../modules/admin/pages/AdminMaterialsPage';
-import { AdminSupportPage } from '../modules/admin/pages/AdminSupportPage';
-import { AdminBankAccountsPage } from '../modules/admin/pages/AdminBankAccountsPage';
+// Admin Isolated Pages (Lazy Loaded para optimizar bundle inicial)
+const AdminDashboardPage = React.lazy(() => import('../modules/admin/pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
+const UsersManagementPage = React.lazy(() => import('../modules/admin/pages/UsersManagementPage').then(m => ({ default: m.UsersManagementPage })));
+const GlobalOrdersPage = React.lazy(() => import('../modules/admin/pages/GlobalOrdersPage').then(m => ({ default: m.GlobalOrdersPage })));
+const AdminDepositsPage = React.lazy(() => import('../modules/admin/pages/AdminDepositsPage').then(m => ({ default: m.AdminDepositsPage })));
+const AdminSettingsPage = React.lazy(() => import('../modules/admin/pages/AdminSettingsPage').then(m => ({ default: m.AdminSettingsPage })));
+const AdminCatalogPage = React.lazy(() => import('../modules/admin/pages/AdminCatalogPage').then(m => ({ default: m.AdminCatalogPage })));
+const AdminPromotionsPage = React.lazy(() => import('../modules/admin/pages/AdminPromotionsPage').then(m => ({ default: m.AdminPromotionsPage })));
+const AdminRewardsPage = React.lazy(() => import('../modules/admin/pages/AdminRewardsPage').then(m => ({ default: m.AdminRewardsPage })));
+const AdminAuditLogsPage = React.lazy(() => import('../modules/admin/pages/AdminAuditLogsPage').then(m => ({ default: m.AdminAuditLogsPage })));
+const AdminMaterialsPage = React.lazy(() => import('../modules/admin/pages/AdminMaterialsPage').then(m => ({ default: m.AdminMaterialsPage })));
+const AdminSupportPage = React.lazy(() => import('../modules/admin/pages/AdminSupportPage').then(m => ({ default: m.AdminSupportPage })));
+const AdminBankAccountsPage = React.lazy(() => import('../modules/admin/pages/AdminBankAccountsPage').then(m => ({ default: m.AdminBankAccountsPage })));
+const AdminLoginPage = React.lazy(() => import('../modules/auth/pages/AdminLoginPage').then(m => ({ default: m.AdminLoginPage })));
 
 // Auth & Guards
 import { LoginPage } from '../modules/auth/pages/LoginPage';
 import { RegisterPage } from '../modules/auth/pages/RegisterPage';
-import { AdminLoginPage } from '../modules/auth/pages/AdminLoginPage';
 import { TerminalLoginPage } from '../modules/auth/pages/TerminalLoginPage';
 import { AuthGuard } from '../modules/auth/guards/AuthGuard';
 import { RoleGuard } from '../modules/auth/guards/RoleGuard';
 import { NotFoundPage } from '../components/pages/NotFoundPage';
+
+const RouteLoadingFallback: React.FC = () => (
+  <div className="min-h-[50vh] flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+  </div>
+);
 
 /**
  * Gestor de la pantalla inicial:
@@ -100,72 +106,74 @@ const InitialRoute: React.FC = () => {
 
 export const AppRoutes: React.FC = () => {
   return (
-    <Routes>
-      {/* 🚀 1. Ruta Inicial: Landing en Web, Login directo sin publicidad en APKs */}
-      <Route path="/" element={<InitialRoute />} />
-      <Route path="/deposit" element={<Navigate to="/wallet/deposit" replace />} />
+    <React.Suspense fallback={<RouteLoadingFallback />}>
+      <Routes>
+        {/* 🚀 1. Ruta Inicial: Landing en Web, Login directo sin publicidad en APKs */}
+        <Route path="/" element={<InitialRoute />} />
+        <Route path="/deposit" element={<Navigate to="/wallet/deposit" replace />} />
 
-      {/* Public Auth Routes */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/terminal" element={<TerminalLoginPage />} />
-      <Route path="/pos" element={<Navigate to="/terminal" replace />} />
-      <Route path="/sys-admin-auth/login" element={<AdminLoginPage />} />
+        {/* Public Auth Routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/terminal" element={<TerminalLoginPage />} />
+        <Route path="/pos" element={<Navigate to="/terminal" replace />} />
+        <Route path="/sys-admin-auth/login" element={<AdminLoginPage />} />
 
-      {/* 🛡️ Partner Panel (Client Layout) - Protected with AuthGuard */}
-      <Route
-        element={
-          <AuthGuard>
-            <ClientLayout />
-          </AuthGuard>
-        }
-      >
-        <Route path="/dashboard" element={<PartnerDashboardPage />} />
-        <Route path="/catalog" element={<CatalogPage />} />
-        <Route path="/reseller/pvp" element={<ResellerPvpPage />} />
-        <Route path="/reseller-pvp" element={<Navigate to="/reseller/pvp" replace />} />
-        <Route path="/staff" element={<StaffManagementPage />} />
-        <Route path="/reseller/staff" element={<Navigate to="/staff" replace />} />
-        <Route path="/orders" element={<OrdersHistoryPage />} />
-        <Route path="/profile" element={<PartnerProfilePage />} />
-        <Route path="/wallet/deposit" element={<DepositPage />} />
-        <Route path="/wallet/history" element={<WalletHistoryPage />} />
-        <Route path="/accounting" element={<AccountingBookPage />} />
-        <Route path="/rewards" element={<RewardsPage />} />
-        <Route path="/referrals" element={<ReferralsPage />} />
-        <Route path="/support" element={<SupportPage />} />
-        <Route path="/downloads" element={<DownloadsPage />} />
-      </Route>
+        {/* 🛡️ Partner Panel (Client Layout) - Protected with AuthGuard */}
+        <Route
+          element={
+            <AuthGuard>
+              <ClientLayout />
+            </AuthGuard>
+          }
+        >
+          <Route path="/dashboard" element={<PartnerDashboardPage />} />
+          <Route path="/catalog" element={<CatalogPage />} />
+          <Route path="/reseller/pvp" element={<ResellerPvpPage />} />
+          <Route path="/reseller-pvp" element={<Navigate to="/reseller/pvp" replace />} />
+          <Route path="/staff" element={<StaffManagementPage />} />
+          <Route path="/reseller/staff" element={<Navigate to="/staff" replace />} />
+          <Route path="/orders" element={<OrdersHistoryPage />} />
+          <Route path="/profile" element={<PartnerProfilePage />} />
+          <Route path="/wallet/deposit" element={<DepositPage />} />
+          <Route path="/wallet/history" element={<WalletHistoryPage />} />
+          <Route path="/accounting" element={<AccountingBookPage />} />
+          <Route path="/rewards" element={<RewardsPage />} />
+          <Route path="/referrals" element={<ReferralsPage />} />
+          <Route path="/support" element={<SupportPage />} />
+          <Route path="/downloads" element={<DownloadsPage />} />
+        </Route>
 
-      {/* 🔐 Admin Isolated Protected Area: Acceso únicamente vía ruta secreta */}
-      <Route
-        path="/sys-admin-auth"
-        element={
-          <RoleGuard requiredRole="admin">
-            <AdminLayout />
-          </RoleGuard>
-        }
-      >
-        <Route index element={<AdminDashboardPage />} />
-        <Route path="deposits" element={<AdminDepositsPage />} />
-        <Route path="bank-accounts" element={<AdminBankAccountsPage />} />
-        <Route path="catalog" element={<AdminCatalogPage />} />
-        <Route path="materials" element={<AdminMaterialsPage />} />
-        <Route path="support" element={<AdminSupportPage />} />
-        <Route path="promotions" element={<AdminPromotionsPage />} />
-        <Route path="rewards" element={<AdminRewardsPage />} />
-        <Route path="settings" element={<AdminSettingsPage />} />
-        <Route path="users" element={<UsersManagementPage />} />
-        <Route path="orders" element={<GlobalOrdersPage />} />
-        <Route path="audit" element={<AdminAuditLogsPage />} />
-      </Route>
+        {/* 🔐 Admin Isolated Protected Area: Acceso únicamente vía ruta secreta */}
+        <Route
+          path="/sys-admin-auth"
+          element={
+            <RoleGuard requiredRole="admin">
+              <AdminLayout />
+            </RoleGuard>
+          }
+        >
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="deposits" element={<AdminDepositsPage />} />
+          <Route path="bank-accounts" element={<AdminBankAccountsPage />} />
+          <Route path="catalog" element={<AdminCatalogPage />} />
+          <Route path="materials" element={<AdminMaterialsPage />} />
+          <Route path="support" element={<AdminSupportPage />} />
+          <Route path="promotions" element={<AdminPromotionsPage />} />
+          <Route path="rewards" element={<AdminRewardsPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
+          <Route path="users" element={<UsersManagementPage />} />
+          <Route path="orders" element={<GlobalOrdersPage />} />
+          <Route path="audit" element={<AdminAuditLogsPage />} />
+        </Route>
 
-      {/* Bloqueo discreto de /admin tradicional para evitar escaneos */}
-      <Route path="/admin/*" element={<NotFoundPage />} />
-      <Route path="/admin" element={<NotFoundPage />} />
+        {/* Bloqueo discreto de /admin tradicional para evitar escaneos */}
+        <Route path="/admin/*" element={<NotFoundPage />} />
+        <Route path="/admin" element={<NotFoundPage />} />
 
-      {/* Catch-all 404 Discreto */}
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+        {/* Catch-all 404 Discreto */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </React.Suspense>
   );
 };
