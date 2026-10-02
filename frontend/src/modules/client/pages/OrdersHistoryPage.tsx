@@ -1,3 +1,5 @@
+import { VoucherCard } from '../../../components/molecules/VoucherCard';
+import { extractOrderVoucher } from '../../../utils/voucherHelpers';
 import React, { useEffect, useState, useMemo } from 'react';
 import { Order, CustomPrice } from '../../../types';
 import { ordersService } from '../../../services/api/orders.service';
@@ -417,6 +419,9 @@ export const OrdersHistoryPage: React.FC = () => {
                       </span>
                     </div>
                   )}
+
+                  {/* Voucher / PIN Digital si aplica */}
+                  {(() => { const v = extractOrderVoucher(order); return v ? <VoucherCard pin={v.pin} serial={v.serial} instructions={v.instructions} /> : null; })()}
                 </div>
 
                 {/* Derecha: Código Digital / Precio / Botones de Impresión */}

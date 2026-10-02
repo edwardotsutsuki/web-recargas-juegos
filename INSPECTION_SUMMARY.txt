@@ -1,0 +1,3 @@
+
+=== AdminDashboardPage.tsx ===
+Usa wholesale: false, Usa profit: false

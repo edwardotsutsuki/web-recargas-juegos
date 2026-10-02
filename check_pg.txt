@@ -1,0 +1,3 @@
+PG_ERROR: Cannot find module 'pg'
+Require stack:
+- C:\Users\edwar\Paginas web\web-recargas-juegos\[eval]

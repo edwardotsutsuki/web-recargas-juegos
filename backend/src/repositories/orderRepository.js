@@ -318,6 +318,10 @@ export const orderRepository = {
     return { success: true, order_id: orderId, status: outcome };
   },
 
+  async findByUserId(userId, limit = 100) {
+    return this.getUserOrders(userId, limit);
+  },
+
   async getUserOrders(userId, limit = 50) {
     if (!isSupabaseConfigured) {
       return [];

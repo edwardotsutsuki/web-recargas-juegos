@@ -1,0 +1,13 @@
+{
+  "pvpCostFiles": [
+    "c:/Users/edwar/Paginas web/web-recargas-juegos/frontend/src/modules/client/components/GameTopupPanoramicView.tsx (Ajustar: true, Resumen: false)"
+  ],
+  "configPvpFiles": [
+    "c:/Users/edwar/Paginas web/web-recargas-juegos/frontend/src/modules/admin/pages/AdminCatalogPage.tsx",
+    "c:/Users/edwar/Paginas web/web-recargas-juegos/frontend/src/modules/client/components/GameTopupModal.tsx",
+    "c:/Users/edwar/Paginas web/web-recargas-juegos/frontend/src/modules/client/components/GameTopupPanoramicView.tsx",
+    "c:/Users/edwar/Paginas web/web-recargas-juegos/frontend/src/modules/client/components/PartnerSidebar.tsx",
+    "c:/Users/edwar/Paginas web/web-recargas-juegos/frontend/src/modules/client/pages/OrdersHistoryPage.tsx",
+    "c:/Users/edwar/Paginas web/web-recargas-juegos/frontend/src/modules/client/pages/ResellerPvpPage.tsx"
+  ]
+}

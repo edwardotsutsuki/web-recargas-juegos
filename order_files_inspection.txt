@@ -1,0 +1,31 @@
+
+=======================================================
+FILE: frontend\src\modules\client\pages\OrdersHistoryPage.tsx (lines: 527)
+=======================================================
+Line 30: export const OrdersHistoryPage: React.FC = () => {
+Line 33: const [orders, setOrders] = useState<Order[]>([]);
+Line 50: async function loadData() {
+
+=======================================================
+FILE: frontend\src\modules\client\pages\PartnerDashboardPage.tsx (lines: 271)
+=======================================================
+Line 24: export const PartnerDashboardPage: React.FC = () => {
+
+=======================================================
+FILE: frontend\src\modules\client\pages\WalletHistoryPage.tsx (lines: 132)
+=======================================================
+Line 8: export const WalletHistoryPage: React.FC = () => {
+
+=======================================================
+FILE: frontend\src\modules\admin\pages\AdminDashboardPage.tsx (lines: 623)
+=======================================================
+Line 31: export const AdminDashboardPage: React.FC = () => {
+
+=======================================================
+FILE: frontend\src\modules\admin\pages\GlobalOrdersPage.tsx (lines: 405)
+=======================================================
+Line 8: export const GlobalOrdersPage: React.FC = () => {
+Line 9: const [orders, setOrders] = useState<Order[]>([]);
+Line 16: const loadOrders = async (showLoading = true) => {
+Line 19: const data = await adminService.getGlobalOrders();
+Line 43: const filteredOrders = orders.filter((o) => {

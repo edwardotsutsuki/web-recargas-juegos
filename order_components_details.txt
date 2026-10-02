@@ -1,0 +1,53 @@
+
+=======================================================
+FILE: frontend\src\modules\client\pages\OrdersHistoryPage.tsx
+=======================================================
+28: import { ThermalTicketPreviewModal } from '../../../components/molecules/ThermalTicketPreviewModal';
+45: // Modal de vista previa e impresión de ticket
+53: const [ordersData, pricesData] = await Promise.all([
+59: if (Array.isArray(pricesData) && pricesData.length > 0) {
+61: for (const cp of pricesData) {
+93: return Math.round(order.amount_cents * 1.15) / 100;
+102: playerId: order.player_id,
+107: priceDollars: pvpDollars,
+
+=======================================================
+FILE: frontend\src\modules\client\pages\PartnerDashboardPage.tsx
+=======================================================
+6: import { MobileWalletCard } from '../components/MobileWalletCard';
+52: {/* Mobile-Exclusive Hero Wallet Card & Quick Shortcuts (Inspirado en Imagen 2) */}
+54: <MobileWalletCard />
+58: {/* Desktop 4 Metric Cards Grid (Preservado 100% para Web de Escritorio) */}
+
+=======================================================
+FILE: frontend\src\modules\client\pages\WalletHistoryPage.tsx
+=======================================================
+117: <td className="py-3 px-4 font-bold text-white">{m.detail}</td>
+119: <td className="py-3 px-4 font-bold text-emerald-400">{m.amount}</td>
+
+=======================================================
+FILE: frontend\src\modules\admin\pages\AdminDashboardPage.tsx
+=======================================================
+14: CreditCard,
+51: const [metricsData, statusData, pendingData] = await Promise.all([
+59: if (statusData) {
+60: setProviderBalance(statusData.canjea_balance || '0.00');
+61: setProviderCurrency(statusData.currency || 'USD');
+62: setCircuitBreakerActive(Boolean(statusData.circuit_breaker_active));
+63: setAlertLevel(statusData.alert_level || 'normal');
+95: icon: CreditCard,
+
+=======================================================
+FILE: frontend\src\modules\admin\pages\GlobalOrdersPage.tsx
+=======================================================
+12: const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'failed'>('all');
+45: statusFilter === 'all'
+47: : statusFilter === 'completed'
+48: ? o.status === 'completed'
+49: : statusFilter === 'processing'
+50: ? o.status === 'processing' || o.status === 'pending'
+51: : o.status === 'failed' || o.status === 'cancelled';
+61: (o.player_id && o.player_id.toLowerCase().includes(q)) ||
+70: completed: orders.filter((o) => o.status === 'completed').length,
+71: processing: orders.filter((o) => o.status === 'processing' || o.status === 'pending').length,
+72: failed: orders.filter((o) => o.status === 'failed' || o.status === 'cancelled').length,

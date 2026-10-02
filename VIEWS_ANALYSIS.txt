@@ -1,0 +1,36 @@
+
+=== CLIENT ORDERS ===
+
+FILE: frontend\src\modules\client\pages\OrdersHistoryPage.tsx (527 lines)
+
+=== ADMIN ORDERS ===
+
+FILE: frontend\src\modules\admin\pages\GlobalOrdersPage.tsx (405 lines)
+  L6: import { ShoppingBag, RefreshCw, ShieldCheck, Search, Filter, User, AlertCircle,
+  L12: const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processi
+  L34: if (!autoRefresh) return;
+  L38: return () => clearInterval(interval);
+  L45: statusFilter === 'all'
+  L47: : statusFilter === 'completed'
+  L48: ? o.status === 'completed'
+  L49: : statusFilter === 'processing'
+  L50: ? o.status === 'processing' || o.status === 'pending'
+  L51: : o.status === 'failed' || o.status === 'cancelled';
+  L61: (o.player_id && o.player_id.toLowerCase().includes(q)) ||
+  L70: completed: orders.filter((o) => o.status === 'completed').length,
+  L71: processing: orders.filter((o) => o.status === 'processing' || o.status === 'pend
+  L72: failed: orders.filter((o) => o.status === 'failed' || o.status === 'cancelled').
+  L75: return (
+
+=== ADMIN DASH & CATALOG ===
+
+FILE: frontend\src\modules\admin\pages\AdminCatalogPage.tsx (695 lines)
+
+FILE: frontend\src\modules\admin\pages\AdminDashboardPage.tsx (623 lines)
+  L11: ShoppingBag,
+  L51: const [metricsData, statusData, pendingData] = await Promise.all([
+  L59: if (statusData) {
+  L60: setProviderBalance(statusData.canjea_balance || '0.00');
+  L61: setProviderCurrency(statusData.currency || 'USD');
+  L62: setCircuitBreakerActive(Boolean(statusData.circuit_breaker_active));
+  L63: setAlertLevel(statusData.alert_level || 'normal');

@@ -3,6 +3,50 @@ import { orderRepository } from '../repositories/orderRepository.js';
 import { balanceMonitorService } from './balanceMonitorService.js';
 import { supabaseAdmin, isSupabaseConfigured } from '../repositories/supabaseClient.js';
 
+const SKU_NAMES = {
+  fflatam100: 'Free Fire - 100 + 10 Diamantes (LATAM)',
+  fflatam310: 'Free Fire - 310 + 31 Diamantes (LATAM)',
+  fflatam520: 'Free Fire - 520 + 52 Diamantes (LATAM)',
+  fflatam1060: 'Free Fire - 1060 + 106 Diamantes (LATAM)',
+  fflatam2180: 'Free Fire - 2180 + 218 Diamantes (LATAM)',
+  fflatam5600: 'Free Fire - 5600 + 560 Diamantes (LATAM)',
+  fflatamw: 'Free Fire - Pase Semanal (LATAM)',
+  fflatamm: 'Free Fire - Pase Mensual (LATAM)',
+  ff100: 'Free Fire - 100 Diamantes',
+  ff310: 'Free Fire - 310 Diamantes',
+  ff520: 'Free Fire - 520 Diamantes',
+  ff1060: 'Free Fire - 1060 Diamantes',
+  rob100: 'Roblox - 100 Robux',
+  rob500: 'Roblox - 500 Robux',
+  blst320: 'Blood Strike - 320 Oro',
+  blst1100: 'Blood Strike - 1100 Oro',
+  abmbeg: 'Arena Breakout - Bono Novato',
+  codm420: 'Call of Duty Mobile - 420 CP',
+};
+
+function formatProductName(sku) {
+  if (!sku) return 'Recarga Digital';
+  const cleanSku = String(sku).toLowerCase().trim();
+  if (SKU_NAMES[cleanSku]) return SKU_NAMES[cleanSku];
+  if (cleanSku.startsWith('fflatam')) {
+    const qty = cleanSku.replace('fflatam', '');
+    return `Free Fire - ${qty} Diamantes (LATAM)`;
+  }
+  if (cleanSku.startsWith('ffbr')) {
+    const qty = cleanSku.replace('ffbr', '');
+    return `Free Fire - ${qty} Diamantes (Brasil)`;
+  }
+  if (cleanSku.startsWith('rob')) {
+    const qty = cleanSku.replace('rob', '');
+    return `Roblox - ${qty} Robux`;
+  }
+  if (cleanSku.startsWith('blst')) {
+    const qty = cleanSku.replace('blst', '');
+    return `Blood Strike - ${qty} Oro`;
+  }
+  return sku.toUpperCase();
+}
+
 export const resellerService = {
   /**
    * Obtiene los precios personalizados (PVP) del revendedor
@@ -68,19 +112,23 @@ export const resellerService = {
     let monthProfitCents = 0;
 
     const entries = orders.map((order) => {
-      const costCents = Number(order.amount_cents || 0);
+      // Costo mayorista real debitado al revendedor (lo que nosotros le cobramos a él, NO el proveedor)
+      const costCents = Number(order.price_minor ?? order.amount_cents ?? 0);
       const sku = order.product_id || order.sku || 'SKU-UNKNOWN';
       const orderDate = new Date(order.created_at).getTime();
 
       // Si el revendedor definió un PVP personalizado, se usa ese.
-      // Si no, sugerimos un PVP con margen estándar de 15% sobre el costo.
+      // Si no, sugerimos un PVP con margen estándar de 15% sobre el costo mayorista.
       let pvpCents = pvpMap.get(sku);
       if (pvpCents === undefined || pvpCents === null) {
         pvpCents = Math.round(costCents * 1.15);
       }
 
+      // Estados de orden exitosa en Supabase ('succeeded', 'completed', 'success')
+      const statusNormalized = String(order.status || '').toLowerCase();
+      const isSuccess = ['succeeded', 'success', 'completed'].includes(statusNormalized);
+
       // La ganancia neta es la diferencia entre el PVP cobrado al cliente final y el costo mayorista debitado
-      const isSuccess = order.status === 'success' || order.status === 'completed';
       const netProfitCents = isSuccess ? Math.max(0, pvpCents - costCents) : 0;
       const marginPercent = costCents > 0 ? Number(((netProfitCents / costCents) * 100).toFixed(1)) : 0;
 
@@ -102,7 +150,7 @@ export const resellerService = {
         order_id: order.order_id || order.id,
         date: order.created_at,
         sku,
-        product_name: order.product_id || 'Recarga Digital',
+        product_name: formatProductName(sku),
         player_id: order.player_payload?.id || 'N/A',
         player_name: order.player_payload?.name || 'Gamer',
         status: order.status,
@@ -117,10 +165,12 @@ export const resellerService = {
       };
     });
 
+    const isOrderSuccessful = (o) => ['succeeded', 'success', 'completed'].includes(String(o.status || '').toLowerCase());
+
     return {
       summary: {
         total_orders_count: orders.length,
-        successful_orders_count: orders.filter((o) => o.status === 'success' || o.status === 'completed').length,
+        successful_orders_count: orders.filter(isOrderSuccessful).length,
         total_wholesale_cost_usd: (totalWholesaleCostCents / 100).toFixed(2),
         total_client_charged_usd: (totalClientChargedCents / 100).toFixed(2),
         total_net_profit_usd: (totalNetProfitCents / 100).toFixed(2),
@@ -150,12 +200,12 @@ export const resellerService = {
     if (isSupabaseConfigured) {
       const { data } = await supabaseAdmin
         .from('orders')
-        .select('amount_cents, status')
+        .select('amount_cents, price_minor, status')
         .eq('user_id', userId)
-        .in('status', ['success', 'completed']);
+        .in('status', ['succeeded', 'success', 'completed']);
 
       if (data) {
-        totalUserSalesCents = data.reduce((sum, o) => sum + Number(o.amount_cents || 0), 0);
+        totalUserSalesCents = data.reduce((sum, o) => sum + Number(o.price_minor ?? o.amount_cents ?? 0), 0);
       }
     }
 

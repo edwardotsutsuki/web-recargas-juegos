@@ -1,0 +1,5 @@
+frontend\src\modules\client\pages\OrdersHistoryPage.tsx
+frontend\src\modules\client\pages\PartnerDashboardPage.tsx
+frontend\src\modules\client\pages\WalletHistoryPage.tsx
+frontend\src\modules\admin\pages\AdminDashboardPage.tsx
+frontend\src\modules\admin\pages\GlobalOrdersPage.tsx

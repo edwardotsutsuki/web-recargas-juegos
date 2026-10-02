@@ -1,0 +1,20 @@
+const { Client } = require('ssh2');
+const fs = require('fs');
+const path = require('path');
+
+const config = {
+  host: '151.106.96.74',
+  port: 65002,
+  username: 'u181179691',
+  password: '#RyuuDragon9595'
+};
+
+const localDist = path.resolve(__dirname, '../frontend/dist');
+const remotePath = 'domains/recargasjuegospro.cloud/public_html';
+
+async function deploy() {
+  console.log('Connecting to Hostinger via SSH/SFTP...');
+  const conn = new Client();
+
+  conn.on('ready', () => {
+    console.log('Co

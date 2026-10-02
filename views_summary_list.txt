@@ -1,0 +1,9 @@
+CLIENT:
+frontend\src\modules\client\pages\OrdersHistoryPage.tsx
+
+ADMIN:
+frontend\src\modules\admin\pages\GlobalOrdersPage.tsx
+
+DASH:
+frontend\src\modules\admin\pages\AdminCatalogPage.tsx
+frontend\src\modules\admin\pages\AdminDashboardPage.tsx

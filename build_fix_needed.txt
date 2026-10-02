@@ -1,0 +1,11 @@
+BUILD ERROR:
+
+> web-recargas-frontend@1.0.0 build
+> tsc -b && vite build
+
+src/modules/admin/pages/GlobalOrdersPage.tsx(255,1): error TS1005: ')' expected.
+src/modules/admin/pages/GlobalOrdersPage.tsx(267,20): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/modules/client/pages/OrdersHistoryPage.tsx(421,1): error TS1005: ')' expected.
+src/modules/client/pages/OrdersHistoryPage.tsx(424,20): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+
+Command failed: npm run build

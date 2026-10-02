@@ -1,0 +1,12 @@
+{
+  "clientOrders": [
+    "frontend\\src\\modules\\client\\pages\\OrdersHistoryPage.tsx"
+  ],
+  "adminOrders": [
+    "frontend\\src\\modules\\admin\\pages\\GlobalOrdersPage.tsx"
+  ],
+  "adminDash": [
+    "frontend\\src\\modules\\admin\\pages\\AdminCatalogPage.tsx",
+    "frontend\\src\\modules\\admin\\pages\\AdminDashboardPage.tsx"
+  ]
+}
