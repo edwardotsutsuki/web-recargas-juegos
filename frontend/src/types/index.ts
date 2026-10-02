@@ -240,6 +240,7 @@ export interface SystemStatus {
 export interface AccountingSummary {
   total_orders_count: number;
   successful_orders_count: number;
+  failed_orders_count?: number;
   total_wholesale_cost_usd: string;
   total_client_charged_usd: string;
   total_net_profit_usd: string;
@@ -259,11 +260,14 @@ export interface AccountingEntry {
   currency: string;
   wholesale_cost_cents: number;
   wholesale_cost_usd: string;
+  original_cost_usd?: string;
   retail_pvp_cents: number;
   retail_pvp_usd: string;
+  original_pvp_usd?: string;
   net_profit_cents: number;
   net_profit_usd: string;
   margin_percent: number;
+  is_refunded?: boolean;
 }
 
 export interface AccountingBook {

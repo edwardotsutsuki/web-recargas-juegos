@@ -155,22 +155,27 @@ export const resellerService = {
         player_name: order.player_payload?.name || 'Gamer',
         status: order.status,
         currency: order.currency || 'USD',
-        wholesale_cost_cents: costCents,
-        wholesale_cost_usd: (costCents / 100).toFixed(2),
-        retail_pvp_cents: pvpCents,
-        retail_pvp_usd: (pvpCents / 100).toFixed(2),
-        net_profit_cents: netProfitCents,
-        net_profit_usd: (netProfitCents / 100).toFixed(2),
-        margin_percent: marginPercent,
+        wholesale_cost_cents: isSuccess ? costCents : 0,
+        wholesale_cost_usd: isSuccess ? (costCents / 100).toFixed(2) : '0.00',
+        original_cost_usd: (costCents / 100).toFixed(2),
+        retail_pvp_cents: isSuccess ? pvpCents : 0,
+        retail_pvp_usd: isSuccess ? (pvpCents / 100).toFixed(2) : '0.00',
+        original_pvp_usd: (pvpCents / 100).toFixed(2),
+        net_profit_cents: isSuccess ? netProfitCents : 0,
+        net_profit_usd: isSuccess ? (netProfitCents / 100).toFixed(2) : '0.00',
+        margin_percent: isSuccess ? marginPercent : 0,
+        is_refunded: !isSuccess,
       };
     });
 
     const isOrderSuccessful = (o) => ['succeeded', 'success', 'completed'].includes(String(o.status || '').toLowerCase());
+    const successfulCount = orders.filter(isOrderSuccessful).length;
 
     return {
       summary: {
         total_orders_count: orders.length,
-        successful_orders_count: orders.filter(isOrderSuccessful).length,
+        successful_orders_count: successfulCount,
+        failed_orders_count: orders.length - successfulCount,
         total_wholesale_cost_usd: (totalWholesaleCostCents / 100).toFixed(2),
         total_client_charged_usd: (totalClientChargedCents / 100).toFixed(2),
         total_net_profit_usd: (totalNetProfitCents / 100).toFixed(2),

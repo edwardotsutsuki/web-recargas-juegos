@@ -19,6 +19,7 @@ export const AccountingBookPage: React.FC = () => {
   const [book, setBook] = useState<AccountingBook | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'succeeded' | 'failed'>('all');
 
   const fetchAccounting = async () => {
     setLoading(true);
@@ -37,6 +38,8 @@ export const AccountingBookPage: React.FC = () => {
   }, []);
 
   const handleShareWhatsApp = (entry: AccountingEntry) => {
+    if (entry.is_refunded || entry.status !== 'succeeded') return;
+
     const message = [
       `🧾 *COMPROBANTE DE RECARGA EXITOSA - RECARGAS JUEGOS ONLINE*`,
       `──────────────────────────────`,
@@ -56,6 +59,9 @@ export const AccountingBookPage: React.FC = () => {
   };
 
   const filteredEntries = (book?.entries || []).filter((e) => {
+    if (statusFilter === 'succeeded' && (e.is_refunded || e.status !== 'succeeded')) return false;
+    if (statusFilter === 'failed' && !e.is_refunded && e.status === 'succeeded') return false;
+
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -148,9 +154,42 @@ export const AccountingBookPage: React.FC = () => {
       {/* Buscador y Tabla de Transacciones */}
       <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-cyan-400" /> Bitácora de Ventas Detallada
-          </h3>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-cyan-400" /> Bitácora Detallada
+            </h3>
+
+            {/* Filtros de Estado */}
+            <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setStatusFilter('all')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
+                  statusFilter === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Todas ({book?.entries.length || 0})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('succeeded')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
+                  statusFilter === 'succeeded' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-emerald-400'
+                }`}
+              >
+                Exitosas ({book?.summary.successful_orders_count || 0})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('failed')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
+                  statusFilter === 'failed' ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-rose-400'
+                }`}
+              >
+                Fallidas ({book?.summary.failed_orders_count || 0})
+              </button>
+            </div>
+          </div>
 
           <div className="relative w-full sm:w-72">
             <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -172,9 +211,9 @@ export const AccountingBookPage: React.FC = () => {
         ) : filteredEntries.length === 0 ? (
           <div className="p-12 text-center">
             <BookOpen className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-            <p className="text-sm font-bold text-slate-300">Aún no hay transacciones registradas.</p>
+            <p className="text-sm font-bold text-slate-300">No hay transacciones para este filtro.</p>
             <p className="text-xs text-slate-500 mt-1">
-              Cada recarga que vendas generará un asiento contable con su ganancia neta.
+              Las recargas procesadas aparecerán en esta bitácora financiera.
             </p>
           </div>
         ) : (
@@ -183,6 +222,7 @@ export const AccountingBookPage: React.FC = () => {
               <thead className="bg-slate-900/90 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
                 <tr>
                   <th className="py-3 px-4">Fecha</th>
+                  <th className="py-3 px-4">Estado</th>
                   <th className="py-3 px-4">Producto</th>
                   <th className="py-3 px-4">Cliente / Gamer</th>
                   <th className="py-3 px-4">Costo Mayorista (-)</th>
@@ -201,9 +241,22 @@ export const AccountingBookPage: React.FC = () => {
                     minute: '2-digit',
                   });
 
+                  const isRefunded = item.is_refunded || item.status !== 'succeeded';
+
                   return (
                     <tr key={item.id} className="hover:bg-slate-800/30 transition-colors">
                       <td className="py-3 px-4 text-slate-400 whitespace-nowrap">{dateFormatted}</td>
+                      <td className="py-3 px-4">
+                        {isRefunded ? (
+                          <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-bold border border-rose-500/20 whitespace-nowrap">
+                            Reembolsada
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20 whitespace-nowrap">
+                            Exitosa
+                          </span>
+                        )}
+                      </td>
                       <td className="py-3 px-4 font-bold text-white">{item.product_name}</td>
                       <td className="py-3 px-4">
                         <div className="flex flex-col">
@@ -211,32 +264,68 @@ export const AccountingBookPage: React.FC = () => {
                           <span className="text-[10px] text-cyan-400 font-mono">ID: {item.player_id}</span>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-rose-400 font-mono font-bold">
-                        -${item.wholesale_cost_usd}
-                      </td>
-                      <td className="py-3 px-4 text-cyan-300 font-mono font-bold">
-                        +${item.retail_pvp_usd}
+                      <td className="py-3 px-4">
+                        {isRefunded ? (
+                          <div className="flex flex-col">
+                            <span className="line-through text-slate-500 font-mono text-[11px]">
+                              -${item.original_cost_usd || '0.00'}
+                            </span>
+                            <span className="text-[10px] text-emerald-400 font-bold">$0.00 Devuelto</span>
+                          </div>
+                        ) : (
+                          <span className="text-rose-400 font-mono font-bold">-${item.wholesale_cost_usd}</span>
+                        )}
                       </td>
                       <td className="py-3 px-4">
-                        <span className="text-sm font-black text-emerald-400 font-['Rajdhani']">
-                          +${item.net_profit_usd}
-                        </span>
+                        {isRefunded ? (
+                          <div className="flex flex-col">
+                            <span className="text-slate-500 font-mono font-bold">$0.00</span>
+                            <span className="text-[9px] text-slate-500 uppercase tracking-wider">No cobrado</span>
+                          </div>
+                        ) : (
+                          <span className="text-cyan-300 font-mono font-bold">+${item.retail_pvp_usd}</span>
+                        )}
                       </td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 text-[10px] font-bold border border-emerald-500/20">
-                          {item.margin_percent}%
-                        </span>
+                        {isRefunded ? (
+                          <span className="text-xs font-mono text-slate-500 font-bold">$0.00</span>
+                        ) : (
+                          <span className="text-sm font-black text-emerald-400 font-['Rajdhani']">
+                            +${item.net_profit_usd}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        {isRefunded ? (
+                          <span className="text-[10px] text-slate-500 font-bold">--</span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 text-[10px] font-bold border border-emerald-500/20">
+                            {item.margin_percent}%
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleShareWhatsApp(item)}
-                          className="px-2.5 py-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-600/40 text-emerald-300 font-bold text-[11px] inline-flex items-center gap-1 transition-colors"
-                          title="Enviar recibo profesional por WhatsApp"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                          Recibo WhatsApp
-                        </button>
+                        {isRefunded ? (
+                          <button
+                            type="button"
+                            disabled
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-600 font-medium text-[11px] inline-flex items-center gap-1 cursor-not-allowed opacity-50"
+                            title="Comprobante no disponible para recargas no entregadas"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5 text-slate-600" />
+                            No entregado
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleShareWhatsApp(item)}
+                            className="px-2.5 py-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-600/40 text-emerald-300 font-bold text-[11px] inline-flex items-center gap-1 transition-colors"
+                            title="Enviar recibo profesional por WhatsApp"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                            Recibo WhatsApp
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
