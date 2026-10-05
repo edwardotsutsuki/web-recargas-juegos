@@ -387,6 +387,118 @@ export const orderRepository = {
       console.warn('[orderRepository] Error en markWaitingProviderBalance:', err?.message);
     }
   },
+
+  async markOrderProcessing({ orderId, message, failureCode = null }) {
+    if (!isSupabaseConfigured) return;
+    try {
+      await supabaseAdmin
+        .from('orders')
+        .update({
+          status: 'processing',
+          failure_code: failureCode,
+          last_error_message: message || 'Procesando con proveedor Canjea...',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+    } catch (err) {
+      console.warn('[orderRepository] Error en markOrderProcessing:', err?.message);
+    }
+  },
+
+  async markOrderOrphaned({ orderId, message }) {
+    if (!isSupabaseConfigured) return;
+    try {
+      await supabaseAdmin
+        .from('orders')
+        .update({
+          status: 'processing',
+          failure_code: 'ORPHANED',
+          last_error_message: message || 'Orden en revisión por proveedor Canjea. Contactar soporte WhatsApp +51 973 581 378',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+
+      await supabaseAdmin
+        .from('purchase_jobs')
+        .update({
+          state: 'failed',
+          last_error_code: 'ORPHANED',
+          lease_token: null,
+          lease_until: null,
+        })
+        .eq('order_id', orderId);
+    } catch (err) {
+      console.warn('[orderRepository] Error en markOrderOrphaned:', err?.message);
+    }
+  },
+
+  async refundOrder({ orderId, providerReference = null, reason = 'Reembolso por proveedor' }) {
+    if (!isSupabaseConfigured) return { success: false };
+
+    try {
+      const { data: order } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single();
+      if (!order) return { success: false, message: 'Orden no encontrada' };
+
+      const { data: wallet } = await supabaseAdmin.from('wallets').select('*').eq('id', order.wallet_id).single();
+      if (!wallet) return { success: false, message: 'Billetera no encontrada' };
+
+      // Si la orden ya había sido cobrada (status === 'succeeded')
+      if (order.status === 'succeeded') {
+        const newBalance = Number(wallet.balance_minor) + Number(order.price_minor);
+        await supabaseAdmin.from('wallets').update({
+          balance_minor: newBalance,
+          updated_at: new Date().toISOString(),
+        }).eq('id', wallet.id);
+
+        await supabaseAdmin.from('orders').update({
+          status: 'failed',
+          failure_code: 'REFUNDED_BY_PROVIDER',
+          last_error_message: reason,
+          updated_at: new Date().toISOString(),
+        }).eq('id', orderId);
+
+        await supabaseAdmin.from('transactions').insert({
+          wallet_id: wallet.id,
+          user_id: order.user_id,
+          currency: order.currency,
+          order_id: orderId,
+          kind: 'credit',
+          amount_minor: order.price_minor,
+          balance_before_minor: wallet.balance_minor,
+          balance_after_minor: newBalance,
+          held_before_minor: wallet.held_minor || 0,
+          held_after_minor: wallet.held_minor || 0,
+          balance_delta_minor: Number(order.price_minor),
+          held_delta_minor: 0,
+          idempotency_key: `${order.idempotency_key}_refund`,
+          source: 'provider_reversal',
+          external_reference: providerReference || orderId,
+          reason: `Reembolso acreditado: ${reason}`,
+        });
+      } else {
+        // Si aún estaba en retención
+        await this.settlePurchase({
+          orderId,
+          leaseToken: null,
+          outcome: 'failed',
+          failureCode: 'REFUNDED_BY_PROVIDER',
+          providerReference,
+        });
+      }
+
+      await supabaseAdmin.from('purchase_jobs').update({
+        state: 'done',
+        last_error_code: 'REFUNDED_BY_PROVIDER',
+        lease_token: null,
+        lease_until: null,
+      }).eq('order_id', orderId);
+
+      return { success: true, order_id: orderId };
+    } catch (err) {
+      console.error('[orderRepository] Error en refundOrder:', err);
+      return { success: false, error: err.message };
+    }
+  },
 };
 
 

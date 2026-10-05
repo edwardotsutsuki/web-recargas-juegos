@@ -97,7 +97,7 @@ export interface GameDetail extends GameSummary {
   packages: GamePackage[];
 }
 
-export type OrderStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+export type OrderStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'refunded' | 'orphaned';
 
 export interface Order {
   id: string;

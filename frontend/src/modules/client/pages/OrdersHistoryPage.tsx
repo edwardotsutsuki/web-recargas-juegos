@@ -250,6 +250,18 @@ export const OrdersHistoryPage: React.FC = () => {
     switch (order.status) {
       case 'completed':
         return <Badge variant="success">Completado</Badge>;
+      case 'refunded':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30 whitespace-nowrap">
+            Reembolsado
+          </span>
+        );
+      case 'orphaned':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 whitespace-nowrap">
+            En Revisión (Soporte)
+          </span>
+        );
       case 'processing':
       case 'pending':
         if (order.failure_code === 'WAITING_PROVIDER_BALANCE') {

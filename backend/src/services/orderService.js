@@ -111,10 +111,14 @@ export const orderService = {
       }
 
       let status = 'processing';
-      if (o.status === 'succeeded') status = 'completed';
-      else if (o.status === 'failed') status = 'failed';
+      if (o.status === 'succeeded' || o.status === 'completed') status = 'completed';
+      else if (o.status === 'failed') {
+        status = o.failure_code === 'REFUNDED_BY_PROVIDER' ? 'refunded' : 'failed';
+      }
       else if (o.status === 'cancelled') status = 'cancelled';
-      else if (o.status === 'held') status = 'processing';
+      else if (o.status === 'held' || o.status === 'processing') {
+        status = o.failure_code === 'ORPHANED' ? 'orphaned' : 'processing';
+      }
 
       return {
         id: o.id,
@@ -130,6 +134,8 @@ export const orderService = {
         player_server: playerPayload.server || playerPayload.zoneId || null,
         status,
         operator_name: o.operator_name || null,
+        failure_code: status === 'completed' ? null : (o.failure_code || null),
+        last_error_message: o.last_error_message || null,
         digital_code: o.digital_code || null,
         redeem_instructions: o.redeem_instructions || prod?.redeem_instructions || null,
         created_at: o.created_at,
@@ -155,10 +161,14 @@ export const orderService = {
     }
 
     let status = 'processing';
-    if (o.status === 'succeeded') status = 'completed';
-    else if (o.status === 'failed') status = 'failed';
+    if (o.status === 'succeeded' || o.status === 'completed') status = 'completed';
+    else if (o.status === 'failed') {
+      status = o.failure_code === 'REFUNDED_BY_PROVIDER' ? 'refunded' : 'failed';
+    }
     else if (o.status === 'cancelled') status = 'cancelled';
-    else if (o.status === 'held') status = 'processing';
+    else if (o.status === 'held' || o.status === 'processing') {
+      status = o.failure_code === 'ORPHANED' ? 'orphaned' : 'processing';
+    }
 
     return {
       id: o.id,
@@ -174,6 +184,8 @@ export const orderService = {
       player_server: playerPayload.server || playerPayload.zoneId || null,
       status,
       operator_name: o.operator_name || null,
+      failure_code: status === 'completed' ? null : (o.failure_code || null),
+      last_error_message: o.last_error_message || null,
       digital_code: o.digital_code || null,
       redeem_instructions: o.redeem_instructions || prod?.redeem_instructions || null,
       created_at: o.created_at,
@@ -232,9 +244,13 @@ export const orderService = {
 
       let status = 'processing';
       if (o.status === 'succeeded' || o.status === 'completed') status = 'completed';
-      else if (o.status === 'failed') status = 'failed';
+      else if (o.status === 'failed') {
+        status = o.failure_code === 'REFUNDED_BY_PROVIDER' ? 'refunded' : 'failed';
+      }
       else if (o.status === 'cancelled') status = 'cancelled';
-      else if (o.status === 'held') status = 'processing';
+      else if (o.status === 'held' || o.status === 'processing') {
+        status = o.failure_code === 'ORPHANED' ? 'orphaned' : 'processing';
+      }
 
       const userProf = profilesMap[o.user_id] || {};
 
@@ -255,6 +271,7 @@ export const orderService = {
         status,
         operator_name: o.operator_name || null,
         failure_code: status === 'completed' ? null : (o.failure_code || null),
+        last_error_message: o.last_error_message || null,
         digital_code: o.digital_code || null,
         redeem_instructions: o.redeem_instructions || prod?.redeem_instructions || null,
         created_at: o.created_at,

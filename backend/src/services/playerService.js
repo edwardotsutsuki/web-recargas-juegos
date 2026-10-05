@@ -96,14 +96,14 @@ export const playerService = {
           message: 'Cuenta existente, pero el juego no expone el nombre público.',
         };
       } else {
-        // SIN_VERIFIEDR u otro
+        // NO_VERIFIER (o proveedor sin verificación previa)
         resultPayload = {
           valid: true,
-          result: 'SIN_VERIFIEDR',
+          result: res.result === 'NO_VERIFIER' ? 'NO_VERIFIER' : (res.result || 'NO_VERIFIER'),
           playerId: cleanPlayerId,
           playerName: null,
           detectedRegion,
-          message: 'Este juego no requiere o no soporta validación previa.',
+          message: res.message || 'Este juego no requiere o no soporta validación previa de nombre.',
         };
       }
 

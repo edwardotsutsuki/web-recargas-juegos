@@ -1,13 +1,16 @@
 /**
  * Adaptador oficial de alto rendimiento para la API B2B de Canjea (https://docs.canjea.me/)
- * Versión de contrato: 2026-09-01
+ * Versión de contrato: 2026-10-04 · cc15ba89
  * 
- * Optimizaciones de rendimiento:
+ * Optimizaciones y especificaciones del contrato:
  * - HTTP Keep-Alive persistente (reutilización de sockets TCP/TLS TLS 1.3).
  * - Compresión GZIP/Deflate transparente (reduce el catálogo de 143 KB a solo 10 KB).
  * - Connection pooling con timeouts seguros por tipo de operación.
- * - POST /orders: Timeout >= 60s. Mirar external_id_reusable ante errores.
- * - POST /verify-player: Timeout >= 30s. Maneja 4 resultados en HTTP 200.
+ * - POST /orders: Timeout >= 60s. Si status === 'PROCESSING' sondeo con GET /orders/{ref}.
+ * - Manejo de delivery.mode === 'human': horario 08:00-22:00 Lima, respeta outside_hours y resumes_at.
+ * - POST /verify-player: Timeout >= 30s. Maneja 4 resultados en HTTP 200 (VERIFIED, INVALID_ID, NAME_NOT_CONFIRMED, NO_VERIFIER).
+ * - Idempotencia: mirar external_id_reusable ante errores. No reintentar con otra referencia.
+ * - Estados avanzados: COMPLETED, PROCESSING, FAILED, REFUNDED, ORPHANED (requiere soporte WhatsApp).
  */
 
 import https from 'node:https';
@@ -246,7 +249,7 @@ export class CanjeaClient {
    * Verifica la cuenta de un jugador antes de cobrar.
    * POST /verify-player
    * Timeout alto (30s): IDs inexistentes pueden tardar hasta 20s.
-   * Resultados en 200: 'VERIFIED' | 'INVALID_ID' | 'NAME_NOT_CONFIRMED' | 'SIN_VERIFIEDR'
+   * Resultados en 200: 'VERIFIED' | 'INVALID_ID' | 'NAME_NOT_CONFIRMED' | 'NO_VERIFIER'
    */
   async verifyPlayer({ sku, playerId, server = null, zoneId = null }) {
     if (!playerId) {

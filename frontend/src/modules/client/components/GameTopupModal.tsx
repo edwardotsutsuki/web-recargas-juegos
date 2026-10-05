@@ -28,6 +28,7 @@ import {
   AlertTriangle,
   ChevronLeft,
   Clock,
+  Lock,
 } from 'lucide-react';
 
 interface GameTopupModalProps {
@@ -59,7 +60,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
   // Player fields
   const [playerId, setPlayerId] = useState('');
   const [serverZone, setServerZone] = useState('');
-  const [customFields, setCustomFields] = useState<Record<string, string>>({});
+  const [customFields, setCustomFields] = useState<Record<string, any>>({});
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifiedName, setVerifiedName] = useState<string | null>(null);
   const [verifiedRegion, setVerifiedRegion] = useState<string | null>(null);
@@ -207,10 +208,36 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
   );
 
   const areCustomFieldsValid = hasRequiredFields
-    ? selectedPackage!.required_fields!.every(
-        (f) => !f.required || (customFields[f.key] && customFields[f.key].trim().length > 0)
-      )
+    ? selectedPackage!.required_fields!.every((f) => {
+        const val = customFields[f.key];
+        if (f.type === 'checkbox') {
+          return !f.required || val === true || val === 'true';
+        }
+        if (f.type === 'tel') {
+          const cleanTel = String(val || '').replace(/\D/g, '');
+          if (!f.required && !cleanTel) return true;
+          return cleanTel.length >= 9 && cleanTel.length <= 15;
+        }
+        if (!f.required) return true;
+        return typeof val === 'string' ? val.trim().length > 0 : Boolean(val);
+      })
     : true;
+
+  const sanitizeFields = (rawFields: Record<string, any>) => {
+    if (!selectedPackage?.required_fields) return rawFields;
+    const sanitized: Record<string, any> = {};
+    for (const f of selectedPackage.required_fields) {
+      const val = rawFields[f.key];
+      if (f.type === 'checkbox') {
+        sanitized[f.key] = val === true || val === 'true';
+      } else if (f.type === 'tel') {
+        sanitized[f.key] = String(val || '').replace(/\s+/g, '');
+      } else if (val !== undefined && val !== null) {
+        sanitized[f.key] = typeof val === 'string' ? val.trim() : val;
+      }
+    }
+    return sanitized;
+  };
 
   const handleAddToCart = () => {
     if (!game || !selectedPackage) return;
@@ -233,7 +260,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
       hasRequiredFields
         ? undefined
         : verifiedName || (playerId ? `ID: ${playerId.trim()}` : undefined),
-      hasRequiredFields ? customFields : undefined
+      hasRequiredFields ? sanitizeFields(customFields) : undefined
     );
     onClose();
   };
@@ -250,7 +277,7 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
         productId: selectedPackage.sku,
         playerId: hasRequiredFields ? undefined : playerId.trim() || undefined,
         playerName: hasRequiredFields ? undefined : verifiedName || undefined,
-        fields: hasRequiredFields ? customFields : undefined,
+        fields: hasRequiredFields ? sanitizeFields(customFields) : undefined,
         currency: selectedPackage.currency,
         customPvpCents: customPricesMap[selectedPackage.sku] || Math.round(selectedPackage.price_cents * 1.15),
       });
@@ -415,28 +442,94 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                     )}
                   </div>
 
-                  {selectedPackage.required_fields.map((field) => (
-                    <div key={field.key} className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
-                        <span>{field.label}</span>
-                        {field.required && (
-                          <span className="text-red-500 text-[10px] font-bold">*Requerido</span>
-                        )}
-                      </label>
-                      <input
-                        type={field.type === 'email' ? 'email' : field.type === 'tel' ? 'tel' : 'text'}
-                        value={customFields[field.key] || ''}
-                        onChange={(e) =>
-                          setCustomFields((prev) => ({ ...prev, [field.key]: e.target.value }))
-                        }
-                        placeholder={field.label}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium focus:outline-none focus:border-indigo-500"
-                      />
-                      {field.help && (
-                        <p className="text-[10px] text-slate-500 leading-tight">{field.help}</p>
-                      )}
+                  {selectedPackage.delivery?.mode === 'human' && (
+                    <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-[11px] space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span>Atención de Operador: {selectedPackage.delivery.hours || '08:00 - 22:00 Lima'}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Los pedidos realizados fuera de horario ingresan en cola y son despachados a primera hora.
+                      </p>
                     </div>
-                  ))}
+                  )}
+
+                  {selectedPackage.required_fields.map((field) => {
+                    const isCheckbox = field.type === 'checkbox';
+                    const isTel = field.type === 'tel';
+                    const isSensitive = Boolean(field.sensitive);
+
+                    if (isCheckbox) {
+                      return (
+                        <div
+                          key={field.key}
+                          className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 cursor-pointer"
+                          onClick={() => setCustomFields((prev) => ({ ...prev, [field.key]: !prev[field.key] }))}
+                        >
+                          <div>
+                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
+                              {field.label} {field.required && <span className="text-red-500 font-bold">*</span>}
+                            </span>
+                            {field.help && (
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400">{field.help}</p>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(customFields[field.key])}
+                            onChange={(e) =>
+                              setCustomFields((prev) => ({ ...prev, [field.key]: e.target.checked }))
+                            }
+                            className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
+                          />
+                        </div>
+                      );
+                    }
+
+                    const telVal = String(customFields[field.key] || '');
+                    const cleanTelDigits = telVal.replace(/\D/g, '');
+                    const isTelInvalid = isTel && telVal.length > 0 && (cleanTelDigits.length < 9 || cleanTelDigits.length > 15);
+
+                    return (
+                      <div key={field.key} className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                          <span className="flex items-center gap-1">
+                            {isSensitive && <Lock className="w-3 h-3 text-amber-500" />}
+                            {field.label}
+                          </span>
+                          {field.required && (
+                            <span className="text-red-500 text-[10px] font-bold">*Requerido</span>
+                          )}
+                        </label>
+                        <input
+                          type={isSensitive ? 'password' : isTel ? 'tel' : field.type === 'email' ? 'email' : 'text'}
+                          value={customFields[field.key] || ''}
+                          onChange={(e) => {
+                            const val = isTel ? e.target.value.replace(/[^\d+]/g, '') : e.target.value;
+                            setCustomFields((prev) => ({ ...prev, [field.key]: val }));
+                          }}
+                          placeholder={isTel ? 'Ej: 999888777 (9 a 15 dígitos)' : field.label}
+                          className={`w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/80 border ${
+                            isTelInvalid ? 'border-amber-500 text-amber-900' : 'border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white'
+                          } text-xs font-medium focus:outline-none focus:border-indigo-500`}
+                        />
+                        {isTelInvalid && (
+                          <p className="text-[10px] text-amber-600 font-semibold">
+                            El teléfono debe tener entre 9 y 15 dígitos requeridos por el proveedor.
+                          </p>
+                        )}
+                        {field.help && (
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{field.help}</p>
+                        )}
+                        {isSensitive && (
+                          <p className="text-[9px] text-amber-600/90 dark:text-amber-400/90 flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3 text-amber-500" />
+                            Dato confidencial: Cifrado y eliminado automáticamente al procesar.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : game.requires_player_id ? (
                 <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
@@ -857,29 +950,74 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                 {hasRequiredFields && selectedPackage?.required_fields ? (
                   <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 space-y-4">
                     {selectedPackage.delivery?.mode === 'human' && (
-                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-cyan-950/50 border border-amber-200 dark:border-cyan-500/40 flex items-center justify-between text-xs text-amber-800 dark:text-cyan-300">
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/40 flex items-center justify-between text-xs text-amber-800 dark:text-amber-200">
                         <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-amber-600 dark:text-cyan-400 shrink-0" />
-                          <span>Entrega Manual por Operador ({selectedPackage.delivery.hours || '10:00 - 22:00 Lima'})</span>
+                          <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span>Entrega Manual por Operador ({selectedPackage.delivery.hours || '08:00 - 22:00 Lima'})</span>
                         </div>
-                        <span className="text-[10px] bg-amber-200 dark:bg-cyan-900/80 px-2 py-0.5 rounded text-amber-900 dark:text-cyan-200 font-semibold">Supercell ID</span>
+                        <span className="text-[10px] bg-amber-200 dark:bg-amber-900/80 px-2 py-0.5 rounded text-amber-900 dark:text-amber-200 font-semibold">
+                          Asistido
+                        </span>
                       </div>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {selectedPackage.required_fields.map((field) => (
-                        <div key={field.key} className={field.type === 'email' ? 'sm:col-span-2' : ''}>
-                          <Input
-                            label={field.label + (field.required ? ' *' : '')}
-                            type={field.type === 'email' ? 'email' : field.type === 'tel' ? 'tel' : 'text'}
-                            value={customFields[field.key] || ''}
-                            onChange={(e) =>
-                              setCustomFields((prev) => ({ ...prev, [field.key]: e.target.value }))
-                            }
-                            placeholder={field.label}
-                            helperText={field.help || undefined}
-                          />
-                        </div>
-                      ))}
+                      {selectedPackage.required_fields.map((field) => {
+                        const isCheckbox = field.type === 'checkbox';
+                        const isTel = field.type === 'tel';
+                        const isSensitive = Boolean(field.sensitive);
+
+                        if (isCheckbox) {
+                          return (
+                            <div
+                              key={field.key}
+                              className="sm:col-span-2 p-3 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3 cursor-pointer"
+                              onClick={() => setCustomFields((prev) => ({ ...prev, [field.key]: !prev[field.key] }))}
+                            >
+                              <div>
+                                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
+                                  {field.label} {field.required && <span className="text-red-500 font-bold">*</span>}
+                                </span>
+                                {field.help && (
+                                  <p className="text-[10px] text-slate-500 dark:text-slate-400">{field.help}</p>
+                                )}
+                              </div>
+                              <input
+                                type="checkbox"
+                                checked={Boolean(customFields[field.key])}
+                                onChange={(e) =>
+                                  setCustomFields((prev) => ({ ...prev, [field.key]: e.target.checked }))
+                                }
+                                className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
+                              />
+                            </div>
+                          );
+                        }
+
+                        const telVal = String(customFields[field.key] || '');
+                        const cleanTelDigits = telVal.replace(/\D/g, '');
+                        const isTelInvalid = isTel && telVal.length > 0 && (cleanTelDigits.length < 9 || cleanTelDigits.length > 15);
+
+                        return (
+                          <div key={field.key} className={field.type === 'email' ? 'sm:col-span-2' : ''}>
+                            <Input
+                              label={field.label + (field.required ? ' *' : '')}
+                              type={isSensitive ? 'password' : isTel ? 'tel' : field.type === 'email' ? 'email' : 'text'}
+                              value={customFields[field.key] || ''}
+                              onChange={(e) => {
+                                const val = isTel ? e.target.value.replace(/[^\d+]/g, '') : e.target.value;
+                                setCustomFields((prev) => ({ ...prev, [field.key]: val }));
+                              }}
+                              placeholder={isTel ? 'Ej: 999888777 (9 a 15 dígitos)' : field.label}
+                              helperText={
+                                isTelInvalid
+                                  ? 'Debe contener entre 9 y 15 dígitos requeridos por el proveedor'
+                                  : field.help || (isSensitive ? 'Dato confidencial cifrado de punta a punta' : undefined)
+                              }
+                              error={isTelInvalid ? 'Teléfono inválido' : undefined}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 ) : game.requires_player_id ? (

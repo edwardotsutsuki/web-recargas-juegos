@@ -4,7 +4,7 @@ import { adminService } from '../../../services/api/admin.service';
 import { PriceDisplay } from '../../../components/molecules/PriceDisplay';
 import { Badge } from '../../../components/atoms/Badge';
 import { useUIStore } from '../../../store/useUIStore';
-import { ShoppingBag, RefreshCw, ShieldCheck, Search, Filter, User, AlertCircle, Clock, Zap } from 'lucide-react';
+import { ShoppingBag, RefreshCw, ShieldCheck, Search, Filter, User, AlertCircle, Clock, Zap, MessageCircle } from 'lucide-react';
 
 export const GlobalOrdersPage: React.FC = () => {
   const { showToast } = useUIStore();
@@ -14,7 +14,7 @@ export const GlobalOrdersPage: React.FC = () => {
   const [isTriggering, setIsTriggering] = useState(false);
   const [retryingOrderId, setRetryingOrderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'failed'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'failed' | 'refunded'>('all');
   const [selectedGame, setSelectedGame] = useState<string>('all');
   const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -87,7 +87,9 @@ export const GlobalOrdersPage: React.FC = () => {
         : statusFilter === 'completed'
         ? o.status === 'completed'
         : statusFilter === 'processing'
-        ? o.status === 'processing' || o.status === 'pending'
+        ? o.status === 'processing' || o.status === 'pending' || o.status === 'orphaned'
+        : statusFilter === 'refunded'
+        ? o.status === 'refunded'
         : o.status === 'failed' || o.status === 'cancelled';
 
     const matchesGame = selectedGame === 'all' || o.game === selectedGame;
@@ -108,8 +110,42 @@ export const GlobalOrdersPage: React.FC = () => {
   const countByStatus = {
     all: orders.length,
     completed: orders.filter((o) => o.status === 'completed').length,
-    processing: orders.filter((o) => o.status === 'processing' || o.status === 'pending').length,
+    processing: orders.filter((o) => o.status === 'processing' || o.status === 'pending' || o.status === 'orphaned').length,
+    refunded: orders.filter((o) => o.status === 'refunded').length,
     failed: orders.filter((o) => o.status === 'failed' || o.status === 'cancelled').length,
+  };
+
+  const renderStatusBadge = (order: Order) => {
+    if (order.status === 'completed') {
+      return <Badge variant="success">Completado</Badge>;
+    }
+    if (order.status === 'refunded') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30 whitespace-nowrap">
+          Reembolsado
+        </span>
+      );
+    }
+    if (order.status === 'orphaned' || order.failure_code === 'ORPHANED') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+          Huérfana (En Revisión)
+        </span>
+      );
+    }
+    if (order.failure_code === 'WAITING_PROVIDER_BALANCE') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/30 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+          En Cola Proveedor
+        </span>
+      );
+    }
+    if (order.status === 'failed' || order.status === 'cancelled') {
+      return <Badge variant="danger">Fallido</Badge>;
+    }
+    return <Badge variant="warning">Procesando</Badge>;
   };
 
   return (
@@ -229,6 +265,7 @@ export const GlobalOrdersPage: React.FC = () => {
               { id: 'all', label: 'Todas', count: countByStatus.all, color: 'text-slate-700 dark:text-slate-300' },
               { id: 'completed', label: 'Completadas', count: countByStatus.completed, color: 'text-emerald-600 dark:text-emerald-400' },
               { id: 'processing', label: 'En Proceso', count: countByStatus.processing, color: 'text-amber-600 dark:text-amber-400' },
+              { id: 'refunded', label: 'Reembolsadas', count: countByStatus.refunded, color: 'text-purple-600 dark:text-purple-400' },
               { id: 'failed', label: 'Fallidas', count: countByStatus.failed, color: 'text-red-600 dark:text-red-400' },
             ] as const
           ).map((tab) => (
@@ -275,21 +312,7 @@ export const GlobalOrdersPage: React.FC = () => {
                   <span className="font-mono text-xs text-slate-500 dark:text-slate-400 font-semibold">
                     {order.id.slice(0, 12)}...
                   </span>
-                  <Badge
-                    variant={
-                      order.status === 'completed'
-                        ? 'success'
-                        : order.status === 'failed' || order.status === 'cancelled'
-                        ? 'danger'
-                        : 'warning'
-                    }
-                  >
-                    {order.status === 'completed'
-                      ? 'Completado'
-                      : order.status === 'failed'
-                      ? 'Fallido'
-                      : 'Procesando'}
-                  </Badge>
+                  {renderStatusBadge(order)}
                 </div>
 
                 {/* Revendedor */}
@@ -350,7 +373,7 @@ export const GlobalOrdersPage: React.FC = () => {
                   </span>
                 </div>
 
-                {(order.status !== 'completed') && order.failure_code === 'WAITING_PROVIDER_BALANCE' ? (
+                {(order.status !== 'completed' && order.status !== 'refunded') && order.failure_code === 'WAITING_PROVIDER_BALANCE' ? (
                   <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
@@ -366,11 +389,27 @@ export const GlobalOrdersPage: React.FC = () => {
                       Reintentar
                     </button>
                   </div>
-                ) : order.status !== 'completed' && order.failure_code ? (
+                ) : (order.status === 'orphaned' || order.failure_code === 'ORPHANED') ? (
+                  <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                      <span className="truncate">{order.last_error_message || 'Transacción ambigua en Canjea'}</span>
+                    </div>
+                    <a
+                      href={`https://wa.me/51973581378?text=${encodeURIComponent(`Hola Soporte Canjea, solicito revisar la orden ${order.id} con estado ambiguo/huérfano.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 transition-all shrink-0"
+                    >
+                      <MessageCircle className="w-3 h-3" />
+                      Soporte
+                    </a>
+                  </div>
+                ) : (order.status !== 'completed' && order.status !== 'refunded') && order.failure_code ? (
                   <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 text-xs flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>Error: {order.failure_code}</span>
+                      <span className="truncate">Error: {order.last_error_message || order.failure_code}</span>
                     </div>
                     <button
                       type="button"
@@ -455,12 +494,22 @@ export const GlobalOrdersPage: React.FC = () => {
                         />
                       </td>
                       <td className="p-4">
-                        {(order.status !== 'completed') && order.failure_code === 'WAITING_PROVIDER_BALANCE' ? (
-                          <div className="flex flex-col items-start gap-1">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/30 whitespace-nowrap">
-                              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                              En cola proveedor
-                            </span>
+                        {renderStatusBadge(order)}
+                        {(order.status === 'orphaned' || order.failure_code === 'ORPHANED') && (
+                          <div className="mt-1.5">
+                            <a
+                              href={`https://wa.me/51973581378?text=${encodeURIComponent(`Hola Soporte Canjea, solicito revisar la orden ${order.id} con estado ambiguo/huérfano.`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 transition-all"
+                            >
+                              <MessageCircle className="w-2.5 h-2.5" />
+                              Soporte Canjea
+                            </a>
+                          </div>
+                        )}
+                        {(order.status !== 'completed' && order.status !== 'refunded') && order.failure_code === 'WAITING_PROVIDER_BALANCE' && (
+                          <div className="mt-1.5">
                             <button
                               type="button"
                               disabled={retryingOrderId === order.id}
@@ -471,43 +520,23 @@ export const GlobalOrdersPage: React.FC = () => {
                               Reintentar
                             </button>
                           </div>
-                        ) : (
-                          <>
-                            <Badge
-                              variant={
-                                order.status === 'completed'
-                                  ? 'success'
-                                  : order.status === 'failed' || order.status === 'cancelled'
-                                  ? 'danger'
-                                  : 'warning'
-                              }
+                        )}
+                        {order.status === 'failed' && order.failure_code && order.failure_code !== 'WAITING_PROVIDER_BALANCE' && (
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            <span className="text-[10px] text-red-600 dark:text-red-400 font-mono" title={order.last_error_message || order.failure_code}>
+                              {order.failure_code}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={retryingOrderId === order.id}
+                              onClick={() => handleRetryOrder(order.id)}
+                              className="px-1.5 py-0.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[9px] font-bold border border-red-500/20 flex items-center gap-0.5 transition-all disabled:opacity-50"
+                              title="Reintentar despacho"
                             >
-                              {order.status === 'completed'
-                                ? 'Completado'
-                                : order.status === 'failed'
-                                ? 'Fallido'
-                                : 'Procesando'}
-                            </Badge>
-                            {order.status !== 'completed' && order.failure_code && (
-                              <div className="flex items-center gap-1.5 mt-1">
-                                <span className="text-[10px] text-red-600 dark:text-red-400 font-mono">
-                                  {order.failure_code}
-                                </span>
-                                {order.status === 'failed' && (
-                                  <button
-                                    type="button"
-                                    disabled={retryingOrderId === order.id}
-                                    onClick={() => handleRetryOrder(order.id)}
-                                    className="px-1.5 py-0.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[9px] font-bold border border-red-500/20 flex items-center gap-0.5 transition-all disabled:opacity-50"
-                                    title="Reintentar despacho"
-                                  >
-                                    <RefreshCw className={`w-2 h-2 ${retryingOrderId === order.id ? 'animate-spin' : ''}`} />
-                                    Reenviar
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </>
+                              <RefreshCw className={`w-2 h-2 ${retryingOrderId === order.id ? 'animate-spin' : ''}`} />
+                              Reenviar
+                            </button>
+                          </div>
                         )}
                       </td>
                       <td className="p-4">
