@@ -93,7 +93,14 @@ export const AdminCatalogPage: React.FC = () => {
     try {
       const details = await catalogService.getGameDetails(game.id);
       if (details) {
-        setPackagesList(details.packages || []);
+        setPackagesList(
+          (details.packages || []).map((p) => ({
+            ...p,
+            price_decimal: p.price_decimal_1 || p.price_decimal,
+            price_decimal_2: p.price_decimal_2 || p.price_decimal_1 || p.price_decimal,
+            price_cents_2: p.price_cents_2 || p.price_cents_1 || p.price_cents,
+          }))
+        );
       }
     } catch (err) {
       console.error('Error cargando paquetes del juego:', err);
@@ -112,6 +119,23 @@ export const AdminCatalogPage: React.FC = () => {
             ...pkg,
             price_decimal: sanitized,
             price_cents: Math.round(val * 100),
+          };
+        }
+        return pkg;
+      })
+    );
+  };
+
+  const handlePackagePrice2Change = (sku: string, newPriceStr: string) => {
+    const sanitized = newPriceStr.replace(/,/g, '.');
+    setPackagesList((prev) =>
+      prev.map((pkg) => {
+        if (pkg.sku === sku) {
+          const val = parseFloat(sanitized) || 0;
+          return {
+            ...pkg,
+            price_decimal_2: sanitized,
+            price_cents_2: Math.round(val * 100),
           };
         }
         return pkg;
@@ -149,6 +173,8 @@ export const AdminCatalogPage: React.FC = () => {
           sku: p.sku,
           price_cents: p.price_cents,
           price_decimal: p.price_decimal,
+          price_cents_2: p.price_cents_2,
+          price_decimal_2: p.price_decimal_2,
           is_active: p.is_active !== false,
         })),
       });
@@ -564,11 +590,11 @@ export const AdminCatalogPage: React.FC = () => {
               {/* TAB 2: Costos API Canjea & Precios PVP */}
               {activeTab === 'pricing' && (
                 <div className="space-y-4 animate-fade-in">
-                  <div className="p-3.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-500/30 text-xs text-cyan-800 dark:text-slate-300 flex items-start gap-2.5">
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-50 to-indigo-50 dark:from-cyan-950/30 dark:to-indigo-950/30 border border-cyan-200 dark:border-cyan-500/30 text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2.5">
                     <TrendingUp className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-bold text-cyan-950 dark:text-white block">Sincronización Automática con la API de Canjea</span>
-                      Los costos mayoristas mostrados se actualizan directamente del proveedor. Puedes ajustar el PVP sugerido para que tus revendedores tengan un precio de referencia.
+                      <span className="font-bold text-slate-900 dark:text-white block">Estructuración Multitarifa (Precio 1 y Precio 2)</span>
+                      Configura el <strong>Precio 1 (Estándar)</strong> y el <strong>Precio 2 (Mayorista / VIP)</strong> para cada paquete. Luego, en el <em>Directorio de Usuarios</em>, puedes elegir qué precio tendrá cada cliente.
                     </div>
                   </div>
 
@@ -587,18 +613,21 @@ export const AdminCatalogPage: React.FC = () => {
                           <thead className="bg-slate-100 dark:bg-slate-950 sticky top-0 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-[10px] uppercase font-bold">
                             <tr>
                               <th className="p-3">Paquete / SKU</th>
-                              <th className="p-3">Costo API Canjea</th>
-                              <th className="p-3">PVP Sugerido ($)</th>
-                              <th className="p-3">Margen Ganancia</th>
+                              <th className="p-3">Costo API</th>
+                              <th className="p-3">Precio 1 (Estándar)</th>
+                              <th className="p-3">Precio 2 (Mayorista)</th>
                               <th className="p-3 text-right">Disponibilidad</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                             {packagesList.map((pkg) => {
                               const wholesale = parseFloat((pkg.wholesale_decimal || '0').replace(/,/g, '.'));
-                              const pvp = parseFloat((pkg.price_decimal || '0').replace(/,/g, '.'));
-                              const margin = pvp - wholesale;
-                              const marginPercent = wholesale > 0 ? ((margin / wholesale) * 100).toFixed(1) : '0';
+                              const pvp1 = parseFloat((pkg.price_decimal || '0').replace(/,/g, '.'));
+                              const pvp2 = parseFloat((pkg.price_decimal_2 || pkg.price_decimal || '0').replace(/,/g, '.'));
+                              const margin1 = pvp1 - wholesale;
+                              const marginPercent1 = wholesale > 0 ? ((margin1 / wholesale) * 100).toFixed(1) : '0';
+                              const margin2 = pvp2 - wholesale;
+                              const marginPercent2 = wholesale > 0 ? ((margin2 / wholesale) * 100).toFixed(1) : '0';
                               const isActive = pkg.is_active !== false;
 
                               return (
@@ -607,29 +636,54 @@ export const AdminCatalogPage: React.FC = () => {
                                     <span className="font-semibold text-slate-900 dark:text-white block">{pkg.name}</span>
                                     <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">{pkg.sku}</span>
                                   </td>
-                                  <td className="p-3 font-mono font-bold text-amber-600 dark:text-amber-400">
+                                  <td className="p-3 font-mono font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">
                                     ${Number(wholesale).toFixed(2)} <span className="text-[10px] text-slate-500 dark:text-slate-400">USD</span>
                                   </td>
                                   <td className="p-3">
-                                    <div className="w-24">
-                                      <input
-                                        type="text"
-                                        inputMode="decimal"
-                                        value={pkg.price_decimal}
-                                        onChange={(e) => handlePackagePriceChange(pkg.sku, e.target.value)}
-                                        onBlur={() => {
-                                           const val = parseFloat((pkg.price_decimal || '0').replace(/,/g, '.'));
-                                           if (!isNaN(val) && val > 0) {
-                                             handlePackagePriceChange(pkg.sku, val.toFixed(2));
-                                           }
-                                        }}
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-                                      />
+                                    <div className="space-y-1">
+                                      <div className="w-28">
+                                        <input
+                                          type="text"
+                                          inputMode="decimal"
+                                          value={pkg.price_decimal}
+                                          onChange={(e) => handlePackagePriceChange(pkg.sku, e.target.value)}
+                                          onBlur={() => {
+                                             const val = parseFloat((pkg.price_decimal || '0').replace(/,/g, '.'));
+                                             if (!isNaN(val) && val > 0) {
+                                               handlePackagePriceChange(pkg.sku, val.toFixed(2));
+                                             }
+                                          }}
+                                          placeholder="Precio 1"
+                                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                        />
+                                      </div>
+                                      <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold block whitespace-nowrap">
+                                        +${margin1 > 0 ? margin1.toFixed(2) : '0.00'} ({marginPercent1}%)
+                                      </span>
                                     </div>
                                   </td>
-                                  <td className="p-3 font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                                    +${margin > 0 ? margin.toFixed(2) : '0.00'}{' '}
-                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">({marginPercent}%)</span>
+                                  <td className="p-3">
+                                    <div className="space-y-1">
+                                      <div className="w-28">
+                                        <input
+                                          type="text"
+                                          inputMode="decimal"
+                                          value={pkg.price_decimal_2 || ''}
+                                          onChange={(e) => handlePackagePrice2Change(pkg.sku, e.target.value)}
+                                          onBlur={() => {
+                                             const val = parseFloat((pkg.price_decimal_2 || '0').replace(/,/g, '.'));
+                                             if (!isNaN(val) && val > 0) {
+                                               handlePackagePrice2Change(pkg.sku, val.toFixed(2));
+                                             }
+                                          }}
+                                          placeholder="Precio 2"
+                                          className="w-full bg-slate-50 dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800/60 rounded-lg px-2.5 py-1 text-xs text-indigo-700 dark:text-indigo-300 font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                        />
+                                      </div>
+                                      <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold block whitespace-nowrap">
+                                        +${margin2 > 0 ? margin2.toFixed(2) : '0.00'} ({marginPercent2}%)
+                                      </span>
+                                    </div>
                                   </td>
                                   <td className="p-3 text-right">
                                     <button

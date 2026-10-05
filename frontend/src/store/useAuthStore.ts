@@ -66,7 +66,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('id, role, full_name, phone, referral_code, two_factor_enabled, created_at')
+          .select('id, role, full_name, phone, referral_code, two_factor_enabled, created_at, price_tier')
           .eq('id', session.user.id)
           .single();
 
@@ -78,6 +78,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             email: session.user.email || '',
             role,
             fullName: profile?.full_name || session.user.user_metadata?.full_name || (session.user.email === 'b.edumalta@gmail.com' ? 'Super Admin' : ''),
+            price_tier: profile?.price_tier || 1,
           },
           role,
           isAuthenticated: true,
@@ -144,7 +145,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('id, role, full_name, phone, referral_code, two_factor_enabled, created_at')
+          .select('id, role, full_name, phone, referral_code, two_factor_enabled, created_at, price_tier')
           .eq('id', session.user.id)
           .single();
 
@@ -156,6 +157,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             email: session.user.email || '',
             role,
             fullName: profile?.full_name || session.user.user_metadata?.full_name || (session.user.email === 'b.edumalta@gmail.com' ? 'Super Admin' : ''),
+            price_tier: profile?.price_tier || 1,
           },
           role,
           isAuthenticated: true,

@@ -6,7 +6,7 @@ import { Badge } from '../../../components/atoms/Badge';
 import { Button } from '../../../components/atoms/Button';
 import { BalanceCreditModal } from '../components/BalanceCreditModal';
 import { AdminResetPasswordModal } from '../components/AdminResetPasswordModal';
-import { Users, PlusCircle, Search, RefreshCw, KeyRound, Shield, CheckCircle2, AlertCircle, ShieldOff } from 'lucide-react';
+import { Users, PlusCircle, Search, RefreshCw, KeyRound, Shield, CheckCircle2, AlertCircle, ShieldOff, Tag } from 'lucide-react';
 import { Input } from '../../../components/atoms/Input';
 import { apiClient } from '../../../services/api/client';
 import { useUIStore } from '../../../store/useUIStore';
@@ -17,7 +17,23 @@ export const UsersManagementPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserForCredit, setSelectedUserForCredit] = useState<AdminUser | null>(null);
   const [selectedUserForPassword, setSelectedUserForPassword] = useState<AdminUser | null>(null);
+  const [updatingTierUserId, setUpdatingTierUserId] = useState<string | null>(null);
   const { showToast } = useUIStore();
+
+  const handleTierChange = async (userId: string, newTier: 1 | 2) => {
+    setUpdatingTierUserId(userId);
+    try {
+      await adminService.updateUserPriceTier(userId, newTier);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, price_tier: newTier } : u))
+      );
+      showToast(`Tarifa actualizada a Precio ${newTier} (${newTier === 2 ? 'Mayorista' : 'Estándar'})`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Error al actualizar nivel de tarifa', 'error');
+    } finally {
+      setUpdatingTierUserId(null);
+    }
+  };
 
   const loadUsers = async () => {
     setIsLoading(true);
@@ -166,6 +182,36 @@ export const UsersManagementPage: React.FC = () => {
                     />
                   </div>
 
+                  {/* Middle: Tarifa de Venta */}
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/60 flex items-center justify-between">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 font-medium">
+                      <Tag className="w-3.5 h-3.5 text-indigo-500" />
+                      Tarifa de Venta:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        value={user.price_tier || 1}
+                        disabled={updatingTierUserId === user.id}
+                        onChange={(e) => handleTierChange(user.id, Number(e.target.value) as 1 | 2)}
+                        className={`text-xs font-bold py-1 px-2.5 rounded-lg border outline-none cursor-pointer transition-all ${
+                          (user.price_tier || 1) === 2
+                            ? 'bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-400'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        <option value={1} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                          🏷️ P1 (Estándar)
+                        </option>
+                        <option value={2} className="bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 font-bold">
+                          ⭐ P2 (Mayorista)
+                        </option>
+                      </select>
+                      {updatingTierUserId === user.id && (
+                        <RefreshCw className="w-3 h-3 animate-spin text-indigo-500" />
+                      )}
+                    </div>
+                  </div>
+
                   {/* Bottom: Action Buttons */}
                   <div className="space-y-2 pt-1">
                     <div className="grid grid-cols-2 gap-2">
@@ -209,6 +255,7 @@ export const UsersManagementPage: React.FC = () => {
                   <tr className="border-b border-slate-200 dark:border-slate-800/80 bg-slate-100/90 dark:bg-slate-950/40 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                     <th className="p-4">Usuario / Cuenta</th>
                     <th className="p-4">Rol & Privilegios</th>
+                    <th className="p-4">Tarifa Asignada</th>
                     <th className="p-4">Seguridad 2FA</th>
                     <th className="p-4">Saldo Total</th>
                     <th className="p-4">Saldo Disponible</th>
@@ -256,6 +303,30 @@ export const UsersManagementPage: React.FC = () => {
                               Cliente / Revendedor
                             </Badge>
                           )}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-1.5">
+                            <select
+                              value={user.price_tier || 1}
+                              disabled={updatingTierUserId === user.id}
+                              onChange={(e) => handleTierChange(user.id, Number(e.target.value) as 1 | 2)}
+                              className={`text-xs font-semibold py-1 px-2.5 rounded-xl border transition-all cursor-pointer outline-none ${
+                                (user.price_tier || 1) === 2
+                                  ? 'bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-400 font-bold hover:bg-amber-500/20'
+                                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                              }`}
+                            >
+                              <option value={1} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                                🏷️ Precio 1 (Estándar)
+                              </option>
+                              <option value={2} className="bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 font-bold">
+                                ⭐ Precio 2 (Mayorista)
+                              </option>
+                            </select>
+                            {updatingTierUserId === user.id && (
+                              <RefreshCw className="w-3 h-3 animate-spin text-indigo-500" />
+                            )}
+                          </div>
                         </td>
                         <td className="p-4">
                           {user.two_factor_enabled ? (

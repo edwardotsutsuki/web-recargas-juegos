@@ -4,6 +4,7 @@ export interface UserProfile {
   id: string;
   email: string;
   role: UserRole;
+  price_tier?: 1 | 2;
   fullName?: string;
   created_at?: string;
 }
@@ -13,6 +14,7 @@ export interface WalletState {
   total_balance_cents: number;
   held_balance_cents: number;
   available_balance_cents: number;
+  price_tier?: 1 | 2;
   updated_at?: string;
 }
 
@@ -51,6 +53,11 @@ export interface GamePackage {
   name: string;
   price_cents: number;
   price_decimal: string;
+  price_cents_1?: number;
+  price_decimal_1?: string;
+  price_cents_2?: number;
+  price_decimal_2?: string;
+  user_tier?: 1 | 2;
   wholesale_cents?: number;
   wholesale_decimal?: string;
   currency: string;
@@ -160,6 +167,7 @@ export interface AdminUser {
   phone?: string;
   referral_code?: string | null;
   two_factor_enabled?: boolean;
+  price_tier?: 1 | 2;
   wallet: WalletState;
   created_at: string;
 }

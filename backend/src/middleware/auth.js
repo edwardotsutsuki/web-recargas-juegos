@@ -64,17 +64,21 @@ export async function authMiddleware(req) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) return null;
 
-    // Obtener rol verificado de la tabla profiles
+    // Obtener rol y nivel tarifario verificados de la tabla profiles
     let role = user.email === 'b.edumalta@gmail.com' ? 'admin' : 'client';
+    let priceTier = 1;
     try {
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('role')
+        .select('role, price_tier')
         .eq('id', user.id)
         .single();
 
       if (profile?.role) {
         role = profile.role;
+      }
+      if (profile?.price_tier) {
+        priceTier = Number(profile.price_tier) === 2 ? 2 : 1;
       }
     } catch {
       // Usar rol por defecto o super admin
@@ -84,6 +88,8 @@ export async function authMiddleware(req) {
       id: user.id,
       email: user.email,
       role,
+      price_tier: priceTier,
+      priceTier,
     };
   } catch {
     return null;

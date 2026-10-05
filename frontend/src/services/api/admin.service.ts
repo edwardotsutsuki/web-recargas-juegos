@@ -357,6 +357,20 @@ export const adminService = {
       method: 'POST',
     });
   },
+
+  // --- Asignación de Nivel de Precio de Venta (Tarifa 1 vs Tarifa 2) ---
+  async updateUserPriceTier(
+    userId: string,
+    tier: 1 | 2
+  ): Promise<{ success: boolean; price_tier: 1 | 2; message: string }> {
+    return apiClient<{ success: boolean; price_tier: 1 | 2; message: string }>(
+      `/admin/users/${userId}/tier`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ tier }),
+      }
+    );
+  },
 };
 
 

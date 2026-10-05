@@ -600,9 +600,9 @@ function calculatePricing(wholesalePriceStr, suggestedRetailPriceStr, markupPerc
 
 export const catalogService = {
   /**
-   * Obtiene la lista completa de productos normalizados con precios del Admin aplicados
+   * Obtiene el catálogo base con ambos precios calculados (Tier 1 y Tier 2)
    */
-  async getCatalog() {
+  async _getBaseCatalog() {
     const now = Date.now();
     if (cachedCatalog && now - lastFetchTime < CACHE_TTL_MS) {
       return cachedCatalog;
@@ -625,7 +625,16 @@ export const catalogService = {
       const isCustomPrice = Boolean(customPkg?.suggested_price && customPkg.suggested_price !== p.suggested_retail_price);
       const priceToUse = customPkg?.suggested_price || p.suggested_retail_price;
 
-      const pricing = calculatePricing(p.price, priceToUse, 0.10, isCustomPrice);
+      // Precio 1 (Estándar / Minorista)
+      const pricing1 = calculatePricing(p.price, priceToUse, 0.10, isCustomPrice);
+
+      // Precio 2 (Mayorista / VIP / Especial):
+      // Si el admin configuró suggested_price_2, se usa ese precio. Si no, fallback a pricing1
+      let pricing2 = pricing1;
+      if (customPkg?.suggested_price_2) {
+        pricing2 = calculatePricing(p.price, customPkg.suggested_price_2, 0.05, true);
+      }
+
       const meta = GAME_DIRECTORY[p.game] || {
         id: p.game,
         name: p.game_name || p.game,
@@ -650,10 +659,12 @@ export const catalogService = {
         game: p.game_name || meta.name,
         category,
         category_label,
-        price_cents: pricing.price_cents,
-        price_decimal: pricing.price_decimal,
-        wholesale_cents: pricing.wholesale_cents,
-        wholesale_decimal: pricing.wholesale_decimal,
+        price_cents_1: pricing1.price_cents,
+        price_decimal_1: pricing1.price_decimal,
+        price_cents_2: pricing2.price_cents,
+        price_decimal_2: pricing2.price_decimal,
+        wholesale_cents: pricing1.wholesale_cents,
+        wholesale_decimal: pricing1.wholesale_decimal,
         currency: p.currency || 'USD',
         requires_player_id: Boolean(p.requires_player_id),
         can_verify_player: Boolean(p.can_verify_player),
@@ -674,15 +685,24 @@ export const catalogService = {
   },
 
   /**
+   * Obtiene la lista completa de productos normalizados con precios según el tier del usuario
+   */
+  async getCatalog(userTier = 1) {
+    const baseCatalog = await this._getBaseCatalog();
+    const tier = Number(userTier) === 2 ? 2 : 1;
+    return baseCatalog.map((p) => ({
+      ...p,
+      price_cents: tier === 2 ? p.price_cents_2 : p.price_cents_1,
+      price_decimal: tier === 2 ? p.price_decimal_2 : p.price_decimal_1,
+      user_tier: tier,
+    }));
+  },
+
+  /**
    * Obtiene las franquicias/juegos agrupados con precio mínimo "desde"
    */
-  async getGamesList(includeHidden = false) {
-    const now = Date.now();
-    if (!includeHidden && cachedGames && now - lastFetchTime < CACHE_TTL_MS) {
-      return cachedGames;
-    }
-
-    const catalog = await this.getCatalog();
+  async getGamesList(includeHidden = false, userTier = 1) {
+    const catalog = await this.getCatalog(userTier);
     const gamesMap = new Map();
 
     for (const prod of catalog) {
@@ -805,8 +825,8 @@ export const catalogService = {
   /**
    * Obtiene la información completa de un juego junto con sus paquetes ordenados por precio
    */
-  async getGameDetails(gameId) {
-    const catalog = await this.getCatalog();
+  async getGameDetails(gameId, userTier = 1) {
+    const catalog = await this.getCatalog(userTier);
     let gamePackages = catalog.filter((p) => p.game_id === gameId);
 
     if (gamePackages.length === 0) {
@@ -919,6 +939,10 @@ export const catalogService = {
         name: p.name,
         price_cents: p.price_cents,
         price_decimal: p.price_decimal,
+        price_cents_1: p.price_cents_1,
+        price_decimal_1: p.price_decimal_1,
+        price_cents_2: p.price_cents_2,
+        price_decimal_2: p.price_decimal_2,
         wholesale_cents: p.wholesale_cents,
         wholesale_decimal: p.wholesale_decimal,
         currency: p.currency,
@@ -946,10 +970,10 @@ export const catalogService = {
   },
 
   /**
-   * Busca un producto por SKU
+   * Busca un producto por SKU según el nivel de precio del usuario
    */
-  async getProductBySku(sku) {
-    const catalog = await this.getCatalog();
+  async getProductBySku(sku, userTier = 1) {
+    const catalog = await this.getCatalog(userTier);
     return catalog.find((p) => p.sku === sku);
   },
 

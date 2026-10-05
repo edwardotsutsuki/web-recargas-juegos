@@ -19,8 +19,24 @@ export const orderService = {
       throw err;
     }
 
-    // 1. Obtener precio confiable del catálogo (nunca del cliente)
-    const product = await catalogService.getProductBySku(sku);
+    let userTier = 1;
+    if (isSupabaseConfigured && userId) {
+      try {
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('price_tier')
+          .eq('id', userId)
+          .single();
+        if (profile?.price_tier) {
+          userTier = Number(profile.price_tier) === 2 ? 2 : 1;
+        }
+      } catch (err) {
+        console.warn('[orderService] Error consultando price_tier de usuario:', err.message);
+      }
+    }
+
+    // 1. Obtener precio confiable del catálogo según el nivel tarifario del usuario
+    const product = await catalogService.getProductBySku(sku, userTier);
     if (!product) {
       const err = new Error(`El producto con SKU "${sku}" no existe o fue descontinuado.`);
       err.status = 404;

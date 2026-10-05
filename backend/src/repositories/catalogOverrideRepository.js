@@ -65,6 +65,11 @@ export const catalogOverrideRepository = {
       } else if (pkg.price_cents !== undefined) {
         updateFields.suggested_price = (Number(pkg.price_cents) / 100).toFixed(2);
       }
+      if (pkg.price_decimal_2 !== undefined) {
+        updateFields.suggested_price_2 = pkg.price_decimal_2 ? String(pkg.price_decimal_2) : null;
+      } else if (pkg.price_cents_2 !== undefined) {
+        updateFields.suggested_price_2 = pkg.price_cents_2 ? (Number(pkg.price_cents_2) / 100).toFixed(2) : null;
+      }
       if (pkg.is_active !== undefined) {
         updateFields.is_active = Boolean(pkg.is_active);
       }
@@ -84,7 +89,7 @@ export const catalogOverrideRepository = {
 
     const { data, error } = await supabaseAdmin
       .from('provider_synced_products')
-      .select('sku, game_id, suggested_price, wholesale_price, is_active');
+      .select('sku, game_id, suggested_price, suggested_price_2, wholesale_price, is_active');
 
     if (error) {
       console.warn('[catalogOverrideRepository] Error obteniendo package overrides:', error.message);

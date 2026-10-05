@@ -71,14 +71,26 @@ export async function handleRequest(req, res) {
       return sendJson(res, 200, materials);
     }
 
+    const getRequestedUserTier = async () => {
+      try {
+        const authUser = await authMiddleware(req);
+        if (authUser?.price_tier) {
+          return authUser.price_tier;
+        }
+      } catch {}
+      return 1;
+    };
+
     if (method === 'GET' && pathname === '/catalog/games') {
-      const games = await catalogService.getGamesList();
+      const userTier = await getRequestedUserTier();
+      const games = await catalogService.getGamesList(false, userTier);
       return sendJson(res, 200, games);
     }
 
     if (method === 'GET' && pathname.startsWith('/catalog/games/')) {
       const gameId = pathname.replace('/catalog/games/', '');
-      const gameDetails = await catalogService.getGameDetails(gameId);
+      const userTier = await getRequestedUserTier();
+      const gameDetails = await catalogService.getGameDetails(gameId, userTier);
       if (!gameDetails) {
         return sendError(res, 404, 'GAME_NOT_FOUND', `El juego "${gameId}" no fue encontrado en el catálogo.`);
       }
@@ -86,7 +98,8 @@ export async function handleRequest(req, res) {
     }
 
     if (method === 'GET' && pathname === '/catalog') {
-      const catalog = await catalogService.getCatalog();
+      const userTier = await getRequestedUserTier();
+      const catalog = await catalogService.getCatalog(userTier);
       return sendJson(res, 200, catalog);
     }
 
@@ -225,7 +238,10 @@ export async function handleRequest(req, res) {
     // -------------------------------------------------------------------------
     if (method === 'GET' && pathname === '/wallet') {
       const wallet = await walletService.getWallet(user.id);
-      return sendJson(res, 200, wallet);
+      return sendJson(res, 200, {
+        ...wallet,
+        price_tier: user.price_tier || 1,
+      });
     }
 
     // Helper de seguridad: impide acceso de cajeros a finanzas y configuraciones del dueño
@@ -643,7 +659,7 @@ export async function handleRequest(req, res) {
 
             const { data: profiles } = await supabaseAdmin
               .from('profiles')
-              .select('id, role, full_name, phone, referral_code, two_factor_enabled, created_at, wallets(*)');
+              .select('id, role, full_name, phone, referral_code, two_factor_enabled, price_tier, created_at, wallets(*)');
 
             const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
 
@@ -658,6 +674,7 @@ export async function handleRequest(req, res) {
                 phone: p?.phone || '',
                 referral_code: p?.referral_code || null,
                 two_factor_enabled: Boolean(p?.two_factor_enabled),
+                price_tier: Number(p?.price_tier) === 2 ? 2 : 1,
                 created_at: p?.created_at || u.created_at,
                 wallet: {
                   total_balance_cents: Number(w.balance_minor || 0),
@@ -680,6 +697,7 @@ export async function handleRequest(req, res) {
               email: 'b.edumalta@gmail.com',
               full_name: 'Super Admin (Edward Malta)',
               role: 'admin',
+              price_tier: 1,
               two_factor_enabled: false,
               wallet: {
                 total_balance_cents: 0,
@@ -693,6 +711,7 @@ export async function handleRequest(req, res) {
               email: 'edward.otsutsuki@gmail.com',
               full_name: 'Edward Otsutsuki',
               role: 'client',
+              price_tier: 1,
               two_factor_enabled: false,
               wallet: {
                 total_balance_cents: 15000,
@@ -706,6 +725,7 @@ export async function handleRequest(req, res) {
               email: 'salvatierragenesis73@gmail.com',
               full_name: 'Genesis Salvatierra',
               role: 'client',
+              price_tier: 2,
               two_factor_enabled: false,
               wallet: {
                 total_balance_cents: 7500,
@@ -716,6 +736,41 @@ export async function handleRequest(req, res) {
             },
           ]);
         }
+      }
+
+      // PUT /admin/users/:id/tier (Actualizar tarifa de precios asignada al usuario: 1 o 2)
+      if ((method === 'PUT' || method === 'POST') && pathname.match(/^\/admin\/users\/[^/]+\/tier$/)) {
+        const targetUserId = pathname.split('/')[3];
+        const body = await parseBody(req);
+        const newTier = Number(body.tier || body.price_tier || body.priceTier) === 2 ? 2 : 1;
+
+        if (isSupabaseConfigured) {
+          const { error: updateErr } = await supabaseAdmin
+            .from('profiles')
+            .update({
+              price_tier: newTier,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', targetUserId);
+
+          if (updateErr) {
+            return sendError(res, 500, 'UPDATE_TIER_FAILED', updateErr.message);
+          }
+        }
+
+        // Registrar en bitácora de auditoría
+        await auditRepository.logAction({
+          adminId: user.id,
+          action: 'update_user_price_tier',
+          targetId: targetUserId,
+          details: { price_tier: newTier },
+        }).catch(() => {});
+
+        return sendJson(res, 200, {
+          success: true,
+          price_tier: newTier,
+          message: `Nivel de precio actualizado exitosamente a: Precio de Venta ${newTier}`,
+        });
       }
 
       // POST /admin/users/:id/password

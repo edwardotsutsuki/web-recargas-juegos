@@ -604,9 +604,16 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
               {/* Categoría: DIAMANTES / MONEDAS (Cuadrícula 2 Columnas Móvil) */}
               {diamondPackages.length > 0 && (
                 <div className="space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block px-1">
-                    {subscriptionPackages.length > 0 ? (game.id === 'bs' ? 'Gemas' : game.id === 'fn' ? 'Pavos' : 'Diamantes y Monedas') : 'Paquetes Disponibles'}
-                  </span>
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                      {subscriptionPackages.length > 0 ? (game.id === 'bs' ? 'Gemas' : game.id === 'fn' ? 'Pavos' : 'Diamantes y Monedas') : 'Paquetes Disponibles'}
+                    </span>
+                    {(wallet.price_tier === 2 || selectedPackage?.user_tier === 2) && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                        <Sparkles className="w-2.5 h-2.5" /> Tarifa VIP P2
+                      </span>
+                    )}
+                  </div>
                   <div className="grid grid-cols-2 gap-2.5">
                     {diamondPackages.map((pkg, idx) => {
                       const isSelected = selectedPackage?.sku === pkg.sku;
@@ -1130,6 +1137,11 @@ export const GameTopupModal: React.FC<GameTopupModalProps> = ({
                     <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
                       {visiblePackages.length} disponibles
                     </span>
+                    {(wallet.price_tier === 2 || selectedPackage?.user_tier === 2) && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
+                        <Sparkles className="w-3 h-3" /> Tarifa VIP Mayorista Activa
+                      </span>
+                    )}
                   </div>
 
                   {/* Selector de Región / Servidor cuando aplica */}
