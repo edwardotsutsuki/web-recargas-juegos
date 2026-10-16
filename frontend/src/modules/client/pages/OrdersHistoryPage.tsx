@@ -253,7 +253,7 @@ export const OrdersHistoryPage: React.FC = () => {
       case 'refunded':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30 whitespace-nowrap">
-            Reembolsado
+            ↩️ Reembolsado
           </span>
         );
       case 'orphaned':
@@ -277,6 +277,13 @@ export const OrdersHistoryPage: React.FC = () => {
         }
         return <Badge variant="warning">Procesando</Badge>;
       case 'failed':
+        if (order.failure_code === 'CANCELLED_BY_ADMIN' || order.failure_code === 'REFUNDED_BY_PROVIDER') {
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30 whitespace-nowrap">
+              ↩️ Cancelado & Reembolsado
+            </span>
+          );
+        }
         return <Badge variant="danger">Fallido</Badge>;
       default:
         return <Badge variant="neutral">{order.status}</Badge>;
@@ -532,6 +539,36 @@ export const OrdersHistoryPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Banner de Cancelación y Reembolso */}
+              {(order.failure_code === 'CANCELLED_BY_ADMIN' || order.failure_code === 'REFUNDED_BY_PROVIDER' || order.status === 'refunded') && (
+                <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 text-xs flex items-start gap-3 animate-fade-in">
+                  <span className="text-lg shrink-0 mt-0.5">↩️</span>
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-slate-900 dark:text-white">
+                      Orden Cancelada — Saldo Reembolsado en Billetera
+                    </p>
+                    <p className="text-[11px] text-purple-600 dark:text-purple-300 leading-relaxed">
+                      {order.last_error_message || 'El importe total de esta recarga ha sido devuelto a tu saldo disponible en billetera.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Banner de En Cola de Espera Proveedor */}
+              {order.failure_code === 'WAITING_PROVIDER_BALANCE' && order.status !== 'completed' && order.status !== 'failed' && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs flex items-start gap-3 animate-fade-in">
+                  <Clock className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-slate-900 dark:text-white">
+                      Recarga en Cola de Despacho
+                    </p>
+                    <p className="text-[11px] text-amber-600 dark:text-amber-300/90 leading-relaxed">
+                      Estamos esperando balance de recarga con el proveedor oficial. En breve será procesada y entregada. Si requieres cancelarla o consultar su estado, comunícate con nuestro equipo de soporte.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Instrucciones Oficiales de Canje si aplican */}
               {order.redeem_instructions && (

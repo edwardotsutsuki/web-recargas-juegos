@@ -871,6 +871,28 @@ export async function handleRequest(req, res) {
         return sendJson(res, 200, result);
       }
 
+      // POST /admin/orders/:id/cancel (Cancelar orden en proceso/cola y reembolsar saldo al cliente)
+      if (method === 'POST' && pathname.match(/^\/admin\/orders\/[^/]+\/cancel$/)) {
+        const orderId = pathname.split('/')[3];
+        const body = await parseBody(req);
+        const reason = body?.reason || 'Cancelada por el administrador. Fondos devueltos a tu saldo disponible.';
+        const result = await orderService.cancelAndRefundOrder(orderId, reason);
+
+        // Registrar en bitácora de auditoría
+        await auditRepository.logAction({
+          adminId: user.id,
+          action: 'admin_cancel_order_refund',
+          targetId: orderId,
+          details: {
+            reason,
+            refundedAmount: result.refundedAmount,
+            currency: result.currency,
+          },
+        });
+
+        return sendJson(res, 200, result);
+      }
+
       // --- Módulo Admin: Gestión de Promociones y Avisos ---
       // GET /admin/promotions
       if (method === 'GET' && pathname === '/admin/promotions') {

@@ -432,7 +432,7 @@ export const orderRepository = {
     }
   },
 
-  async refundOrder({ orderId, providerReference = null, reason = 'Reembolso por proveedor' }) {
+  async refundOrder({ orderId, providerReference = null, reason = 'Reembolso por proveedor', failureCode = 'REFUNDED_BY_PROVIDER' }) {
     if (!isSupabaseConfigured) return { success: false };
 
     try {
@@ -452,7 +452,7 @@ export const orderRepository = {
 
         await supabaseAdmin.from('orders').update({
           status: 'failed',
-          failure_code: 'REFUNDED_BY_PROVIDER',
+          failure_code: failureCode,
           last_error_message: reason,
           updated_at: new Date().toISOString(),
         }).eq('id', orderId);
@@ -476,24 +476,30 @@ export const orderRepository = {
           reason: `Reembolso acreditado: ${reason}`,
         });
       } else {
-        // Si aún estaba en retención
+        // Si aún estaba en retención (held o processing)
         await this.settlePurchase({
           orderId,
           leaseToken: null,
           outcome: 'failed',
-          failureCode: 'REFUNDED_BY_PROVIDER',
+          failureCode: failureCode,
           providerReference,
         });
+
+        // Asegurar que last_error_message quede registrado para que el cliente lo vea en sus reportes
+        await supabaseAdmin.from('orders').update({
+          last_error_message: reason,
+          updated_at: new Date().toISOString(),
+        }).eq('id', orderId);
       }
 
       await supabaseAdmin.from('purchase_jobs').update({
         state: 'done',
-        last_error_code: 'REFUNDED_BY_PROVIDER',
+        last_error_code: failureCode,
         lease_token: null,
         lease_until: null,
       }).eq('order_id', orderId);
 
-      return { success: true, order_id: orderId };
+      return { success: true, order_id: orderId, refunded_cents: Number(order.price_minor) };
     } catch (err) {
       console.error('[orderRepository] Error en refundOrder:', err);
       return { success: false, error: err.message };

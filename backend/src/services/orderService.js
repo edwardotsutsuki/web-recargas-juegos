@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { orderRepository } from '../repositories/orderRepository.js';
-import { catalogService } from './catalogService.js';
+import { catalogService, canjeaClient } from './catalogService.js';
 import { supabaseAdmin, isSupabaseConfigured } from '../repositories/supabaseClient.js';
 
 export const orderService = {
@@ -366,6 +366,80 @@ export const orderService = {
     return {
       success: true,
       message: 'Orden encolada para despacho inmediato.',
+    };
+  },
+
+  /**
+   * Cancela una orden en proceso o en cola y reembolsa inmediatamente los fondos a la billetera del cliente
+   */
+  async cancelAndRefundOrder(orderId, adminReason = 'Cancelada a solicitud del administrador') {
+    if (!isSupabaseConfigured) {
+      return { success: false, message: 'Supabase no configurado' };
+    }
+
+    const { data: order, error } = await supabaseAdmin
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !order) {
+      const err = new Error('Orden no encontrada');
+      err.status = 404;
+      throw err;
+    }
+
+    // Si ya fue completada exitosamente, no cancelar sin confirmación especial
+    if (order.status === 'succeeded' || order.status === 'completed') {
+      const err = new Error('Esta orden ya fue completada y entregada con éxito. No se puede cancelar.');
+      err.status = 400;
+      throw err;
+    }
+
+    // Comprobación de seguridad con Canjea si la orden llegó a tener intentos
+    try {
+      const providerCheck = await canjeaClient.getOrder(orderId);
+      if (providerCheck?.order?.status === 'COMPLETED') {
+        // El proveedor ya la completó en su sistema; marcar como exitosa
+        await orderRepository.settlePurchase({
+          orderId,
+          leaseToken: null,
+          outcome: 'succeeded',
+          providerReference: providerCheck.order.external_id || orderId,
+          digitalCode: providerCheck.order.redeem_code || null,
+        });
+        return {
+          success: false,
+          alreadyCompleted: true,
+          message: 'El proveedor ya había completado la entrega de esta orden. Se actualizó a completada en vez de cancelar.',
+        };
+      }
+    } catch {
+      // 404 ORDER_NOT_FOUND u otro error significa que Canjea no la procesó, por lo que es 100% seguro cancelar y reembolsar
+    }
+
+    const reason = adminReason ? String(adminReason).trim() : 'Cancelada por el administrador. Fondos reembolsados a tu saldo disponible.';
+
+    const refundRes = await orderRepository.refundOrder({
+      orderId,
+      reason,
+      failureCode: 'CANCELLED_BY_ADMIN',
+    });
+
+    if (!refundRes.success) {
+      const err = new Error(refundRes.error || refundRes.message || 'Error al reembolsar la orden');
+      err.status = 500;
+      throw err;
+    }
+
+    const amountRefunded = (Number(order.price_minor) / 100).toFixed(2);
+
+    return {
+      success: true,
+      orderId,
+      refundedAmount: amountRefunded,
+      currency: order.currency,
+      message: `Orden cancelada con éxito. Se reembolsaron $${amountRefunded} ${order.currency} a la billetera del cliente.`,
     };
   },
 };

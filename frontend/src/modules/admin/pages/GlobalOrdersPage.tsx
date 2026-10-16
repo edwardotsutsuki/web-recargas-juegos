@@ -4,7 +4,7 @@ import { adminService } from '../../../services/api/admin.service';
 import { PriceDisplay } from '../../../components/molecules/PriceDisplay';
 import { Badge } from '../../../components/atoms/Badge';
 import { useUIStore } from '../../../store/useUIStore';
-import { ShoppingBag, RefreshCw, ShieldCheck, Search, Filter, User, AlertCircle, Clock, Zap, MessageCircle } from 'lucide-react';
+import { ShoppingBag, RefreshCw, ShieldCheck, Search, Filter, User, AlertCircle, Clock, Zap, MessageCircle, XCircle, AlertTriangle, X } from 'lucide-react';
 
 export const GlobalOrdersPage: React.FC = () => {
   const { showToast } = useUIStore();
@@ -13,10 +13,33 @@ export const GlobalOrdersPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isTriggering, setIsTriggering] = useState(false);
   const [retryingOrderId, setRetryingOrderId] = useState<string | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState<Order | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>('');
+  const [isCancelling, setIsCancelling] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'failed' | 'refunded'>('all');
   const [selectedGame, setSelectedGame] = useState<string>('all');
   const [autoRefresh, setAutoRefresh] = useState(true);
+
+  const handleOpenCancelModal = (order: Order) => {
+    setCancellingOrder(order);
+    setCancelReason('Cancelada por administración. Saldo reembolsado a tu billetera disponible.');
+  };
+
+  const handleConfirmCancelOrder = async () => {
+    if (!cancellingOrder) return;
+    try {
+      setIsCancelling(true);
+      const res = await adminService.cancelOrder(cancellingOrder.id, cancelReason);
+      showToast(res.message || 'Orden cancelada y fondos devueltos con éxito', 'success');
+      setCancellingOrder(null);
+      await loadOrders(false);
+    } catch (err: any) {
+      showToast(err.message || 'Error al cancelar y reembolsar la orden', 'error');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const loadOrders = async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
@@ -80,17 +103,27 @@ export const GlobalOrdersPage: React.FC = () => {
 
   const uniqueGames = Array.from(new Set(orders.map((o) => o.game).filter(Boolean)));
 
+  const isCancellable = (order: Order) => {
+    return (
+      order.status !== 'completed' &&
+      order.status !== 'refunded' &&
+      order.failure_code !== 'CANCELLED_BY_ADMIN' &&
+      order.failure_code !== 'REFUNDED_BY_PROVIDER'
+    );
+  };
+
   const filteredOrders = orders.filter((o) => {
+    const isRefunded = o.status === 'refunded' || o.failure_code === 'CANCELLED_BY_ADMIN' || o.failure_code === 'REFUNDED_BY_PROVIDER';
     const matchesStatus =
       statusFilter === 'all'
         ? true
         : statusFilter === 'completed'
         ? o.status === 'completed'
         : statusFilter === 'processing'
-        ? o.status === 'processing' || o.status === 'pending' || o.status === 'orphaned'
+        ? !isRefunded && (o.status === 'processing' || o.status === 'pending' || o.status === 'orphaned' || o.failure_code === 'WAITING_PROVIDER_BALANCE')
         : statusFilter === 'refunded'
-        ? o.status === 'refunded'
-        : o.status === 'failed' || o.status === 'cancelled';
+        ? isRefunded
+        : !isRefunded && (o.status === 'failed' || o.status === 'cancelled');
 
     const matchesGame = selectedGame === 'all' || o.game === selectedGame;
 
@@ -110,19 +143,19 @@ export const GlobalOrdersPage: React.FC = () => {
   const countByStatus = {
     all: orders.length,
     completed: orders.filter((o) => o.status === 'completed').length,
-    processing: orders.filter((o) => o.status === 'processing' || o.status === 'pending' || o.status === 'orphaned').length,
-    refunded: orders.filter((o) => o.status === 'refunded').length,
-    failed: orders.filter((o) => o.status === 'failed' || o.status === 'cancelled').length,
+    processing: orders.filter((o) => (o.status === 'processing' || o.status === 'pending' || o.status === 'orphaned' || o.failure_code === 'WAITING_PROVIDER_BALANCE') && o.failure_code !== 'CANCELLED_BY_ADMIN' && o.failure_code !== 'REFUNDED_BY_PROVIDER').length,
+    refunded: orders.filter((o) => o.status === 'refunded' || o.failure_code === 'CANCELLED_BY_ADMIN' || o.failure_code === 'REFUNDED_BY_PROVIDER').length,
+    failed: orders.filter((o) => (o.status === 'failed' || o.status === 'cancelled') && o.failure_code !== 'CANCELLED_BY_ADMIN' && o.failure_code !== 'REFUNDED_BY_PROVIDER').length,
   };
 
   const renderStatusBadge = (order: Order) => {
     if (order.status === 'completed') {
       return <Badge variant="success">Completado</Badge>;
     }
-    if (order.status === 'refunded') {
+    if (order.status === 'refunded' || order.failure_code === 'CANCELLED_BY_ADMIN' || order.failure_code === 'REFUNDED_BY_PROVIDER') {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30 whitespace-nowrap">
-          Reembolsado
+          ↩️ Reembolsado
         </span>
       );
     }
@@ -373,52 +406,98 @@ export const GlobalOrdersPage: React.FC = () => {
                   </span>
                 </div>
 
-                {(order.status !== 'completed' && order.status !== 'refunded') && order.failure_code === 'WAITING_PROVIDER_BALANCE' ? (
-                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
+                {(order.failure_code === 'CANCELLED_BY_ADMIN' || order.failure_code === 'REFUNDED_BY_PROVIDER') ? (
+                  <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-300 text-xs flex items-center gap-2">
+                    <XCircle className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                    <span className="truncate">Cancelado & Reembolsado: {order.last_error_message || 'Fondos devueltos al cliente'}</span>
+                  </div>
+                ) : (order.status !== 'completed' && order.status !== 'refunded') && order.failure_code === 'WAITING_PROVIDER_BALANCE' ? (
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
                       <span>En cola: Esperando saldo de proveedor</span>
                     </div>
-                    <button
-                      type="button"
-                      disabled={retryingOrderId === order.id}
-                      onClick={() => handleRetryOrder(order.id)}
-                      className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[10px] font-bold border border-amber-500/30 flex items-center gap-1 transition-all disabled:opacity-50"
-                    >
-                      <RefreshCw className={`w-3 h-3 ${retryingOrderId === order.id ? 'animate-spin' : ''}`} />
-                      Reintentar
-                    </button>
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <button
+                        type="button"
+                        disabled={retryingOrderId === order.id}
+                        onClick={() => handleRetryOrder(order.id)}
+                        className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[10px] font-bold border border-amber-500/30 flex items-center gap-1 transition-all disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${retryingOrderId === order.id ? 'animate-spin' : ''}`} />
+                        Reintentar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCancelModal(order)}
+                        className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[10px] font-bold border border-rose-500/30 flex items-center gap-1 transition-all"
+                      >
+                        <XCircle className="w-3 h-3 text-rose-400" />
+                        Cancelar & Reembolsar
+                      </button>
+                    </div>
                   </div>
                 ) : (order.status === 'orphaned' || order.failure_code === 'ORPHANED') ? (
-                  <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
+                  <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
                       <span className="truncate">{order.last_error_message || 'Transacción ambigua en Canjea'}</span>
                     </div>
-                    <a
-                      href={`https://wa.me/51973581378?text=${encodeURIComponent(`Hola Soporte Canjea, solicito revisar la orden ${order.id} con estado ambiguo/huérfano.`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 transition-all shrink-0"
-                    >
-                      <MessageCircle className="w-3 h-3" />
-                      Soporte
-                    </a>
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <a
+                        href={`https://wa.me/51973581378?text=${encodeURIComponent(`Hola Soporte Canjea, solicito revisar la orden ${order.id} con estado ambiguo/huérfano.`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 transition-all shrink-0"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        Soporte
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCancelModal(order)}
+                        className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[10px] font-bold border border-rose-500/30 flex items-center gap-1 transition-all"
+                      >
+                        <XCircle className="w-3 h-3 text-rose-400" />
+                        Cancelar & Reembolsar
+                      </button>
+                    </div>
                   </div>
                 ) : (order.status !== 'completed' && order.status !== 'refunded') && order.failure_code ? (
-                  <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 text-xs flex items-center justify-between gap-2">
+                  <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate">Error: {order.last_error_message || order.failure_code}</span>
                     </div>
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <button
+                        type="button"
+                        disabled={retryingOrderId === order.id}
+                        onClick={() => handleRetryOrder(order.id)}
+                        className="px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-200 text-[10px] font-bold border border-red-500/30 flex items-center gap-1 transition-all disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${retryingOrderId === order.id ? 'animate-spin' : ''}`} />
+                        Reintentar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCancelModal(order)}
+                        className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[10px] font-bold border border-rose-500/30 flex items-center gap-1 transition-all"
+                      >
+                        <XCircle className="w-3 h-3 text-rose-400" />
+                        Cancelar & Reembolsar
+                      </button>
+                    </div>
+                  </div>
+                ) : isCancellable(order) ? (
+                  <div className="flex justify-end pt-1">
                     <button
                       type="button"
-                      disabled={retryingOrderId === order.id}
-                      onClick={() => handleRetryOrder(order.id)}
-                      className="px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-200 text-[10px] font-bold border border-red-500/30 flex items-center gap-1 transition-all disabled:opacity-50"
+                      onClick={() => handleOpenCancelModal(order)}
+                      className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 hover:text-rose-300 text-[10px] font-bold border border-rose-500/30 flex items-center gap-1 transition-all"
                     >
-                      <RefreshCw className={`w-3 h-3 ${retryingOrderId === order.id ? 'animate-spin' : ''}`} />
-                      Reintentar
+                      <XCircle className="w-3 h-3 text-rose-400" />
+                      Cancelar & Reembolsar
                     </button>
                   </div>
                 ) : null}
@@ -440,6 +519,7 @@ export const GlobalOrdersPage: React.FC = () => {
                     <th className="p-4">Estado</th>
                     <th className="p-4">Entrega</th>
                     <th className="p-4">Fecha</th>
+                    <th className="p-4 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200/80 dark:divide-slate-800/60 text-sm">
@@ -521,7 +601,7 @@ export const GlobalOrdersPage: React.FC = () => {
                             </button>
                           </div>
                         )}
-                        {order.status === 'failed' && order.failure_code && order.failure_code !== 'WAITING_PROVIDER_BALANCE' && (
+                        {order.status === 'failed' && order.failure_code && order.failure_code !== 'WAITING_PROVIDER_BALANCE' && order.failure_code !== 'CANCELLED_BY_ADMIN' && order.failure_code !== 'REFUNDED_BY_PROVIDER' && (
                           <div className="flex items-center gap-1.5 mt-1.5">
                             <span className="text-[10px] text-red-600 dark:text-red-400 font-mono" title={order.last_error_message || order.failure_code}>
                               {order.failure_code}
@@ -559,6 +639,21 @@ export const GlobalOrdersPage: React.FC = () => {
                           </span>
                         </div>
                       </td>
+                      <td className="p-4 text-right whitespace-nowrap">
+                        {isCancellable(order) ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCancelModal(order)}
+                            className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 hover:text-rose-400 text-xs font-bold border border-rose-500/30 inline-flex items-center gap-1 transition-all shadow-xs cursor-pointer"
+                            title="Cancelar orden y reembolsar saldo al cliente"
+                          >
+                            <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                            Cancelar & Reembolsar
+                          </button>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-600 text-xs">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -566,6 +661,120 @@ export const GlobalOrdersPage: React.FC = () => {
             </div>
           </div>
         </>
+      )}
+
+      {/* Modal de Confirmación de Cancelación y Reembolso */}
+      {cancellingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 relative">
+            <button
+              type="button"
+              onClick={() => !isCancelling && setCancellingOrder(null)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white font-['Rajdhani'] uppercase tracking-wider">
+                  Cancelar Orden y Reembolsar Fondos
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Acción administrativa segura e inmediata
+                </p>
+              </div>
+            </div>
+
+            {/* Resumen de la Orden */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 dark:text-slate-400">ID Orden:</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">{cancellingOrder.id}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 dark:text-slate-400">Cliente / Revendedor:</span>
+                <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[240px]">
+                  {cancellingOrder.user_email || cancellingOrder.user_name || 'Revendedor'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 dark:text-slate-400">Producto:</span>
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {cancellingOrder.game} &bull; {cancellingOrder.product_name}
+                </span>
+              </div>
+              {cancellingOrder.player_id && (
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 dark:text-slate-400">ID Jugador:</span>
+                  <span className="font-mono text-slate-900 dark:text-white">
+                    {cancellingOrder.player_id} {cancellingOrder.player_name ? `(${cancellingOrder.player_name})` : ''}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-800">
+                <span className="font-bold text-slate-700 dark:text-slate-300">Importe a Reembolsar:</span>
+                <span className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                  ${(cancellingOrder.amount_cents / 100).toFixed(2)} {cancellingOrder.currency || 'USD'}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+              <p>
+                Al confirmar, el dinero será restituido <strong>inmediatamente</strong> al saldo disponible de la billetera del cliente. La orden pasará a estado cancelado y se detendrá la cola en el sistema.
+              </p>
+            </div>
+
+            {/* Motivo de Cancelación */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
+                Motivo / Notificación al Cliente:
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Escribe el motivo del reembolso que el cliente verá en su reporte..."
+                rows={3}
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-rose-500 resize-none font-sans"
+              />
+            </div>
+
+            {/* Botones de acción */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isCancelling}
+                onClick={() => setCancellingOrder(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                disabled={isCancelling || !cancelReason.trim()}
+                onClick={handleConfirmCancelOrder}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-rose-600/20 disabled:opacity-50 active:scale-95 cursor-pointer"
+              >
+                {isCancelling ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Procesando Reembolso...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-3.5 h-3.5" />
+                    Confirmar Cancelación & Reembolso
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

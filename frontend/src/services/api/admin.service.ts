@@ -342,6 +342,13 @@ export const adminService = {
     });
   },
 
+  async cancelOrder(orderId: string, reason?: string): Promise<{ success: boolean; message: string; refundedAmount?: string; currency?: string }> {
+    return apiClient<{ success: boolean; message: string; refundedAmount?: string; currency?: string }>(`/admin/orders/${orderId}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
   async triggerWaitingOrders(): Promise<{
     success: boolean;
     triggered_count: number;
